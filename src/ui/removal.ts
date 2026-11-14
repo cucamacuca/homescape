@@ -1,7 +1,8 @@
 import { useHa } from '@/ha/store'
-import { areaContents, rectsOf } from '@/model/geometry'
+import { areaContents, rectsOf, wallItems } from '@/model/geometry'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import { t, tn } from '@/i18n'
+import type { RemovedWall } from '@/model/types'
 
 /*
  * Deleting a room or a part with everything in it (items, devices, doors inside; doors from neighbors that open into it).
@@ -68,4 +69,17 @@ export function removeRoomPart(roomId: string, index: number) {
       ? tn(n, 'A part of {room} deleted with the item in it. ⌘Z undoes it.', 'A part of {room} deleted with the {count} items in it. ⌘Z undoes it.', vars)
       : t('A part of {room} deleted. ⌘Z undoes it.', vars),
   })
+}
+
+/** Doors, windows and wall items that go with a wall when it is deleted */
+export function wallContentsCount(run: RemovedWall) {
+  const level = activeLevel(useLayout.getState())
+  return level ? wallItems(run, level.items).length : 0
+}
+
+/** Deletes one wall run (gone for the neighbor too) with what is on it, and says so; ⌘Z brings everything back */
+export function removeWall(roomId: string, run: RemovedWall) {
+  const n = wallContentsCount(run)
+  useLayout.getState().deleteWall(roomId, run)
+  useHa.setState({ notice: n ? tn(n, 'Wall deleted with the item on it. ⌘Z undoes it.', 'Wall deleted with the {count} items on it. ⌘Z undoes it.') : t('Wall deleted. ⌘Z undoes it.') })
 }

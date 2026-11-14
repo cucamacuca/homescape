@@ -26,12 +26,11 @@ export interface Rect {
 }
 
 /**
- * A wall segment the user removed (hidden), in world coordinates: a horizontal wall lies on z = line from x = a0 to a1, a
- * vertical one on x = line from z = a0 to a1. Matching is by the segment's middle (geometry.ts > isWallOpen), so a run that
- * is split differently later still opens where it overlaps. A wall shared with another room opens on both sides when
- * either room lists it.
+ * A wall piece the user deleted, in world coordinates: a horizontal wall lies on z = line from x = a0 to a1, a vertical one
+ * on x = line from z = a0 to a1. A run is gone when its middle falls inside (geometry.ts > isWallRemoved), so it stays
+ * deleted when the run is later split differently. A wall shared with another room is gone for both rooms.
  */
-export interface OpenWall {
+export interface RemovedWall {
   horizontal: boolean
   line: number
   a0: number
@@ -52,8 +51,8 @@ export interface Room extends Rect {
   parts?: Rect[]
   /** Room type; 'room' when not given (indoor with walls) */
   type?: RoomType
-  /** Wall segments removed by the user (no wall, railing or collider there); see OpenWall */
-  openWalls?: OpenWall[]
+  /** Walls the user deleted (no wall, railing or collider there); see RemovedWall */
+  removedWalls?: RemovedWall[]
 }
 
 export type ItemKind =
@@ -357,4 +356,5 @@ export interface Layout {
   up?: number
 }
 
-export type Selection = { type: 'room' | 'item'; id: string } | null
+/** What is selected: a room, an item, or one wall run of a room (id is the room; run says which wall) */
+export type Selection = { type: 'room' | 'item'; id: string } | { type: 'wall'; id: string; run: RemovedWall } | null

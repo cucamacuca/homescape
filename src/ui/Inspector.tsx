@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp, DoorOpen, Eye, EyeOff, PanelBottomOpen, Compass, Copy, PersonStanding, Power, Fish, Group, History, Lightbulb, Link, Pencil, RotateCcw, RotateCw, Search, SquarePlus, Trash2, TriangleAlert, WandSparkles, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronUp, PanelBottomOpen, Compass, Copy, PersonStanding, Power, Fish, Group, History, Lightbulb, Link, Pencil, RotateCcw, RotateCw, Search, SquarePlus, Trash2, TriangleAlert, WandSparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { canToggle, toggle, turnOffAll } from '@/ha/actions'
 import { friendlyName, isActive, relativeTime, stateLabel } from '@/ha/derive'
@@ -6,7 +6,7 @@ import { useHa } from '@/ha/store'
 import { bindingsOf, boundAnywhere, emitsLight, isBound, ledOf, ledSource } from '@/model/bindings'
 import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, ITEM_PRESETS, OPTIONS, RESIZABLE, RESIZABLE2, sizeOf, TOP_COLORS } from '@/model/catalog'
 import { kindFor, modelName, variantFor } from '@/model/generate'
-import { doorSides, isOutdoor, isStreetSurface, isWallOpen, rectsOf, roomArea, roomAt, wallRuns, wallSnap, type Side, type WallRun } from '@/model/geometry'
+import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallItems, wallSnap } from '@/model/geometry'
 import { groupFamily, groupMates, heatingSummary } from '@/model/groups'
 import { activeHomeId, activeLevel, homesOf, useLayout } from '@/model/layoutStore'
 import { usePlacement } from '@/model/placement'
@@ -15,12 +15,12 @@ import { checkItem, isWallMounted, MOUNTABLE, mountRange, overlapsRoom, SURFACE_
 import { containerOf, INTERIOR, moveWithContents, placeInside, toLocal } from '@/model/containers'
 import { counterSink } from '@/model/counter'
 import { mountCenter, mountY, setMountY, setWallMount } from './mount'
-import type { FloorMaterial, Item, ItemKind, Room, RoomType } from '@/model/types'
+import type { FloorMaterial, Item, ItemKind, RemovedWall, Room, RoomType } from '@/model/types'
 import { currentLang, lower, t, tn } from '@/i18n'
 import { useView } from '@/scene/camera'
 import { BindingEditor, BindingSummary, itemName, itemStateLabel } from './Bindings'
 import { EntityControls } from './Controls'
-import { removeRoom, removeRoomPart, roomContentsCount } from './removal'
+import { removeRoom, removeRoomPart, removeWall, roomContentsCount } from './removal'
 import { rotateRoom } from './rotateRoom'
 import { regenerateFromHa } from './regenerate'
 import { KIND_ICON } from './kindIcons'
@@ -1098,116 +1098,51 @@ function RoomParts({ room }: { room: Room }) {
 }
 
 /**
- * The room's walls, one row per wall run: hide a whole run (eye) or cut an entrance with no door into it (door button, a
- * 1 m opening in the middle). An opening is a removed piece (Room.openWalls) with its own width and position from the
- * start of the wall; a piece shared with another room opens on both sides (geometry.ts > wallRuns). Outdoor spaces list
- * their railing edges the same way. One undo step per click or per edited field.
+ * A selected wall (edit mode, a click on the wall): its length, the rooms on both sides and a delete button. The wall goes
+ * with the doors, windows and wall items on it (geometry.ts > wallItems); a shared wall is gone for both rooms. Asks once
+ * (click again), like deleting a room; Delete or Backspace deletes it straight away. ⌘Z brings everything back.
  */
-function RoomWalls({ room }: { room: Room }) {
-  const rooms = useLayout((s) => activeLevel(s)?.rooms)
-  const runs = useMemo(() => (rooms ? wallRuns(room, rooms, 'walls', true) : []), [room, rooms])
-  if (!rooms || !runs.length) return null
-  const sideName: Record<Side, string> = { back: t('Back wall'), front: t('Front wall'), left: t('Left wall'), right: t('Right wall') }
-  const rects = rectsOf(room)
-  /** Where the room's wall on this line starts and ends (so an opening stays on the wall and its position is measured from the start) */
-  const span = (run: WallRun) => {
-    const on = rects.filter((q) => (run.horizontal ? Math.abs(q.z - run.line) < 0.06 || Math.abs(q.z + q.d - run.line) < 0.06 : Math.abs(q.x - run.line) < 0.06 || Math.abs(q.x + q.w - run.line) < 0.06))
-    const lo = Math.min(...on.map((q) => (run.horizontal ? q.x : q.z)))
-    const hi = Math.max(...on.map((q) => (run.horizontal ? q.x + q.w : q.z + q.d)))
-    return Number.isFinite(lo) && Number.isFinite(hi) ? { lo, hi } : { lo: run.a0, hi: run.a1 }
-  }
-  /** The removed piece covering this run, and the room that stores it */
-  const pieceOf = (run: WallRun) => {
-    const m = (run.a0 + run.a1) / 2
-    for (const r of rooms) {
-      const i = (r.openWalls ?? []).findIndex((o) => o.horizontal === run.horizontal && Math.abs(o.line - run.line) < 0.06 && m > Math.min(o.a0, o.a1) && m < Math.max(o.a0, o.a1))
-      if (i >= 0) return { owner: r, i, o: r.openWalls![i] }
-    }
-    return null
-  }
-  const r2 = (v: number) => Math.round(v * 100) / 100
-  const hide = (run: WallRun, a0: number, a1: number) => {
-    const s = useLayout.getState()
-    s.checkpoint()
-    s.updateRoom(room.id, { openWalls: [...(room.openWalls ?? []), { horizontal: run.horizontal, line: run.line, a0: r2(a0), a1: r2(a1) }] }, false)
-  }
-  const show = (run: WallRun) => {
-    const s = useLayout.getState()
-    const m = (run.a0 + run.a1) / 2
-    s.checkpoint()
-    // Drop every removed piece on this line that covers the run, from this room and from the neighbor
-    for (const r of rooms) {
-      if (!isWallOpen(r, run.horizontal, run.line, m)) continue
-      const keep = (r.openWalls ?? []).filter((o) => !(o.horizontal === run.horizontal && Math.abs(o.line - run.line) < 0.06 && m > Math.min(o.a0, o.a1) && m < Math.max(o.a0, o.a1)))
-      s.updateRoom(r.id, { openWalls: keep.length ? keep : undefined }, false)
-    }
-  }
-  const addOpening = (run: WallRun) => {
-    const len = run.a1 - run.a0
-    if (len <= 1.2) return hide(run, run.a0, run.a1)
-    const m = (run.a0 + run.a1) / 2
-    hide(run, m - 0.5, m + 0.5)
-  }
-  /** Width or position of an opening, kept on the wall (at least 0.3 m wide) */
-  const editPiece = (run: WallRun, key: 'width' | 'from', value: number) => {
-    const p = pieceOf(run)
-    if (!p || !Number.isFinite(value)) return
-    const { lo, hi } = span(run)
-    const a0 = Math.min(p.o.a0, p.o.a1)
-    const width = key === 'width' ? Math.max(0.3, Math.min(value, hi - lo)) : Math.abs(p.o.a1 - p.o.a0)
-    const start = Math.max(lo, Math.min(key === 'from' ? lo + value : a0, hi - width))
-    const next = [...(p.owner.openWalls ?? [])]
-    next[p.i] = { ...p.o, a0: r2(start), a1: r2(start + width) }
-    useLayout.getState().updateRoom(p.owner.id, { openWalls: next }, false)
-  }
-  const field = 'w-full min-w-0 rounded-lg border border-line bg-surface px-2 py-1 font-mono text-[12px] tabular-nums'
+function WallEdit({ roomId, run }: { roomId: string; run: RemovedWall }) {
+  const { select } = useLayout.getState()
+  const rooms = useLayout((s) => activeLevel(s)?.rooms ?? [])
+  const items = useLayout((s) => activeLevel(s)?.items ?? [])
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const id = setTimeout(() => setArmed(false), 4000)
+    return () => clearTimeout(id)
+  }, [armed])
+  const room = rooms.find((r) => r.id === roomId)
+  if (!room) return null
+  // The room on the other side: just past the wall's middle, away from this room
+  const m = (run.a0 + run.a1) / 2
+  const probe = (d: number) => (run.horizontal ? roomAt(rooms, m, run.line + d) : roomAt(rooms, run.line + d, m))
+  const other = [probe(0.1), probe(-0.1)].find((r) => r && r.id !== roomId)
+  const n = wallItems(run, items).length
   return (
-    <div className="grid gap-1.5" id={`walls-${room.id}`}>
-      <span className="text-[12px] font-semibold text-ink-2">{isOutdoor(room) ? t('Edges') : t('Walls')}</span>
-      {runs.map((run, i) => {
-        const piece = run.open ? pieceOf(run) : null
-        const { lo } = span(run)
-        return (
-          <div key={`${run.side}-${run.line}-${run.a0}`} className={`grid gap-1.5 rounded-xl border px-3 py-1.5 ${run.open ? 'border-dashed border-line text-ink-3' : 'border-line text-ink-2'}`}>
-            <div className="flex items-center gap-1">
-              <span className="min-w-0 flex-1 truncate text-[12.5px]">
-                {run.open ? t('Opening') + ' · ' : ''}
-                {sideName[run.side]}
-                <span className="ml-1.5 font-mono text-[11px] text-ink-3">{fmt(run.a1 - run.a0, 2)} m</span>
-                {run.interior && <span className="ml-1.5 text-[11px] text-ink-3">{t('shared')}</span>}
-              </span>
-              {!run.open && (
-                <button type="button" id={`wall-opening-${room.id}-${i}`} onClick={() => addOpening(run)} className="grid size-7 place-items-center rounded-lg hover:bg-surface-2 hover:text-ink" title={t('Add an opening (an entrance with no door)')}>
-                  <DoorOpen size={15} />
-                </button>
-              )}
-              <button
-                type="button"
-                id={`wall-toggle-${room.id}-${i}`}
-                data-open={run.open ? '1' : '0'}
-                onClick={() => (run.open ? show(run) : hide(run, run.a0, run.a1))}
-                className="grid size-7 place-items-center rounded-lg hover:bg-surface-2 hover:text-ink"
-                title={run.open ? t('Show this wall') : t('Hide this wall')}
-              >
-                {run.open ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-            {piece && (
-              <div className="grid grid-cols-2 gap-2 pb-0.5">
-                <label className="grid min-w-0 gap-0.5">
-                  <span className="text-[10.5px] text-ink-3">{t('Width')} (m)</span>
-                  <input id={`wall-width-${room.id}-${i}`} type="number" step={0.1} min={0.3} value={r2(Math.abs(piece.o.a1 - piece.o.a0))} onFocus={() => useLayout.getState().checkpoint()} onChange={(e) => editPiece(run, 'width', Number(e.target.value))} className={field} />
-                </label>
-                <label className="grid min-w-0 gap-0.5">
-                  <span className="text-[10.5px] text-ink-3">{t('From the start of the wall')} (m)</span>
-                  <input id={`wall-from-${room.id}-${i}`} type="number" step={0.1} min={0} value={r2(Math.min(piece.o.a0, piece.o.a1) - lo)} onFocus={() => useLayout.getState().checkpoint()} onChange={(e) => editPiece(run, 'from', Number(e.target.value))} className={field} />
-                </label>
-              </div>
-            )}
-          </div>
-        )
-      })}
-      <p className="text-[11px] leading-relaxed text-ink-3">{t('Hide a wall, or add an opening for an entrance with no door. A shared wall opens on both sides.')}</p>
+    <div className={panel}>
+      <Header eyebrow={`${t('Edit')} · ${t('Wall')}`} title={other ? `${room.name} · ${other.name}` : room.name} onClose={() => select(null)} />
+      <div className={`${body} gap-3`}>
+        <div className="flex items-center justify-between rounded-xl border border-line px-3 py-2 text-[12.5px] text-ink-2">
+          <span>{other ? t('Shared wall') : t('Exterior wall')}</span>
+          <span className="font-mono text-[11.5px] text-ink-3">{fmt(run.a1 - run.a0, 2)} m</span>
+        </div>
+        <button
+          type="button"
+          id="wall-delete"
+          onClick={() => (armed ? removeWall(roomId, run) : setArmed(true))}
+          className={`flex w-full flex-col items-center justify-center rounded-xl py-2 font-semibold transition-colors ${armed ? 'bg-miss text-white' : 'bg-miss-50 text-miss'}`}
+        >
+          <span className="flex items-center gap-2 text-[13px]">
+            <Trash2 size={15} />
+            {armed ? t('Are you sure? Click again') : t('Delete wall')}
+          </span>
+          <span className={`text-[11px] font-medium ${armed ? 'text-white/85' : 'text-miss/80'}`}>
+            {n ? tn(n, 'The {count} door, window or item on it is deleted too · ⌘Z undoes', 'The {count} doors, windows and items on it are deleted too · ⌘Z undoes') : t('Nothing is on this wall · ⌘Z undoes')}
+          </span>
+        </button>
+        <p className="text-[11px] leading-relaxed text-ink-3">{other ? t('The wall disappears for both rooms. Tip: Delete or Backspace deletes the selected wall.') : t('Tip: Delete or Backspace deletes the selected wall.')}</p>
+      </div>
     </div>
   )
 }
@@ -1301,7 +1236,6 @@ function RoomEdit({ room }: { room: Room }) {
           ))}
         </div>
         <RoomParts room={room} />
-        <RoomWalls room={room} />
         <div className="flex gap-1.5">
           {([-1, 1] as const).map((d) => (
             <button
@@ -1588,6 +1522,8 @@ export default function Inspector({ stats }: { stats: Record<string, RoomStats> 
   } else if (selection?.type === 'room') {
     const room = level?.rooms.find((r) => r.id === selection.id)
     content = room ? mode === 'edit' ? <RoomEdit room={room} /> : <RoomView room={room} stats={stats[room.id]} /> : null
+  } else if (selection?.type === 'wall' && mode === 'edit') {
+    content = <WallEdit roomId={selection.id} run={selection.run} />
   }
   // On a phone the edit help covers the scene: show it only on wide screens (an empty plan has nothing to cover, so show it)
   const helpOnly = !content && mode === 'edit' && (level?.rooms.length ?? 0) > 0

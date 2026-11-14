@@ -39,7 +39,7 @@ import RoomBar from '@/ui/RoomBar'
 import Toast from '@/ui/Toast'
 import TopBar from '@/ui/TopBar'
 import { useHomeTotals, useRoomStats } from '@/ui/useHome'
-import { multiCounts, removeMulti, removeRoom } from '@/ui/removal'
+import { multiCounts, removeMulti, removeRoom, removeWall } from '@/ui/removal'
 import { usePlacementInput } from '@/ui/usePlacementInput'
 import { mountY, nudgeAlongWall, setMountY } from '@/ui/mount'
 import { isWallMounted } from '@/model/rules'
@@ -216,6 +216,12 @@ function useShortcuts() {
       if (s.mode === 'edit' && s.selection?.type === 'room' && (e.key === 'Delete' || e.key === 'Backspace')) {
         e.preventDefault()
         removeRoom(s.selection.id)
+        return
+      }
+      // Delete with a wall selected: the wall goes with the doors, windows and wall items on it; ⌘Z brings it back.
+      if (s.mode === 'edit' && s.selection?.type === 'wall' && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault()
+        removeWall(s.selection.id, s.selection.run)
         return
       }
       // R with a room selected: the room turns 90° with all its parts and items (⇧R the other way; ui/rotateRoom.ts)

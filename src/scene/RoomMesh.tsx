@@ -2,7 +2,7 @@ import { useFrame, useThree, type ThreeElements, type ThreeEvent } from '@react-
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { inRoom, isOutdoor, rectBounds, rectsOf, runOpenings, shiftRoom, snap, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, WALL_T, wallRuns, type Opening, type Side, type WallRun } from '@/model/geometry'
+import { inRoom, isOutdoor, rectBounds, rectsOf, runOpenings, sameWall, shiftRoom, snap, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, WALL_T, wallRuns, type Opening, type Side, type WallRun } from '@/model/geometry'
 import { useHa } from '@/ha/store'
 import { t } from '@/i18n'
 import { activeLevel, FLOOR_H, useLayout } from '@/model/layoutStore'
@@ -68,13 +68,17 @@ const stopAtWall = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
   if (useLayout.getState().tool === 'select') e.stopPropagation()
 }
 const WALL_EVENTS = { onPointerDown: stopAtWall, onPointerMove: stopAtWall, onPointerOver: stopAtWall, onClick: stopAtWall, onDoubleClick: stopAtWall }
+/** The selected wall (in edit mode, to delete it): brand blue, on both halves of a shared wall */
+const selectedWallMat = mat(C.brand, { roughness: 0.7 })
 
 /**
  * Wall height: all low in the plan view; an interior wall, depending on the setting, full height (not cut while the camera
  * turns, hides what is behind; default) or low (floor plan); an exterior wall is cut when facing the camera, else full.
  */
-function Wall({ run, interior, plan, innerFull, still, fps }: { run: RunData; interior: boolean; plan: boolean; innerFull: boolean; still?: boolean; fps?: boolean }) {
+function Wall({ run, roomId, interior, plan, innerFull, still, fps }: { run: RunData; roomId: string; interior: boolean; plan: boolean; innerFull: boolean; still?: boolean; fps?: boolean }) {
   const refs = useRef<(THREE.Mesh | null)[]>([])
+  // Selected (edit mode): this run, or the neighbor's half of the same shared wall
+  const selected = useLayout((s) => !still && s.selection?.type === 'wall' && sameWall(s.selection.run, run))
   const h = useRef(WALL_H)
   const { horizontal, side, line, a0, a1, cx, cz, openings } = run
   // The wall is centered on the room boundary: an exterior wall has full thickness (half of it outside), a shared interior
@@ -89,7 +93,21 @@ function Wall({ run, interior, plan, innerFull, still, fps }: { run: RunData; in
   useEffect(() => {
     settled.current = false
     invalidate()
-  }, [parts, interior, plan, innerFull, invalidate])
+  }, [parts, interior, plan, innerFull, selected, invalidate])
+  // In edit mode with the select tool a click selects the wall (to delete it: the card or the Delete key); otherwise the
+  // wall only stops the click from reaching what is behind it
+  const events = useMemo(
+    () => ({
+      ...WALL_EVENTS,
+      onClick: (e: ThreeEvent<MouseEvent>) => {
+        const s = useLayout.getState()
+        if (s.mode !== 'edit' || s.tool !== 'select' || e.delta > DRAG_PX || cameraKey() || usePlacement.getState().target) return stopAtWall(e)
+        e.stopPropagation()
+        s.select({ type: 'wall', id: roomId, run: { horizontal, line, a0, a1 } })
+      },
+    }),
+    [roomId, horizontal, line, a0, a1],
+  )
 
   useFrame((state, dt) => {
     const { camera } = state
@@ -134,12 +152,12 @@ function Wall({ run, interior, plan, innerFull, still, fps }: { run: RunData; in
               refs.current[i] = m
             }}
             geometry={unitBox}
-            material={fps ? wallFpsMat : mat(C.wall)}
+            material={selected ? selectedWallMat : fps ? wallFpsMat : mat(C.wall)}
             position={horizontal ? [mid, (p.y0 + p.y1) / 2, fixed] : [fixed, (p.y0 + p.y1) / 2, mid]}
             scale={horizontal ? [len, p.y1 - p.y0, thick] : [thick, p.y1 - p.y0, len]}
             castShadow
             receiveShadow
-            {...(still ? {} : WALL_EVENTS)}
+            {...(still ? {} : events)}
           />
         )
       })}
@@ -545,7 +563,7 @@ export function RoomMesh({ room, level: fixed, still: stillProp }: { room: Room;
         ))}
       {edging && edgeRuns.length > 0 && <GroundEdging runs={edgeRuns} floor={edging} />}
       {!outdoor &&
-        runs.map((r) => <Wall key={`${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`} run={r} interior={r.interior} plan={plan} innerFull={innerFull} still={still} fps={fps && !still} />)}
+        runs.map((r) => <Wall key={`${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`} run={r} roomId={room.id} interior={r.interior} plan={plan} innerFull={innerFull} still={still} fps={fps && !still} />)}
       {stacked &&
         !outdoor &&
         runs

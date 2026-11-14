@@ -3,13 +3,13 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { floorNumber, t } from '@/i18n'
 import { asMain, foldTvBacklights, isBound, primaryFirst, withBinding, withoutBinding } from './bindings'
 import { connectRooms } from './doors'
-import { areaContents, inRoom, rectsOf, settleWallItems, shiftRoom } from './geometry'
+import { areaContents, inRoom, rectsOf, settleWallItems, shiftRoom, wallItems } from './geometry'
 import { dropLoneGroups, groupMates } from './groups'
 import { splitTvUnits } from './migrate'
 import { isDefault as isDefaultDashboard } from './dashboardLayout'
 import { edgePatch, shiftItemsWithEdge, type Edge } from './resize'
 import { uid } from './ids'
-import type { DashboardLayout, Item, ItemKind, Layout, Level, Rect, Room, Selection } from './types'
+import type { DashboardLayout, Item, ItemKind, Layout, Level, Rect, RemovedWall, Room, Selection } from './types'
 
 /*
  * House plan state: plan, selection, mode, tool and undo / redo history.
@@ -163,6 +163,8 @@ interface LayoutState {
   updateRoom: (id: string, patch: Partial<Room>, record?: boolean) => void
   moveRoom: (id: string, dx: number, dz: number) => void
   deleteRoom: (id: string) => void
+  /** Deletes one wall run of a room (gone for the neighbor too) with the doors, windows and wall items on it; one undo step */
+  deleteWall: (roomId: string, run: RemovedWall) => void
   /**
    * Moves an edge of the room (part = -1) or of one of its parts to v; items near that wall slide along, items hit by the
    * wall while shrinking are pushed (model/resize.ts). Validation (minimum size, overlap) is up to the caller.
@@ -419,6 +421,18 @@ export const useLayout = create<LayoutState>()(
             const rooms = l.rooms.filter((r) => r.id !== id)
             const gone = new Set(areaContents(l.items, rectsOf(room), rooms).map((it) => it.id))
             return { ...l, rooms, items: l.items.filter((it) => !gone.has(it.id)) }
+          })
+          set({ selection: null })
+        },
+
+        deleteWall: (roomId, run) => {
+          change((l) => {
+            const room = l.rooms.find((r) => r.id === roomId)
+            if (!room) return l
+            const piece = { horizontal: run.horizontal, line: run.line, a0: run.a0, a1: run.a1 }
+            const rooms = l.rooms.map((r) => (r.id === roomId ? { ...r, removedWalls: [...(r.removedWalls ?? []), piece] } : r))
+            const gone = new Set(wallItems(piece, l.items).map((it) => it.id))
+            return { ...l, rooms, items: dropLoneGroups(l.items.filter((it) => !gone.has(it.id))) }
           })
           set({ selection: null })
         },

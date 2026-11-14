@@ -1,5 +1,5 @@
 import { CATALOG, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
-import type { Item, Level, OpenWall, Rect, Room, RoomType } from './types'
+import type { Item, Level, Rect, RemovedWall, Room, RoomType } from './types'
 
 /*
  * Plan geometry: snapping, room parts, wall runs, sticking to walls, wall openings.
@@ -95,19 +95,39 @@ export const shiftRoom = <T extends Room>(room: T, dx: number, dz: number): T =>
   x: room.x + dx,
   z: room.z + dz,
   ...(room.parts ? { parts: room.parts.map((p) => ({ ...p, x: p.x + dx, z: p.z + dz })) } : {}),
-  ...(room.openWalls ? { openWalls: room.openWalls.map((o) => shiftOpenWall(o, dx, dz)) } : {}),
+  ...(room.removedWalls ? { removedWalls: room.removedWalls.map((o) => shiftRemovedWall(o, dx, dz)) } : {}),
 })
 
-/** Moves a removed wall segment with its room. */
-export const shiftOpenWall = (o: OpenWall, dx: number, dz: number): OpenWall =>
+/** Moves a deleted wall with its room. */
+export const shiftRemovedWall = (o: RemovedWall, dx: number, dz: number): RemovedWall =>
   o.horizontal ? { ...o, line: o.line + dz, a0: o.a0 + dx, a1: o.a1 + dx } : { ...o, line: o.line + dx, a0: o.a0 + dz, a1: o.a1 + dz }
 
-/** Tolerance for matching a removed wall to a run: same line within 6 cm (as sharedEdge), middle within the range */
-const OPEN_EPS = 0.06
+/** Tolerance for matching a deleted wall to a run: same line within 6 cm (as sharedEdge), middle within the range */
+const REMOVED_EPS = 0.06
 
-/** Whether the room removed the wall on this line at position m (see OpenWall). */
-export function isWallOpen(room: Pick<Room, 'openWalls'>, horizontal: boolean, line: number, m: number): boolean {
-  return Boolean(room.openWalls?.some((o) => o.horizontal === horizontal && Math.abs(o.line - line) < OPEN_EPS && m > Math.min(o.a0, o.a1) - 1e-6 && m < Math.max(o.a0, o.a1) + 1e-6))
+/** Whether the room deleted the wall on this line at position m (see RemovedWall). */
+export function isWallRemoved(room: Pick<Room, 'removedWalls'>, horizontal: boolean, line: number, m: number): boolean {
+  return Boolean(room.removedWalls?.some((o) => o.horizontal === horizontal && Math.abs(o.line - line) < REMOVED_EPS && m > Math.min(o.a0, o.a1) - 1e-6 && m < Math.max(o.a0, o.a1) + 1e-6))
+}
+
+/** Whether two wall runs are the same wall (same line, overlapping): a selected wall drawn by both rooms that share it */
+export const sameWall = (a: RemovedWall, b: RemovedWall) =>
+  a.horizontal === b.horizontal && Math.abs(a.line - b.line) < REMOVED_EPS && Math.min(a.a1, b.a1) - Math.max(a.a0, b.a0) > 0.01
+
+/**
+ * Items that belong to a wall run and go when it is deleted: doors and windows in it (their hole is on the line) and wall
+ * items hung on it (catalog wall: true: wall lights, TV, air conditioner...), from either side, facing across the wall.
+ */
+export function wallItems(run: RemovedWall, items: Item[]): Item[] {
+  return items.filter((it) => {
+    const a = apertureOf(it)
+    if (a) return a.horizontal === run.horizontal && Math.abs(a.line - run.line) <= 0.08 && a.along >= run.a0 - 0.01 && a.along <= run.a1 + 0.01
+    if (!CATALOG[it.kind]?.wall) return false
+    const facesAcross = run.horizontal ? Math.abs(Math.abs(Math.cos(it.rot)) - 1) < 0.01 : Math.abs(Math.abs(Math.sin(it.rot)) - 1) < 0.01
+    const off = Math.abs((run.horizontal ? it.z : it.x) - run.line)
+    const along = run.horizontal ? it.x : it.z
+    return facesAcross && off < 0.45 && along >= run.a0 - 0.01 && along <= run.a1 + 0.01
+  })
 }
 
 /* ---------- wall runs ---------- */
@@ -122,8 +142,6 @@ export interface WallRun {
   a1: number
   /** Interior wall: another room on the other side (drawn low) */
   interior: boolean
-  /** Removed by the user (this room or the neighbor lists it in openWalls); only in wallRuns(..., withOpen = true) */
-  open?: boolean
   /** Center of the part the run belongs to (for the facing-the-camera test) */
   cx: number
   cz: number
@@ -141,7 +159,7 @@ const OUT: Record<Side, number> = { back: -1, front: 1, left: -1, right: 1 }
  * space (a railing or nothing, RoomMesh decides), edges with a neighbor are skipped. mode 'house': the outdoor space's
  * edges facing the house wall (wall items hang there from outside: awning, outdoor wall light).
  */
-export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'walls', withOpen = false): WallRun[] {
+export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'walls'): WallRun[] {
   const own = rectsOf(room)
   const others = rooms.filter((o) => o.id !== room.id)
   const coordsX = [...own, ...others.flatMap(rectsOf)].flatMap((r) => [r.x, r.x + r.w])
@@ -157,9 +175,10 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'w
       ['right', false, p.x + p.w, p.z, p.z + p.d],
     ]
     for (const [side, horizontal, line, lo, hi] of sides) {
-      // Removed pieces (openings) on this line split the wall too, from this room or a neighbor, so only that piece opens
-      const openCuts = [room, ...others].flatMap((r) => (r.openWalls ?? []).filter((o) => o.horizontal === horizontal && Math.abs(o.line - line) < OPEN_EPS).flatMap((o) => [o.a0, o.a1]))
-      const cuts = [...new Set([lo, hi, ...[...(horizontal ? coordsX : coordsZ), ...openCuts].filter((c) => c > lo + 1e-6 && c < hi - 1e-6)])].sort((a, b) => a - b)
+      // The ends of deleted walls on this line split the wall too (this room's or a neighbor's): if the room grows later,
+      // only the deleted stretch stays gone
+      const removedCuts = [room, ...others].flatMap((r) => (r.removedWalls ?? []).filter((o) => o.horizontal === horizontal && Math.abs(o.line - line) < REMOVED_EPS).flatMap((o) => [o.a0, o.a1]))
+      const cuts = [...new Set([lo, hi, ...[...(horizontal ? coordsX : coordsZ), ...removedCuts].filter((c) => c > lo + 1e-6 && c < hi - 1e-6)])].sort((a, b) => a - b)
       for (let i = 0; i < cuts.length - 1; i++) {
         const a0 = cuts[i]
         const a1 = cuts[i + 1]
@@ -176,12 +195,11 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'w
           if (neighbor) continue
           interior = false
         } else interior = Boolean(neighbor && !isOutdoor(neighbor))
-        // A wall the user removed: gone for both rooms (either may list it); kept only when the caller asks (the room card)
-        const open = isWallOpen(room, horizontal, line, m) || Boolean(neighbor && isWallOpen(neighbor, horizontal, line, m))
-        if (open && !withOpen) continue
+        // A wall the user deleted: gone for both rooms (either may list it)
+        if (isWallRemoved(room, horizontal, line, m) || (neighbor && isWallRemoved(neighbor, horizontal, line, m))) continue
         const prev = runs[runs.length - 1]
-        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior && Boolean(prev.open) === open) prev.a1 = a1
-        else runs.push({ side, horizontal, line, a0, a1, interior, ...(open ? { open } : {}), cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
+        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior) prev.a1 = a1
+        else runs.push({ side, horizontal, line, a0, a1, interior, cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
       }
     }
   }
