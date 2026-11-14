@@ -26,6 +26,19 @@ export interface Rect {
 }
 
 /**
+ * A wall segment the user removed (hidden), in world coordinates: a horizontal wall lies on z = line from x = a0 to a1, a
+ * vertical one on x = line from z = a0 to a1. Matching is by the segment's middle (geometry.ts > isWallOpen), so a run that
+ * is split differently later still opens where it overlaps. A wall shared with another room opens on both sides when
+ * either room lists it.
+ */
+export interface OpenWall {
+  horizontal: boolean
+  line: number
+  a0: number
+  a1: number
+}
+
+/**
  * Room: the main rectangle (x, z, w, d) plus optional extra parts. L, T and U shaped rooms and hallways are built from
  * several parts; there is no wall where parts meet (geometry.ts > wallRuns).
  */
@@ -39,6 +52,8 @@ export interface Room extends Rect {
   parts?: Rect[]
   /** Room type; 'room' when not given (indoor with walls) */
   type?: RoomType
+  /** Wall segments removed by the user (no wall, railing or collider there); see OpenWall */
+  openWalls?: OpenWall[]
 }
 
 export type ItemKind =

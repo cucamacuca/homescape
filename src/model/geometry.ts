@@ -1,5 +1,5 @@
 import { CATALOG, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
-import type { Item, Level, Rect, Room, RoomType } from './types'
+import type { Item, Level, OpenWall, Rect, Room, RoomType } from './types'
 
 /*
  * Plan geometry: snapping, room parts, wall runs, sticking to walls, wall openings.
@@ -95,7 +95,20 @@ export const shiftRoom = <T extends Room>(room: T, dx: number, dz: number): T =>
   x: room.x + dx,
   z: room.z + dz,
   ...(room.parts ? { parts: room.parts.map((p) => ({ ...p, x: p.x + dx, z: p.z + dz })) } : {}),
+  ...(room.openWalls ? { openWalls: room.openWalls.map((o) => shiftOpenWall(o, dx, dz)) } : {}),
 })
+
+/** Moves a removed wall segment with its room. */
+export const shiftOpenWall = (o: OpenWall, dx: number, dz: number): OpenWall =>
+  o.horizontal ? { ...o, line: o.line + dz, a0: o.a0 + dx, a1: o.a1 + dx } : { ...o, line: o.line + dx, a0: o.a0 + dz, a1: o.a1 + dz }
+
+/** Tolerance for matching a removed wall to a run: same line within 6 cm (as sharedEdge), middle within the range */
+const OPEN_EPS = 0.06
+
+/** Whether the room removed the wall on this line at position m (see OpenWall). */
+export function isWallOpen(room: Pick<Room, 'openWalls'>, horizontal: boolean, line: number, m: number): boolean {
+  return Boolean(room.openWalls?.some((o) => o.horizontal === horizontal && Math.abs(o.line - line) < OPEN_EPS && m > Math.min(o.a0, o.a1) - 1e-6 && m < Math.max(o.a0, o.a1) + 1e-6))
+}
 
 /* ---------- wall runs ---------- */
 
@@ -109,6 +122,8 @@ export interface WallRun {
   a1: number
   /** Interior wall: another room on the other side (drawn low) */
   interior: boolean
+  /** Removed by the user (this room or the neighbor lists it in openWalls); only in wallRuns(..., withOpen = true) */
+  open?: boolean
   /** Center of the part the run belongs to (for the facing-the-camera test) */
   cx: number
   cz: number
@@ -126,7 +141,7 @@ const OUT: Record<Side, number> = { back: -1, front: 1, left: -1, right: 1 }
  * space (a railing or nothing, RoomMesh decides), edges with a neighbor are skipped. mode 'house': the outdoor space's
  * edges facing the house wall (wall items hang there from outside: awning, outdoor wall light).
  */
-export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'walls'): WallRun[] {
+export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'walls', withOpen = false): WallRun[] {
   const own = rectsOf(room)
   const others = rooms.filter((o) => o.id !== room.id)
   const coordsX = [...own, ...others.flatMap(rectsOf)].flatMap((r) => [r.x, r.x + r.w])
@@ -142,7 +157,9 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'w
       ['right', false, p.x + p.w, p.z, p.z + p.d],
     ]
     for (const [side, horizontal, line, lo, hi] of sides) {
-      const cuts = [...new Set([lo, hi, ...(horizontal ? coordsX : coordsZ).filter((c) => c > lo + 1e-6 && c < hi - 1e-6)])].sort((a, b) => a - b)
+      // Removed pieces (openings) on this line split the wall too, from this room or a neighbor, so only that piece opens
+      const openCuts = [room, ...others].flatMap((r) => (r.openWalls ?? []).filter((o) => o.horizontal === horizontal && Math.abs(o.line - line) < OPEN_EPS).flatMap((o) => [o.a0, o.a1]))
+      const cuts = [...new Set([lo, hi, ...[...(horizontal ? coordsX : coordsZ), ...openCuts].filter((c) => c > lo + 1e-6 && c < hi - 1e-6)])].sort((a, b) => a - b)
       for (let i = 0; i < cuts.length - 1; i++) {
         const a0 = cuts[i]
         const a1 = cuts[i + 1]
@@ -159,9 +176,12 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'w
           if (neighbor) continue
           interior = false
         } else interior = Boolean(neighbor && !isOutdoor(neighbor))
+        // A wall the user removed: gone for both rooms (either may list it); kept only when the caller asks (the room card)
+        const open = isWallOpen(room, horizontal, line, m) || Boolean(neighbor && isWallOpen(neighbor, horizontal, line, m))
+        if (open && !withOpen) continue
         const prev = runs[runs.length - 1]
-        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior) prev.a1 = a1
-        else runs.push({ side, horizontal, line, a0, a1, interior, cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
+        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior && Boolean(prev.open) === open) prev.a1 = a1
+        else runs.push({ side, horizontal, line, a0, a1, interior, ...(open ? { open } : {}), cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
       }
     }
   }

@@ -2,7 +2,7 @@ import { useHa } from '@/ha/store'
 import { inRoom, rectBounds, rectsOf } from '@/model/geometry'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import { overlapsRoom } from '@/model/rules'
-import type { Rect } from '@/model/types'
+import type { OpenWall, Rect } from '@/model/types'
 import { t } from '@/i18n'
 
 /*
@@ -35,7 +35,14 @@ export function rotateRoom(id: string, dir: 1 | -1 = 1): boolean {
   const items = lv.items.filter((it) => inRoom(room, it.x, it.z))
   s.checkpoint()
   const [main, ...parts] = next
-  s.updateRoom(id, { x: main.x, z: main.z, w: main.w, d: main.d, ...(room.parts?.length ? { parts } : {}) }, false)
+  // Removed walls turn with the room: both ends rotate, so a horizontal segment becomes vertical and the other way round
+  const turnOpen = (o: OpenWall): OpenWall => {
+    const p0 = o.horizontal ? pt(o.a0, o.line) : pt(o.line, o.a0)
+    const p1 = o.horizontal ? pt(o.a1, o.line) : pt(o.line, o.a1)
+    const horizontal = Math.abs(p0.z - p1.z) < 1e-6
+    return horizontal ? { horizontal, line: round(p0.z), a0: round(Math.min(p0.x, p1.x)), a1: round(Math.max(p0.x, p1.x)) } : { horizontal, line: round(p0.x), a0: round(Math.min(p0.z, p1.z)), a1: round(Math.max(p0.z, p1.z)) }
+  }
+  s.updateRoom(id, { x: main.x, z: main.z, w: main.w, d: main.d, ...(room.parts?.length ? { parts } : {}), ...(room.openWalls?.length ? { openWalls: room.openWalls.map(turnOpen) } : {}) }, false)
   for (const it of items) {
     const p = pt(it.x, it.z)
     s.updateItem(it.id, { x: round(p.x), z: round(p.z), rot: it.rot - dir * (Math.PI / 2) }, false)
