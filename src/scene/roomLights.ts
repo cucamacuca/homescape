@@ -252,7 +252,8 @@ const SPEC: Partial<Record<ItemKind, { at: [number, number, number]; range: numb
   floorLamp: { at: [0, 1.5, 0], range: 8, power: 4.6, type: 0 },
   deskLamp: { at: [0, 0.27, 0.1], range: 2.6, power: 1.3, type: 0 },
   wallLight: { at: [0, 1.98, 0.2], range: 8, power: 5, type: 0 },
-  // LED strips are stronger (otherwise counter and bedroom LEDs look far too dim)
+  // LED strips are stronger (otherwise counter and bedroom LEDs look far too dim). half: of the default 2 m; a strip with
+  // its own length (Item.len) lights along all of it
   ledStrip: { at: [0, 0, 0.05], range: 4, power: 2.4, type: 3, half: 1 },
   mirrorLight: { at: [0, 1.9, 0.15], range: 3.5, power: 1.8, type: 0 },
   downlight: { at: [0, 2.55, 0], range: 4.2, power: 3.4, type: 1 },
@@ -467,7 +468,7 @@ export function computeRoomLights(level: Level, entities: Record<string, HassEnt
         // One light per fixture lens; it lights all open areas within range (the pole's sidewalk, the road, the crosswalk)
         const heads = STREET_LAMP[it.variant ?? 'single'] ?? STREET_LAMP.single
         for (const at of heads) push(it, at, spec.range, spec.power, 0, _c)
-      } else push(it, spec.at, spec.range, spec.power, spec.type, _c.set(lightColor(e)).multiplyScalar(level), spec.half)
+      } else push(it, spec.at, spec.range, spec.power, spec.type, _c.set(lightColor(e)).multiplyScalar(level), it.kind === 'ledStrip' && it.len ? it.len / 2 : spec.half)
       continue
     }
     // Under-counter LED: onto the front of the counter, from below the wall cabinets (source chosen on the card, or the main entity)

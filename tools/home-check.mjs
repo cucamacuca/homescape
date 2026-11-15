@@ -723,6 +723,35 @@ await p.evaluate(() => window.__homescape.select(null))
   }, { id: rid, m: mode })
 }
 
+// --- LED strip: its length is set in the card and the strip and its light follow it (GitHub issue #4) ---
+{
+  const strip = (await level()).items.find((i) => i.kind === 'ledStrip')
+  ok(Boolean(strip), 'The home has an LED strip')
+  if (strip) {
+    const mode = await p.evaluate(() => window.__homescape.getState().layout.mode)
+    await p.evaluate((id) => {
+      window.__homescape.setMode('edit')
+      window.__homescape.select({ type: 'item', id })
+    }, strip.id)
+    await p.waitForTimeout(500)
+    const wide = (o) => Math.max(o.size[0], o.size[2])
+    const o0 = await p.evaluate((id) => window.__homescape.itemObject(id), strip.id)
+    ok(await p.isVisible(`#len-${strip.id}`), 'The LED strip card has a length slider')
+    await p.locator(`#len-${strip.id}`).fill('1.2')
+    await p.waitForTimeout(600)
+    const s1 = (await level()).items.find((i) => i.id === strip.id)
+    const o1 = await p.evaluate((id) => window.__homescape.itemObject(id), strip.id)
+    const shrink = wide(o0) - wide(o1)
+    ok(Math.abs((s1.len ?? 2) - 1.2) < 1e-6 && Math.abs(shrink - 0.8) < 0.05, `A 2 m LED strip set to 1.2 m in the card is drawn 0.8 m shorter (${shrink.toFixed(2)} m)`)
+    await p.evaluate(({ id, m }) => {
+      const h = window.__homescape
+      h.getState().layout.updateItem(id, { len: undefined })
+      h.select(null)
+      h.setMode(m)
+    }, { id: strip.id, m: mode })
+  }
+}
+
 // --- Power strip: numbered outlets in one item; placed on a desk; outlet count 2-5 ---
 {
   L = await level()

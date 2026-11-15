@@ -42,5 +42,7 @@ export function itemObject(id: string) {
   if (!found) return null
   const o = found as THREE.Object3D
   const p = o.getWorldPosition(new THREE.Vector3())
-  return { uuid: o.uuid, y: p.y, visible: visible(o) }
+  // World size of everything drawn for the item (glow and selection aids included): for comparing lengths
+  const size = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3())
+  return { uuid: o.uuid, y: p.y, visible: visible(o), size: [size.x, size.y, size.z] as [number, number, number] }
 }

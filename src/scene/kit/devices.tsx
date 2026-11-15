@@ -81,14 +81,16 @@ export function WallLight({ v }: P) {
  */
 export function LedStrip({ v }: P) {
   const strip = useLitMaterial(C.steel, v.on, v.color, v.level, 2.2)
+  // Length from the card (Item.len, catalog RESIZABLE); the glow on the wall reaches 10 cm past each end
+  const L = v.opts.len ?? 2
   return (
     <group>
-      <Box size={[2, 0.035, 0.035]} position={[0, 0, -0.06]} material={strip} shadow={false} />
+      <Box size={[L, 0.035, 0.035]} position={[0, 0, -0.06]} material={strip} shadow={false} />
       {v.on && (
         <>
-          <StripGlow length={2} width={0.08} position={[0, 0, -0.05]} color={v.color} opacity={v.level * (v.night ? 0.9 : 0.45)} />
-          <Wash length={2.2} depth={0.7} position={[0, -0.35, -0.105]} color={v.color} opacity={v.level * (v.night ? 0.55 : 0.25)} />
-          <Wash length={2.2} depth={0.5} position={[0, 0.25, -0.105]} rotation={[0, 0, Math.PI]} color={v.color} opacity={v.level * (v.night ? 0.45 : 0.2)} />
+          <StripGlow length={L} width={0.08} position={[0, 0, -0.05]} color={v.color} opacity={v.level * (v.night ? 0.9 : 0.45)} />
+          <Wash length={L + 0.2} depth={0.7} position={[0, -0.35, -0.105]} color={v.color} opacity={v.level * (v.night ? 0.55 : 0.25)} />
+          <Wash length={L + 0.2} depth={0.5} position={[0, 0.25, -0.105]} rotation={[0, 0, Math.PI]} color={v.color} opacity={v.level * (v.night ? 0.45 : 0.2)} />
         </>
       )}
     </group>

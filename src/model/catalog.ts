@@ -880,6 +880,7 @@ export const RESIZABLE: Partial<Record<ItemKind, { min: number; max: number; lab
   steppingStones: { min: 0.8, max: 8, label: t('Path length') },
   planter: { min: 0.6, max: 4, label: t('Planter length') },
   speedBump: { min: 1, max: 10, label: t('Speed bump length') },
+  ledStrip: { min: 0.3, max: 8 },
 }
 /** Second size (Item.len2): the arm of an L counter (L shapes only), the height of a window */
 export const RESIZABLE2: Partial<Record<ItemKind, { min: number; max: number; label: string; def: number; onlyL?: boolean }>> = {

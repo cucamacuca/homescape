@@ -262,6 +262,22 @@ export function wallSnap(rooms: Room[], x: number, z: number, depth: number, max
 }
 
 /**
+ * Inner length of the wall of the room that a wall item at (x, z) facing rot hangs on (between the side walls); null when
+ * it hangs on none. An LED strip cannot be made longer than its wall.
+ */
+export function wallLengthAt(room: Room, x: number, z: number, rot: number) {
+  for (const run of wallRuns(room, [], 'edges')) {
+    const d = rot - WALL_ROT[run.side]
+    if (Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) > 0.01) continue
+    const along = run.horizontal ? x : z
+    const perp = run.horizontal ? z : x
+    if (along < run.a0 || along > run.a1 || Math.abs(perp - run.line) > 0.5) continue
+    return run.a1 - run.a0 - 2 * WALL_IN
+  }
+  return null
+}
+
+/**
  * Save version 3 migration: when walls were centered on the boundary, the inner face moved 5 cm toward the wall. Wall
  * items stuck to the old inner face (wallSnap or the automatic plan) move toward the wall by the same amount so they do
  * not float, and items stuck to a corner also toward the side wall. Only items at the old sticking distance (±1.2 cm);

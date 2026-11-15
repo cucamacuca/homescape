@@ -6,7 +6,7 @@ import { useHa } from '@/ha/store'
 import { bindingsOf, boundAnywhere, emitsLight, isBound, ledOf, ledSource } from '@/model/bindings'
 import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, ITEM_PRESETS, OPTIONS, RESIZABLE, RESIZABLE2, sizeOf, TOP_COLORS } from '@/model/catalog'
 import { kindFor, modelName, variantFor } from '@/model/generate'
-import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallSnap, type Side } from '@/model/geometry'
+import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallLengthAt, wallSnap, type Side } from '@/model/geometry'
 import { groupFamily, groupMates, heatingSummary } from '@/model/groups'
 import { activeHomeId, activeLevel, homesOf, useLayout } from '@/model/layoutStore'
 import { usePlacement } from '@/model/placement'
@@ -463,8 +463,9 @@ function FurnitureOptions({ item }: { item: Item }) {
     if (!level) return
     const shapes = 'len' in patch || 'len2' in patch || 'y' in patch || ('variant' in patch && SHAPE_VARIANTS.includes(item.kind))
     if (!shapes) return updateItem(item.id, patch, record)
-    // A wall-mounted power strip snaps to the wall again when it gets longer: at the end of a wall it slides in, never past it
-    if (item.mount === 'wall' && 'len' in patch) {
+    // A wall-mounted power strip or an LED strip snaps to the wall again when it gets longer: at the end of a wall it slides
+    // in, never past it
+    if ((item.mount === 'wall' || item.kind === 'ledStrip') && 'len' in patch) {
       const w = wallSnap(level.rooms, item.x, item.z, CATALOG[item.kind].size[1], 0.2, sizeOf(item.kind, patch.len)[0], false, true)
       if (w) patch = { ...patch, x: w.x, z: w.z }
     }
@@ -476,7 +477,13 @@ function FurnitureOptions({ item }: { item: Item }) {
   const clampTo = (r: { min: number; max: number }, v: number) => Math.round(Math.min(r.max, Math.max(r.min, v)) * 100) / 100
   const tryLen = (v: number, record: boolean) => {
     if (!range) return
-    const n = clampTo(range, v)
+    let n = clampTo(range, v)
+    // An LED strip is at most as long as its wall (it never pokes through the side walls)
+    if (item.kind === 'ledStrip') {
+      const room = roomAt(activeLevel(useLayout.getState())?.rooms ?? [], item.x, item.z)
+      const max = room ? wallLengthAt(room, item.x, item.z, item.rot) : null
+      if (max != null) n = Math.min(n, Math.floor(max * 100) / 100)
+    }
     tryPatch({ len: n }, record, `${fmt(n, 1)} m`)
   }
   return (
