@@ -4,7 +4,7 @@ import { useHa } from '@/ha/store'
 import type { HassEntity } from '@/ha/types'
 import { bindingsOf, itemLightIds } from '@/model/bindings'
 import { isLightKind } from '@/model/catalog'
-import { inRoom } from '@/model/geometry'
+import { inRoom, isOutdoor } from '@/model/geometry'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import type { Item, Room } from '@/model/types'
 import { formatNumber } from '@/i18n'
@@ -90,7 +90,8 @@ export function useHomeTotals(stats: Record<string, RoomStats>): HomeTotals {
     return {
       lights: st.reduce((a, s) => a + s.lights, 0),
       lightsOn: st.reduce((a, s) => a + s.lightsOn, 0),
-      avgTemp: avg(st.map((s) => s.temp).filter((n): n is number => n != null)),
+      // Indoor rooms only: a terrace, balcony or garden sensor reads the weather, not the home
+      avgTemp: avg((level?.rooms ?? []).filter((r) => !isOutdoor(r)).map((r) => stats[r.id]?.temp).filter((n): n is number => n != null)),
       openings: items.filter((it) => ['door', 'window', 'garageDoor', 'gate'].includes(it.kind) && bindingsOf(it).some((id) => isOpening(entities[id]))).length,
       devicesOn: bound.filter((it) => !isLightKind(it.kind) && ['switch', 'media_player', 'climate', 'fan', 'humidifier', 'vacuum', 'lawn_mower', 'water_heater', 'valve', 'siren'].includes(it.entityId!.split('.')[0]) && isActive(entities[it.entityId!])).length,
     }

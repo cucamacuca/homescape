@@ -690,6 +690,39 @@ await p.evaluate(() => window.__homescape.select(null))
   await p.evaluate(() => window.__homescape.select(null))
 }
 
+// --- Average temperature: only indoor rooms count, a terrace or garden sensor reads the weather (GitHub issue #3) ---
+{
+  const avgTemp = async () => {
+    const txt = await p.evaluate(() => document.querySelector('#kpi-tiles')?.textContent ?? '')
+    const m = txt.match(/Average temperature\s*(-?[\d.]+)°/)
+    return m ? Number(m[1]) : null
+  }
+  // The tiles show in View
+  const mode = await p.evaluate(() => window.__homescape.getState().layout.mode)
+  await p.evaluate(() => window.__homescape.setMode('view'))
+  await p.waitForTimeout(400)
+  const before = await avgTemp()
+  const rid = await p.evaluate(() => {
+    const h = window.__homescape
+    const s = h.getState().layout
+    const id = s.addRoom({ name: 'Test terrace', floor: 'deck', x: 40, z: 40, w: 4, d: 3, type: 'terrace' })
+    h.setEntity({ entity_id: 'sensor.test_terrace_temp', state: '45', attributes: { friendly_name: 'Terrace temperature', device_class: 'temperature', unit_of_measurement: '°C' } })
+    s.addItem('tempSensor', 42, 41.5, 0, 'sensor.test_terrace_temp')
+    s.select(null)
+    return id
+  })
+  await p.waitForTimeout(500)
+  const outdoor = await avgTemp()
+  await p.evaluate((id) => window.__homescape.getState().layout.updateRoom(id, { type: 'room' }), rid)
+  await p.waitForTimeout(500)
+  const indoor = await avgTemp()
+  ok(before != null && outdoor === before && indoor > before, `The average temperature leaves out terraces and gardens (${before}°; with a 45° terrace ${outdoor}°; the same room indoors ${indoor}°)`)
+  await p.evaluate(({ id, m }) => {
+    window.__homescape.getState().layout.deleteRoom(id)
+    window.__homescape.setMode(m)
+  }, { id: rid, m: mode })
+}
+
 // --- Power strip: numbered outlets in one item; placed on a desk; outlet count 2-5 ---
 {
   L = await level()

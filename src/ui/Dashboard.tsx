@@ -556,7 +556,8 @@ export default function Dashboard({ leaving = false }: { leaving?: boolean }) {
   const totalW = power.reduce((a, e) => a + (String(e.attributes.unit_of_measurement) === 'kW' ? (num(e.state) ?? 0) * 1000 : (num(e.state) ?? 0)), 0)
   const media = all.filter((e) => e.entity_id.startsWith('media_player.') && isActive(e))
   const people = all.filter((e) => e.entity_id.startsWith('person.'))
-  const temps = levels.flatMap((l) => l.rooms).flatMap((r) => (r.areaId ? (byArea.get(r.areaId) ?? []) : [])).filter((e) => e.entity_id.startsWith('sensor.') && deviceClass(e) === 'temperature').map((e) => num(e.state)).filter((n): n is number => n != null)
+  // Average temperature of the indoor rooms (a terrace or garden sensor reads the weather, not the home)
+  const temps = levels.flatMap((l) => l.rooms).filter((r) => !isOutdoor(r)).flatMap((r) => (r.areaId ? (byArea.get(r.areaId) ?? []) : [])).filter((e) => e.entity_id.startsWith('sensor.') && deviceClass(e) === 'temperature').map((e) => num(e.state)).filter((n): n is number => n != null)
   const avgTemp = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null
   const CONTROL = ['light', 'switch', 'fan', 'cover', 'climate', 'media_player', 'lock', 'humidifier', 'vacuum', 'lawn_mower', 'valve', 'water_heater', 'siren']
   const unplaced = all.filter((e) => CONTROL.includes(domainOf(e.entity_id)) && !bound.has(e.entity_id) && !registry?.skip.includes(e.entity_id))
