@@ -26,6 +26,8 @@ export interface Visual {
   /** Door/window: hinge on the right, opens to the other side of the wall */
   hingeRight: boolean
   swingOut: boolean
+  /** Window that does not open (Item.fixed): no sash, no swing arc */
+  fixed?: boolean
   /** Edit mode: swing direction marks (arcs) show on every door and window */
   edit: boolean
   /** User settings of the item: desk length, drawers, colors, last aquarium feeding */

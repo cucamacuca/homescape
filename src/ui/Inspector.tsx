@@ -747,9 +747,33 @@ function OpeningEdit({ item }: { item: Item }) {
   const inLabel = door && back ? (front?.name ?? t('This room')) : t('Inward')
   const outLabel = door && back ? back.name : t('Outward')
   const inTitle = door && back ? (front ? t('Opens into {room}', { room: front.name }) : t('Opens into this room')) : t('Opens into the room')
+  // A window can be fixed (does not open): then no hinge, no direction and no swing arc
+  const fixed = !door && Boolean(item.fixed)
+  const kindRow = !door && (
+    <div className="grid grid-cols-[64px_1fr] items-center gap-2">
+      <span className="text-[11px] text-ink-3">{t('Type')}</span>
+      <div className="flex min-w-0 gap-1.5">
+        <button type="button" id="window-opens" className={seg(!fixed)} onClick={() => updateItem(item.id, { fixed: undefined })}>
+          {t('Opens')}
+        </button>
+        <button type="button" id="window-fixed" className={seg(fixed)} onClick={() => updateItem(item.id, { fixed: true })}>
+          {t('Fixed')}
+        </button>
+      </div>
+    </div>
+  )
+  if (fixed)
+    return (
+      <div className="grid gap-2">
+        <span className="text-[12px] font-semibold text-ink-2">{t('Window')}</span>
+        {kindRow}
+        <p className="text-[11px] text-ink-3">{t('A fixed window does not open: one pane, no opening direction and no arc in the scene. A window sensor bound to it leaves it shut.')}</p>
+      </div>
+    )
   return (
     <div className="grid gap-2">
-      <span className="text-[12px] font-semibold text-ink-2">{t('Opening direction')}</span>
+      <span className="text-[12px] font-semibold text-ink-2">{door ? t('Opening direction') : t('Window')}</span>
+      {kindRow}
       <div className="grid grid-cols-[64px_1fr] items-center gap-2">
         <span className="text-[11px] text-ink-3">{t('Hinge')}</span>
         <div className="flex min-w-0 gap-1.5">
