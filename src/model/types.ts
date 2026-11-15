@@ -39,6 +39,12 @@ export interface Room extends Rect {
   parts?: Rect[]
   /** Room type; 'room' when not given (indoor with walls) */
   type?: RoomType
+  /**
+   * Walls left out (open plan, a passage, a porch open to the garden): ids of neighboring rooms with no wall in between
+   * (either room listing the other is enough) and sides ('back' | 'front' | 'left' | 'right') with no wall toward open
+   * space (geometry.ts > wallOpen). A balcony or terrace side here has no railing.
+   */
+  open?: string[]
 }
 
 export type ItemKind =
@@ -342,4 +348,5 @@ export interface Layout {
   up?: number
 }
 
-export type Selection = { type: 'room' | 'item'; id: string } | null
+/** wall: a wall of room id (wall: its Room.open key, the neighbor room's id or the side facing open space) */
+export type Selection = { type: 'room' | 'item'; id: string } | { type: 'wall'; id: string; wall: string } | null

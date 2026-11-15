@@ -39,10 +39,11 @@ import RoomBar from '@/ui/RoomBar'
 import Toast from '@/ui/Toast'
 import TopBar from '@/ui/TopBar'
 import { useHomeTotals, useRoomStats } from '@/ui/useHome'
-import { multiCounts, removeMulti, removeRoom } from '@/ui/removal'
+import { multiCounts, removeMulti, removeRoom, removeWalls } from '@/ui/removal'
 import { usePlacementInput } from '@/ui/usePlacementInput'
 import { mountY, nudgeAlongWall, setMountY } from '@/ui/mount'
 import { isWallMounted } from '@/model/rules'
+import { wallKey, wallRuns } from '@/model/geometry'
 
 const Scene = lazy(() => import('@/scene/Scene'))
 /** In the home screen app the connection dialog opened once by itself (once closed, it does not open again) */
@@ -216,6 +217,12 @@ function useShortcuts() {
       if (s.mode === 'edit' && s.selection?.type === 'room' && (e.key === 'Delete' || e.key === 'Backspace')) {
         e.preventDefault()
         removeRoom(s.selection.id)
+        return
+      }
+      // Delete with a wall selected: the wall goes with the doors, windows and items on it (ui/removal.ts); ⌘Z brings it back.
+      if (s.mode === 'edit' && s.selection?.type === 'wall' && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault()
+        removeWalls(s.selection.id, [s.selection.wall])
         return
       }
       // R with a room selected: the room turns 90° with all its parts and items (⇧R the other way; ui/rotateRoom.ts)
@@ -499,6 +506,20 @@ export default function App() {
       framePose: (rooms, pad) => cameraApi.framePose(rooms, pad),
       project: (x, y, z) => cameraApi.project(x, y, z),
       perf: () => import('@/scene/perf').then((m) => ({ ...m.perf })),
+      walls: (roomId) =>
+        import('@/model/walls').then((m) => {
+          const l = activeLevel(useLayout.getState())
+          const r = l?.rooms.find((o) => o.id === roomId)
+          if (!l || !r) return []
+          const runs = [...wallRuns(r, l.rooms, 'walls', true), ...wallRuns(r, l.rooms, 'open', true)]
+          return m.roomWalls(r, l.rooms).map((w) => {
+            // middle of its longest run, for clicking it
+            const run = runs.filter((o) => wallKey(o) === w.key).sort((a, c) => c.a1 - c.a0 - (a.a1 - a.a0))[0]
+            const mid = run ? (run.a0 + run.a1) / 2 : 0
+            const at = run ? (run.horizontal ? { x: mid, z: run.line } : { x: run.line, z: mid }) : null
+            return { key: w.key, neighbor: w.neighbor?.id ?? null, side: w.side, length: w.length, open: w.open, items: m.wallItems(l, r, w.key).map((it) => it.id), at }
+          })
+        }),
       roomLights: () => import('@/scene/roomLights').then((m) => m.lastRoomLights()),
       lighting: () => import('@/scene/sun').then((m) => ({ ...m.lightDebug })),
       people: () => import('@/scene/People').then((m) => JSON.parse(JSON.stringify(m.peopleDebug))),

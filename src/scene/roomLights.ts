@@ -4,7 +4,8 @@ import type { HassEntity } from '@/ha/types'
 import { bindingsOf, ledOf, ledSource } from '@/model/bindings'
 import { BEAM } from '@/model/catalog'
 import { apertureOf, doorSides, isOutdoor, rectsOf, roomAt, WALL_H, WALL_T } from '@/model/geometry'
-import type { Item, ItemKind, Level, Rect } from '@/model/types'
+import type { Item, ItemKind, Level, Rect, Room } from '@/model/types'
+import { openNeighbors } from '@/model/walls'
 import { STREET_LAMP_AUTO } from './kit/palette'
 import { DEFAULT_Y } from './kit/registry'
 
@@ -417,6 +418,21 @@ export function computeRoomLights(level: Level, entities: Record<string, HassEnt
     return [it.x + at[0] * c + at[2] * s, y + at[1], it.z - at[0] * s + at[2] * c]
   }
   const roomOf = (x: number, z: number) => roomAt(level.rooms, x, z)
+  // Rooms joined by a wall left out (model/walls.ts) are one space: a lamp lights them too, as far as the shader's
+  // rectangles per light allow (in plan order).
+  const spaces = new Map<string, Rect[]>()
+  const space = (room: Room) => {
+    let rects = spaces.get(room.id)
+    if (!rects) {
+      rects = rectsOf(room)
+      for (const o of room.open?.length || level.rooms.some((r) => r.open?.includes(room.id)) ? openNeighbors(room, level.rooms) : []) {
+        const more = rectsOf(o)
+        if (rects.length + more.length <= HS_RECTS) rects = [...rects, ...more]
+      }
+      spaces.set(room.id, rects)
+    }
+    return rects
+  }
   const push = (it: Item, at: [number, number, number], range: number | 'room', power: number, type: 0 | 1 | 2 | 3, color: THREE.Color, half = 0) => {
     const pos = place(it, at)
     // A line light runs along the item's local x axis; for a spot the cone edges (beam angle)
@@ -425,6 +441,7 @@ export function computeRoomLights(level: Level, entities: Record<string, HassEnt
     let rects = room ? rectsOf(room) : []
     let r = typeof range === 'number' ? range : 6
     if (range === 'room' && room) r = roomReach(rects)
+    if (room && !isOutdoor(room)) rects = space(room)
     // Outdoors: all open areas within range (road, crosswalk, sidewalk...). If the fixture is above no room (a lamp whose
     // arm points away from the road) the open area the item stands on decides; otherwise the light would leak into the house.
     const base = room ?? roomOf(it.x, it.z)

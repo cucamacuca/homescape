@@ -2,7 +2,7 @@ import { useFrame, useThree, type ThreeElements, type ThreeEvent } from '@react-
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { inRoom, isOutdoor, rectBounds, rectsOf, runOpenings, shiftRoom, snap, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, WALL_T, wallRuns, type Opening, type Side, type WallRun } from '@/model/geometry'
+import { inRoom, isOutdoor, rectBounds, rectsOf, runOpenings, shiftRoom, snap, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, WALL_T, wallKey, wallRuns, type Opening, type Side, type WallRun } from '@/model/geometry'
 import { useHa } from '@/ha/store'
 import { t } from '@/i18n'
 import { activeLevel, FLOOR_H, useLayout } from '@/model/layoutStore'
@@ -70,10 +70,22 @@ const stopAtWall = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
 const WALL_EVENTS = { onPointerDown: stopAtWall, onPointerMove: stopAtWall, onPointerOver: stopAtWall, onClick: stopAtWall, onDoubleClick: stopAtWall }
 
 /**
+ * Edit mode with the select tool: a click on a wall, a railing or the guide of a wall left out selects that wall
+ * (Inspector > WallEdit: leave it out or put it back). key: the wall's Room.open key (geometry.ts > wallKey).
+ */
+const pickWall = (e: ThreeEvent<MouseEvent>, roomId: string, key: string) => {
+  const s = useLayout.getState()
+  if (s.tool === 'select') e.stopPropagation()
+  if (s.mode !== 'edit' || s.tool !== 'select' || e.delta > DRAG_PX || cameraKey() || usePlacement.getState().target) return
+  s.select({ type: 'wall', id: roomId, wall: key })
+}
+const pickedWallMat = mat(C.brandLight)
+
+/**
  * Wall height: all low in the plan view; an interior wall, depending on the setting, full height (not cut while the camera
  * turns, hides what is behind; default) or low (floor plan); an exterior wall is cut when facing the camera, else full.
  */
-function Wall({ run, interior, plan, innerFull, still, fps }: { run: RunData; interior: boolean; plan: boolean; innerFull: boolean; still?: boolean; fps?: boolean }) {
+function Wall({ run, interior, plan, innerFull, still, fps, roomId, picked }: { run: RunData; interior: boolean; plan: boolean; innerFull: boolean; still?: boolean; fps?: boolean; roomId: string; picked: boolean }) {
   const refs = useRef<(THREE.Mesh | null)[]>([])
   const h = useRef(WALL_H)
   const { horizontal, side, line, a0, a1, cx, cz, openings } = run
@@ -134,12 +146,12 @@ function Wall({ run, interior, plan, innerFull, still, fps }: { run: RunData; in
               refs.current[i] = m
             }}
             geometry={unitBox}
-            material={fps ? wallFpsMat : mat(C.wall)}
+            material={picked ? pickedWallMat : fps ? wallFpsMat : mat(C.wall)}
             position={horizontal ? [mid, (p.y0 + p.y1) / 2, fixed] : [fixed, (p.y0 + p.y1) / 2, mid]}
             scale={horizontal ? [len, p.y1 - p.y0, thick] : [thick, p.y1 - p.y0, len]}
             castShadow
             receiveShadow
-            {...(still ? {} : WALL_EVENTS)}
+            {...(still ? {} : { ...WALL_EVENTS, onClick: (e: ThreeEvent<MouseEvent>) => pickWall(e, roomId, wallKey(run)) })}
           />
         )
       })}
@@ -173,15 +185,15 @@ const wallFpsMat = (() => {
 })()
 const noRaycast = () => null
 const railGlass = new THREE.MeshStandardMaterial({ color: '#cfe6ff', transparent: true, opacity: 0.28, roughness: 0.1, depthWrite: false })
-function Railing({ run }: { run: RunData }) {
-  const steel = mat(C.inkSoft)
+function Railing({ run, pick, picked }: { run: RunData; pick?: (e: ThreeEvent<MouseEvent>) => void; picked?: boolean }) {
+  const steel = picked ? pickedWallMat : mat(C.inkSoft)
   const { horizontal, line, a0, a1 } = run
   const len = a1 - a0
   const n = Math.max(1, Math.round(len / 1.2))
   const at = (a: number, y: number): [number, number, number] => (horizontal ? [a, y, line] : [line, y, a])
   const along = (l: number, h: number, t: number): [number, number, number] => (horizontal ? [l, h, t] : [t, h, l])
   return (
-    <group>
+    <group onClick={pick}>
       <mesh geometry={unitBox} material={steel} position={at((a0 + a1) / 2, RAIL_H)} scale={along(len, 0.05, 0.06)} castShadow />
       <mesh geometry={unitBox} material={railGlass} position={at((a0 + a1) / 2, RAIL_H / 2 + 0.03)} scale={along(len - 0.04, RAIL_H - 0.12, 0.015)} renderOrder={2} />
       {Array.from({ length: n + 1 }, (_, i) => (
@@ -211,6 +223,29 @@ function Outline({ runs }: { runs: RunData[] }) {
           />
         )
       })}
+    </group>
+  )
+}
+
+/**
+ * Guide of a wall left out (Room.open), edit mode only: a dashed brand line on the floor along the room boundary, so the
+ * line between two open rooms stays visible. A click selects it (and the wall can be put back).
+ */
+const guideMat = mat(C.brandLight)
+const guideHitMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+function OpenGuide({ run, roomId, picked }: { run: WallRun; roomId: string; picked: boolean }) {
+  const { horizontal, line, a0, a1 } = run
+  const len = a1 - a0
+  const n = Math.max(1, Math.round(len / 0.3))
+  const step = len / n
+  const at = (a: number, y: number): [number, number, number] => (horizontal ? [a, y, line] : [line, y, a])
+  const along = (l: number, h: number, t: number): [number, number, number] => (horizontal ? [l, h, t] : [t, h, l])
+  return (
+    <group onClick={(e) => pickWall(e, roomId, wallKey(run))}>
+      {Array.from({ length: n }, (_, i) => (
+        <mesh key={i} geometry={unitBox} material={picked ? pickedWallMat : guideMat} position={at(a0 + step * (i + 0.5), 0.03)} scale={along(step * 0.6, picked ? 0.06 : 0.03, picked ? 0.1 : 0.06)} />
+      ))}
+      <mesh geometry={unitBox} material={guideHitMat} position={at((a0 + a1) / 2, 0.05)} scale={along(len, 0.1, 0.2)} />
     </group>
   )
 }
@@ -417,9 +452,25 @@ export function RoomMesh({ room, level: fixed, still: stillProp }: { room: Room;
     const l = fixed ?? activeLevel(s)
     if (!l) return '[]'
     const me = l.rooms.find((r) => r.id === room.id) ?? room
-    return JSON.stringify(wallRuns(me, l.rooms).map((r) => ({ ...r, openings: runOpenings(r, l.items) })))
+    return JSON.stringify(wallRuns(me, l.rooms, 'walls', true).map((r) => ({ ...r, openings: runOpenings(r, l.items) })))
   })
   const runs = useMemo(() => JSON.parse(sig) as RunData[], [sig])
+  // The selected wall (Inspector > WallEdit) as this room's key of it: the wall between two rooms lights up on both sides
+  const picked = useLayout((s) => {
+    const w = s.selection
+    if (still || s.mode !== 'edit' || w?.type !== 'wall') return ''
+    return w.id === room.id ? w.wall : w.wall === room.id ? w.id : ''
+  })
+  const editing = useLayout((s) => !still && s.mode === 'edit')
+  // Walls left out, as guides in edit mode; the wall between two indoor rooms is drawn by one of them
+  const openSig = useLayout((s) => {
+    const l = fixed ?? activeLevel(s)
+    if (still || s.mode !== 'edit' || !l) return '[]'
+    const me = l.rooms.find((r) => r.id === room.id) ?? room
+    const mine = (r: WallRun) => !r.neighbor || me.id < r.neighbor || isOutdoor(l.rooms.find((o) => o.id === r.neighbor) ?? me)
+    return JSON.stringify(wallRuns(me, l.rooms, 'open', true).filter(mine))
+  })
+  const openRuns = useMemo(() => JSON.parse(openSig) as WallRun[], [openSig])
   const rects = useMemo(() => rectsOf(room), [room])
   const kind = room.type ?? 'room'
   const outdoor = isOutdoor(room)
@@ -464,7 +515,8 @@ export function RoomMesh({ room, level: fixed, still: stillProp }: { room: Room;
   }, [netSig])
   useEffect(() => () => road?.tex.dispose(), [road])
   // The selection line of an outdoor area follows all edges (its runs are only the edges facing open space)
-  const edges = useMemo(() => (outdoor ? wallRuns(room, []).map((r) => ({ ...r, openings: [] })) : null), [outdoor, room])
+  // (an indoor room with walls left out too: the outline does not break at the open walls)
+  const edges = useMemo(() => (outdoor || room.open?.length ? wallRuns(room, [], 'edges').map((r) => ({ ...r, openings: [] })) : null), [outdoor, room])
   const drag = useRef<{ x: number; z: number; bx: number; bz: number; sx: number; sy: number; started: boolean; blocked: boolean } | null>(null)
 
   /*
@@ -545,7 +597,12 @@ export function RoomMesh({ room, level: fixed, still: stillProp }: { room: Room;
         ))}
       {edging && edgeRuns.length > 0 && <GroundEdging runs={edgeRuns} floor={edging} />}
       {!outdoor &&
-        runs.map((r) => <Wall key={`${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`} run={r} interior={r.interior} plan={plan} innerFull={innerFull} still={still} fps={fps && !still} />)}
+        runs.map((r) => (
+          <Wall key={`${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`} run={r} interior={r.interior} plan={plan} innerFull={innerFull} still={still} fps={fps && !still} roomId={room.id} picked={Boolean(picked) && wallKey(r) === picked} />
+        ))}
+      {openRuns.map((r) => (
+        <OpenGuide key={`o${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`} run={r} roomId={room.id} picked={Boolean(picked) && wallKey(r) === picked} />
+      ))}
       {stacked &&
         !outdoor &&
         runs
@@ -568,7 +625,15 @@ export function RoomMesh({ room, level: fixed, still: stillProp }: { room: Room;
               />
             )
           })}
-      {(kind === 'balcony' || kind === 'terrace') && runs.map((r) => <Railing key={`${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`} run={r} />)}
+      {(kind === 'balcony' || kind === 'terrace') &&
+        runs.map((r) => (
+          <Railing
+            key={`${r.side}${r.line.toFixed(3)}${r.a0.toFixed(3)}`}
+            run={r}
+            pick={editing ? (e) => pickWall(e, room.id, wallKey(r)) : undefined}
+            picked={Boolean(picked) && wallKey(r) === picked}
+          />
+        ))}
       {selected && <Outline runs={edges ?? runs} />}
       {fps &&
         !outdoor &&

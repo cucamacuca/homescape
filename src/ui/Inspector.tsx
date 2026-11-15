@@ -6,7 +6,7 @@ import { useHa } from '@/ha/store'
 import { bindingsOf, boundAnywhere, emitsLight, isBound, ledOf, ledSource } from '@/model/bindings'
 import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, ITEM_PRESETS, OPTIONS, RESIZABLE, RESIZABLE2, sizeOf, TOP_COLORS } from '@/model/catalog'
 import { kindFor, modelName, variantFor } from '@/model/generate'
-import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallSnap } from '@/model/geometry'
+import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallSnap, type Side } from '@/model/geometry'
 import { groupFamily, groupMates, heatingSummary } from '@/model/groups'
 import { activeHomeId, activeLevel, homesOf, useLayout } from '@/model/layoutStore'
 import { usePlacement } from '@/model/placement'
@@ -16,11 +16,12 @@ import { containerOf, INTERIOR, moveWithContents, placeInside, toLocal } from '@
 import { counterSink } from '@/model/counter'
 import { mountCenter, mountY, setMountY, setWallMount } from './mount'
 import type { FloorMaterial, Item, ItemKind, Room, RoomType } from '@/model/types'
-import { currentLang, lower, t, tn } from '@/i18n'
+import { currentLang, lower, msg, t, tc, tn } from '@/i18n'
 import { useView } from '@/scene/camera'
 import { BindingEditor, BindingSummary, itemName, itemStateLabel } from './Bindings'
 import { EntityControls } from './Controls'
-import { removeRoom, removeRoomPart, roomContentsCount } from './removal'
+import { removeRoom, removeRoomPart, removeWalls, restoreWalls, roomContentsCount, wallContentsCount } from './removal'
+import { roomWalls, type RoomWall } from '@/model/walls'
 import { rotateRoom } from './rotateRoom'
 import { regenerateFromHa } from './regenerate'
 import { KIND_ICON } from './kindIcons'
@@ -1097,6 +1098,134 @@ function RoomParts({ room }: { room: Room }) {
   )
 }
 
+/* ---------- walls ---------- */
+
+const NO_ROOMS: Room[] = []
+/** The other side of a wall facing open space */
+const SIDE_LABEL: Record<Side, string> = { back: msg('Outside, back'), front: msg('Outside, front'), left: msg('Outside, left'), right: msg('Outside, right') }
+/** Name of a wall seen from its room: the room on the other side, or the side facing open space */
+const wallName = (w: RoomWall) => (w.neighbor ? w.neighbor.name : t(SIDE_LABEL[w.side]))
+
+/**
+ * The room's walls (a balcony's or terrace's railings), each standing or left out. A wall left out between two rooms
+ * makes one open space while both stay rooms of their own (name, Home Assistant area, stats). Indoors all walls can be
+ * left out or put back at once.
+ */
+function RoomWalls({ room }: { room: Room }) {
+  const rooms = useLayout((s) => activeLevel(s)?.rooms ?? NO_ROOMS)
+  const walls = useMemo(() => roomWalls(room, rooms), [room, rooms])
+  if (!walls.length) return null
+  const rail = isOutdoor(room)
+  const { select } = useLayout.getState()
+  const closed = walls.filter((w) => !w.open).map((w) => w.key)
+  const opened = walls.filter((w) => w.open).map((w) => w.key)
+  return (
+    <div id={`walls-${room.id}`} className="grid gap-2">
+      <span className="text-[12px] font-semibold text-ink-2">{rail ? t('Railings') : t('Walls')}</span>
+      {walls.map((w) => (
+        <div key={w.key} data-wall={w.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          <button
+            type="button"
+            onClick={() => select({ type: 'wall', id: room.id, wall: w.key })}
+            className="flex min-w-0 items-baseline gap-2 rounded-lg px-1 py-1 text-left hover:bg-surface-2"
+            title={rail ? t('Select the railing') : t('Select the wall')}
+          >
+            <span className="truncate text-[12.5px] font-semibold text-ink-2">{wallName(w)}</span>
+            <span className="shrink-0 font-mono text-[11px] text-ink-3">{fmt(w.length, 1)} m</span>
+          </button>
+          <div className="flex w-[150px] gap-1">
+            <button type="button" data-wall-state="closed" className={seg(!w.open)} onClick={() => w.open && restoreWalls(room.id, [w.key])}>
+              {rail ? t('Railing') : t('Wall')}
+            </button>
+            <button type="button" data-wall-state="open" className={seg(w.open)} onClick={() => !w.open && removeWalls(room.id, [w.key])}>
+              {tc('wall', 'Open')}
+            </button>
+          </div>
+        </div>
+      ))}
+      {!rail && walls.length > 1 && (
+        <div className="flex gap-1.5">
+          {closed.length > 0 && (
+            <button type="button" id="walls-remove-all" onClick={() => removeWalls(room.id, closed)} className="flex-1 rounded-xl border border-line py-2 text-[12.5px] font-semibold text-ink-2 hover:border-brand hover:text-brand">
+              {t('Remove all walls')}
+            </button>
+          )}
+          {opened.length > 0 && (
+            <button type="button" id="walls-restore-all" onClick={() => restoreWalls(room.id, opened)} className="flex-1 rounded-xl border border-line py-2 text-[12.5px] font-semibold text-ink-2 hover:border-brand hover:text-brand">
+              {t('Put all walls back')}
+            </button>
+          )}
+        </div>
+      )}
+      {!rail && (
+        <p className="text-[11px] leading-relaxed text-ink-3">
+          {t('Leave out the wall to a neighboring room for one open space: each room keeps its own name, Home Assistant area and stats. You can also click a wall in the scene.')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** A selected wall or railing (click in edit mode): the rooms on both sides, its length, delete it or put it back. */
+function WallEdit({ room, wall }: { room: Room; wall: RoomWall }) {
+  const { select } = useLayout.getState()
+  const n = useLayout((s) => (s.layout && !wall.open ? wallContentsCount(room.id, [wall.key]) : 0))
+  const rail = isOutdoor(room)
+  const sides: [string, string | null][] = [
+    [room.name, room.id],
+    [wallName(wall), wall.neighbor?.id ?? null],
+  ]
+  return (
+    <div className={panel}>
+      <Header eyebrow={`${t('Edit')} · ${rail ? t('Railing') : t('Wall')}`} title={`${room.name} · ${wallName(wall)}`} onClose={() => select(null)} />
+      <div className={`${body} gap-4`}>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {sides.map(([name, id], i) =>
+            id ? (
+              <button key={i} type="button" onClick={() => select({ type: 'room', id })} className="truncate rounded-lg bg-surface-2 px-2.5 py-1.5 text-[12.5px] font-semibold text-ink-2 hover:text-ink">
+                {name}
+              </button>
+            ) : (
+              <span key={i} className="truncate rounded-lg border border-line px-2.5 py-1.5 text-[12.5px] font-semibold text-ink-3">
+                {name}
+              </span>
+            ),
+          )}
+        </div>
+        <div className="flex items-center justify-between text-[12.5px]">
+          <span className="font-semibold text-ink-2">{t('Length')}</span>
+          <span className="font-mono tabular-nums text-ink-2">{fmt(wall.length, 2)} m</span>
+        </div>
+        {wall.open && (
+          <p className="text-[12px] leading-relaxed text-ink-3">
+            {wall.neighbor
+              ? t('There is no wall here: the rooms are one open space, and each keeps its own name, Home Assistant area and stats.')
+              : t('There is no wall here: the room is open to the outside.')}
+          </p>
+        )}
+      </div>
+      <div className="border-t border-line px-5 py-3">
+        {wall.open ? (
+          <button type="button" id="wall-restore" onClick={() => restoreWalls(room.id, [wall.key])} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-50 py-2.5 text-[13px] font-semibold text-brand">
+            <RotateCcw size={15} />
+            {rail ? t('Put the railing back') : t('Put the wall back')}
+          </button>
+        ) : (
+          <button type="button" id="wall-delete" onClick={() => removeWalls(room.id, [wall.key])} className="flex w-full flex-col items-center justify-center rounded-xl bg-miss-50 py-2 font-semibold text-miss">
+            <span className="flex items-center gap-2 text-[13px]">
+              <Trash2 size={15} />
+              {rail ? t('Delete railing') : t('Delete wall')}
+            </span>
+            <span className="text-[11px] font-medium text-miss/80">
+              {n ? tn(n, 'The {count} door, window or item on it goes too · ⌘Z undoes', 'The {count} doors, windows and items on it go too · ⌘Z undoes') : t('Nothing hangs on it · ⌘Z undoes')}
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function RoomEdit({ room }: { room: Room }) {
   const { updateRoom, select } = useLayout.getState()
   const areas = useHa((s) => s.registry?.areas ?? [])
@@ -1186,6 +1315,7 @@ function RoomEdit({ room }: { room: Room }) {
           ))}
         </div>
         <RoomParts room={room} />
+        <RoomWalls room={room} />
         <div className="flex gap-1.5">
           {([-1, 1] as const).map((d) => (
             <button
@@ -1472,6 +1602,10 @@ export default function Inspector({ stats }: { stats: Record<string, RoomStats> 
   } else if (selection?.type === 'room') {
     const room = level?.rooms.find((r) => r.id === selection.id)
     content = room ? mode === 'edit' ? <RoomEdit room={room} /> : <RoomView room={room} stats={stats[room.id]} /> : null
+  } else if (selection?.type === 'wall' && mode === 'edit' && level) {
+    const room = level.rooms.find((r) => r.id === selection.id)
+    const wall = room ? roomWalls(room, level.rooms).find((w) => w.key === selection.wall) : undefined
+    content = room && wall ? <WallEdit room={room} wall={wall} /> : null
   }
   // On a phone the edit help covers the scene: show it only on wide screens (an empty plan has nothing to cover, so show it)
   const helpOnly = !content && mode === 'edit' && (level?.rooms.length ?? 0) > 0

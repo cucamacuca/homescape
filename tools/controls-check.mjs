@@ -297,6 +297,63 @@ if (spot) {
   ok(!(await placement()).target, 'Esc cancels placement')
 }
 
+// --- Walls: select one in the scene, delete it with the door in it, put it back; a room without walls (GitHub issue #2) ---
+{
+  await H(() => window.__homescape.select(null))
+  const L = await level()
+  let wall = null
+  let home = null
+  for (const r of L.rooms) {
+    const walls = await H((id) => window.__homescape.walls(id), r.id)
+    wall = walls.find((w) => w.neighbor && !w.open && w.at && L.items.some((i) => i.kind === 'door' && w.items.includes(i.id)))
+    if (wall) {
+      home = r
+      break
+    }
+  }
+  ok(Boolean(wall), 'The sample home has a wall with a door between two rooms')
+  if (wall) {
+    const doors = L.items.filter((i) => wall.items.includes(i.id)).map((i) => i.id)
+    await H(() => window.__homescape.planView(true))
+    await H((id) => window.__homescape.focusRoom(id), home.id)
+    await p.waitForTimeout(1600)
+    pt = await project(wall.at.x, wall.at.z, 0.3)
+    await p.mouse.click(pt.x, pt.y)
+    await p.waitForTimeout(400)
+    const sel = (await level()).sel
+    const same = sel?.type === 'wall' && ((sel.id === home.id && sel.wall === wall.key) || (sel.id === wall.neighbor && sel.wall === home.id))
+    ok(same, 'A click on a wall in edit mode selects that wall')
+    ok(await p.isVisible('#wall-delete'), 'The wall card offers Delete wall')
+    const past = (await level()).past
+    await p.keyboard.press('Delete')
+    await p.waitForTimeout(400)
+    const s1 = await level()
+    const after = (await H((id) => window.__homescape.walls(id), home.id)).find((w) => w.key === wall.key)
+    ok(after?.open && !s1.items.some((i) => doors.includes(i.id)), 'Delete leaves the wall out together with the door in it')
+    ok(s1.past === past + 1, 'Deleting a wall is one undo step')
+    ok(await p.isVisible('#wall-restore'), 'The open wall stays selected and can be put back')
+    await p.keyboard.press('Meta+z')
+    await p.waitForTimeout(400)
+    const back = (await H((id) => window.__homescape.walls(id), home.id)).find((w) => w.key === wall.key)
+    const restored = (await level()).items.filter((i) => doors.includes(i.id)).length
+    ok(back && !back.open && restored === doors.length, '⌘Z brings the wall and its door back')
+
+    await H((id) => window.__homescape.select({ type: 'room', id }), home.id)
+    await p.waitForTimeout(400)
+    await p.click('#walls-remove-all')
+    await p.waitForTimeout(400)
+    const none = await H((id) => window.__homescape.walls(id), home.id)
+    ok(none.length > 1 && none.every((w) => w.open), 'Remove all walls leaves a room without walls')
+    await p.click('#walls-restore-all')
+    await p.waitForTimeout(400)
+    ok((await H((id) => window.__homescape.walls(id), home.id)).every((w) => !w.open), 'Put all walls back restores them')
+    await p.keyboard.press('Meta+z')
+    await p.keyboard.press('Meta+z')
+    await H(() => window.__homescape.planView(false))
+    await H(() => window.__homescape.select(null))
+  }
+}
+
 await p.click('button[title="Controls and shortcuts"]')
 await p.waitForTimeout(300)
 ok(await p.isVisible('text=Left click + drag'), 'The help card shows the new controls')

@@ -4,7 +4,7 @@ declare const __HA_PROXY_TARGET__: string
 interface Window {
   /** Test and screenshot hook (tools/shot.mjs). Not used by the UI code. */
   __homescape?: {
-    select: (sel: { type: 'room' | 'item'; id: string } | null) => void
+    select: (sel: { type: 'room' | 'item'; id: string } | { type: 'wall'; id: string; wall: string } | null) => void
     setMode: (mode: 'view' | 'edit') => void
     setTheme: (theme: 'auto' | 'day' | 'night') => void
     focusRoom: (roomId: string) => void
@@ -19,6 +19,8 @@ interface Window {
     placement: () => unknown
     perf: () => Promise<Record<string, number>>
     setEntity: (e: { entity_id: string; state: string; attributes: Record<string, unknown>; last_changed?: string }) => boolean
+    /** The room's walls (model/walls.ts): key (neighbor room id or side), length, open, and the items that go with each */
+    walls: (roomId: string) => Promise<{ key: string; neighbor: string | null; side: string; length: number; open: boolean; items: string[]; at: { x: number; z: number } | null }[]>
     roomLights: () => Promise<{ pos: number[]; range: number; type: number; color: string; rects: { x: number; z: number; w: number; d: number }[] }[]>
     /** Sun and ambient light (scene/Scene.tsx > Lights): direction to the sun, intensities, walk and indoor mix */
     lighting: () => Promise<{ sunDir: number[]; sunI: number; hemiI: number; fps: number; indoor: number }>

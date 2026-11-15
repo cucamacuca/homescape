@@ -109,12 +109,26 @@ export interface WallRun {
   a1: number
   /** Interior wall: another room on the other side (drawn low) */
   interior: boolean
+  /** The room on the other side (indoor or outdoor); none when the run faces open space */
+  neighbor?: string
   /** Center of the part the run belongs to (for the facing-the-camera test) */
   cx: number
   cz: number
 }
 
 const OUT: Record<Side, number> = { back: -1, front: 1, left: -1, right: 1 }
+
+/**
+ * Walls left out (Room.open): the wall between two rooms is open when either room lists the other, so a shared wall
+ * opens for both rooms at once; an edge facing open space is open when the room lists that side.
+ */
+export function wallOpen(room: Room, side: Side, neighbor?: Room) {
+  if (neighbor) return Boolean(room.open?.includes(neighbor.id) || neighbor.open?.includes(room.id))
+  return Boolean(room.open?.includes(side))
+}
+
+/** Which wall of the room a run belongs to (Room.open entry): the room on the other side, or the side facing open space */
+export const wallKey = (run: Pick<WallRun, 'neighbor' | 'side'>) => run.neighbor ?? run.side
 
 /**
  * The room's real walls: each part's edge is split at the corners of the other parts and of neighbor rooms, and the
@@ -125,10 +139,16 @@ const OUT: Record<Side, number> = { back: -1, front: 1, left: -1, right: 1 }
  * (full thickness, half of it reaching into the balcony); the outdoor space's own runs are only its edges facing empty
  * space (a railing or nothing, RoomMesh decides), edges with a neighbor are skipped. mode 'house': the outdoor space's
  * edges facing the house wall (wall items hang there from outside: awning, outdoor wall light).
+ *
+ * Walls left out (Room.open, wallOpen) are skipped; mode 'open' returns only those (the open edges, drawn as a guide in
+ * edit mode). mode 'edges': every edge of the union, ignoring neighbors and open walls (outlines, sticking to a wall).
+ * byWall: a run never spans two neighbors, so each run is one wall (wallKey) that can be selected and left out; otherwise
+ * runs of the same kind merge across neighbors (and carry no neighbor when they span several), as items, strips, the walk
+ * and the pets expect.
  */
-export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'walls'): WallRun[] {
+export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' | 'open' | 'edges' = 'walls', byWall = false): WallRun[] {
   const own = rectsOf(room)
-  const others = rooms.filter((o) => o.id !== room.id)
+  const others = mode === 'edges' ? [] : rooms.filter((o) => o.id !== room.id)
   const coordsX = [...own, ...others.flatMap(rectsOf)].flatMap((r) => [r.x, r.x + r.w])
   const coordsZ = [...own, ...others.flatMap(rectsOf)].flatMap((r) => [r.z, r.z + r.d])
   const runs: WallRun[] = []
@@ -151,6 +171,7 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'w
         const oz = horizontal ? line + OUT[side] * 0.05 : m
         if (inRoom(room, ox, oz) || covered(side, line, m)) continue
         const neighbor = others.find((o) => inRoom(o, ox, oz))
+        if (mode !== 'edges' && wallOpen(room, side, neighbor) !== (mode === 'open')) continue
         let interior: boolean
         if (mode === 'house') {
           if (!neighbor || isOutdoor(neighbor)) continue
@@ -160,8 +181,11 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' = 'w
           interior = false
         } else interior = Boolean(neighbor && !isOutdoor(neighbor))
         const prev = runs[runs.length - 1]
-        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior) prev.a1 = a1
-        else runs.push({ side, horizontal, line, a0, a1, interior, cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
+        const next = neighbor?.id
+        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior && (!byWall || prev.neighbor === next)) {
+          prev.a1 = a1
+          if (prev.neighbor !== next) delete prev.neighbor
+        } else runs.push({ side, horizontal, line, a0, a1, interior, ...(next ? { neighbor: next } : {}), cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
       }
     }
   }
@@ -194,6 +218,19 @@ export function sharedEdge(a: Rect, b: Rect): { side: Side; lo: number; hi: numb
  */
 const WALL_ROT: Record<Side, number> = { back: 0, front: Math.PI, left: Math.PI / 2, right: -Math.PI / 2 }
 
+/** The runs without the spans of the cut runs on the same side and line (an edge minus its open walls). */
+function cutRuns(runs: WallRun[], cuts: WallRun[]): WallRun[] {
+  if (!cuts.length) return runs
+  return runs.flatMap((r) => {
+    let pieces: [number, number][] = [[r.a0, r.a1]]
+    for (const c of cuts) {
+      if (c.side !== r.side || Math.abs(c.line - r.line) > 1e-6) continue
+      pieces = pieces.flatMap(([a, b]): [number, number][] => (c.a1 <= a || c.a0 >= b ? [[a, b]] : ([[a, c.a0], [c.a1, b]] as [number, number][]).filter(([x, y]) => y - x > 1e-6)))
+    }
+    return pieces.map(([a0, a1]) => ({ ...r, a0, a1 }))
+  })
+}
+
 /**
  * exact: the corner margin is only half the item's length (not at least 0.2 m) and wide items are not pulled into the
  * corner, so a wall-mounted power strip can go anywhere on the wall.
@@ -204,7 +241,7 @@ export function wallSnap(rooms: Room[], x: number, z: number, depth: number, max
   const ROT = WALL_ROT
   for (const room of rooms) {
     // Outdoors the only wall is the house wall: items do not hang on a garden or balcony edge but on the house's outer face
-    for (const run of isOutdoor(room) ? wallRuns(room, rooms, 'house') : wallRuns(room, [])) {
+    for (const run of isOutdoor(room) ? wallRuns(room, rooms, 'house') : cutRuns(wallRuns(room, [], 'edges'), wallRuns(room, rooms, 'open'))) {
       const along = run.horizontal ? x : z
       if (along < run.a0 - 0.2 || along > run.a1 + 0.2) continue
       const half = exact ? Math.max((width ?? 0) / 2, 0.02) : Math.max((width ?? 0) / 2, 0.2)
@@ -240,7 +277,7 @@ export function settleWallItems(level: Level): Item[] {
     if (!room) return it
     const depth = meta.size[1]
     const half = Math.max(sizeOf(it.kind, it.len)[0] / 2, 0.2)
-    for (const run of wallRuns(room, [])) {
+    for (const run of wallRuns(room, [], 'edges')) {
       if (!same(it.rot, WALL_ROT[run.side])) continue
       const perp = run.horizontal ? it.z : it.x
       const along = run.horizontal ? it.x : it.z

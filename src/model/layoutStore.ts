@@ -9,6 +9,7 @@ import { splitTvUnits } from './migrate'
 import { isDefault as isDefaultDashboard } from './dashboardLayout'
 import { edgePatch, shiftItemsWithEdge, type Edge } from './resize'
 import { uid } from './ids'
+import { isSide, withWalls } from './walls'
 import type { DashboardLayout, Item, ItemKind, Layout, Level, Rect, Room, Selection } from './types'
 
 /*
@@ -47,7 +48,7 @@ const HISTORY = 60
 
 const STORE_KEY = 'homescape-layout-v1'
 /** Format of saved plans; plans in Home Assistant carry it too (ha/planSync.ts) */
-export const STORE_VERSION = 5
+export const STORE_VERSION = 6
 
 /** Writes a copy of the raw record to a separate key (silently skipped when storage is unavailable). */
 function keepCopy(key: string, raw: string | null) {
@@ -172,6 +173,8 @@ interface LayoutState {
   addPart: (roomId: string, rect: Rect) => void
   updatePart: (roomId: string, index: number, patch: Partial<Rect>, record?: boolean) => void
   removePart: (roomId: string, index: number) => void
+  /** Leaves walls of the room out (open) or puts them back, in one undo step (model/walls.ts > withWalls) */
+  setWalls: (roomId: string, keys: string[], open: boolean) => void
 
   addItem: (kind: ItemKind, x: number, z: number, rot?: number, entityId?: string | null, y?: number, extra?: Partial<Item>) => string
   updateItem: (id: string, patch: Partial<Item>, record?: boolean) => void
@@ -257,6 +260,8 @@ export function migrateLayout(layout: Layout, from: number): Layout {
   if (from < 3) step('centered walls', items((l) => settleWallItems(l)))
   if (from < 4) step('separate TV unit', items((l) => splitTvUnits(l.items)))
   if (from < 5) step('actual device as main entity', items((l) => l.items.map(primaryFirst)))
+  // 6: walls left out (Room.open). Nothing to convert: older plans have all their walls. The new version keeps a version
+  // that cannot read Room.open from writing over a plan that has it (ha/planSync.ts).
   return lay
 }
 
@@ -411,6 +416,7 @@ export const useLayout = create<LayoutState>()(
             const gone = new Set(areaContents(l.items, [part], rooms).map((it) => it.id))
             return { ...l, rooms, items: l.items.filter((it) => !gone.has(it.id)) }
           }),
+        setWalls: (roomId, keys, open) => change((l) => withWalls(l, roomId, keys, open)),
         // A room is deleted with everything: its items, devices, doors and doors from neighbors opening into it.
         deleteRoom: (id) => {
           change((l) => {
@@ -542,7 +548,14 @@ export const useLayout = create<LayoutState>()(
           if (!layout || !cur) return null
           const elevs = layout.levels.map((l) => l.elevation ?? 0)
           const elevation = opts.below ? Math.min(...elevs) - 1 : Math.max(...elevs) + 1
-          const rooms = opts.copyRooms ? cur.rooms.filter((r) => r.type !== 'garden').map((r) => ({ ...r, id: uid('room'), areaId: null })) : []
+          const copied = opts.copyRooms ? cur.rooms.filter((r) => r.type !== 'garden') : []
+          // Copied rooms get new ids; walls left out between them stay open (Room.open names the neighbors by id)
+          const ids = new Map(copied.map((r) => [r.id, uid('room')]))
+          const rooms = copied.map((r) => {
+            const open = r.open?.flatMap((k) => (ids.has(k) ? [ids.get(k)!] : isSide(k) ? [k] : []))
+            const { open: _, ...rest } = r
+            return { ...rest, id: ids.get(r.id)!, areaId: null, ...(open?.length ? { open } : {}) }
+          })
           const lvl: Level = { id: uid('lvl'), name: '', rooms, items: [], elevation }
           lvl.name = levelName(lvl)
           // The unnamed level of a single-level plan gets its shown name ("Ground floor") as its name
