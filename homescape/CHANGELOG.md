@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- The average temperature counts only indoor rooms: terraces, balconies and gardens no longer change it
+  ([#3](https://github.com/muratozturkdev/homescape/issues/3)).
+- LED strips have their own length, set in their card; the strip, its glow and its light follow it, and it never gets
+  longer than its wall ([#4](https://github.com/muratozturkdev/homescape/issues/4)).
+- Installing or updating the app builds exactly this version.
+
 ## 0.2.0
 
 - Open-plan rooms: walls can be left out ([#2](https://github.com/muratozturkdev/homescape/issues/2)). In edit mode click

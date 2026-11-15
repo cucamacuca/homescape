@@ -1,7 +1,7 @@
 {
   "name": "homescape",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "GPL-3.0-or-later",
   "description": "Your Home Assistant home as a live, interactive 3D dollhouse in the browser",
   "keywords": [

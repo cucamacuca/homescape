@@ -1,7 +1,9 @@
 # Stage 1: the web app. Uses the files in ./www when present (npm run build:app), else builds them from the repository.
+# HOMESCAPE_REF is the release tag, so installing or updating the app builds exactly that version and nothing pushed to
+# main after it. Raise it with every release (CONTRIBUTING.md > Releases).
 FROM node:22-alpine AS web
 ARG HOMESCAPE_REPO=https://github.com/muratozturkdev/homescape
-ARG HOMESCAPE_REF=main
+ARG HOMESCAPE_REF=v0.2.1
 COPY . /files
 RUN if [ -f /files/www/index.html ]; then \
       cp -r /files/www /out; \

@@ -138,10 +138,13 @@ user's action matters.
 
 ## Releases (maintainers)
 
-- The Home Assistant app builds from `main` when it is installed or updated, so `main` must always be releasable.
+- The Home Assistant app builds the release tag named in `homescape/Dockerfile` (`HOMESCAPE_REF`) when it is installed
+  or updated, so what is pushed to `main` reaches its users only with the next release. The demo site builds `main`.
 - Before a release: CI is green on `main` and `npm run check` passes against the dev server.
 - Raise the version in `package.json` and `homescape/config.yaml` (Home Assistant offers an update only when this
-  version changes) and add the notes to `homescape/CHANGELOG.md`.
-- Tag `vX.Y.Z` (annotated) on that commit, push it, and publish a GitHub release with the notes and
+  version changes), set `HOMESCAPE_REF` in `homescape/Dockerfile` to the new tag and add the notes to
+  `homescape/CHANGELOG.md`.
+- Tag `vX.Y.Z` (annotated) on that commit and push the tag before `main` (the app must never point to a missing tag),
+  then publish a GitHub release with the notes and
   `homescape-X.Y.Z-www.zip`: the contents of `dist/` built from the tag, for installs without apps.
 - Never move a published tag or replace a published asset; fix forward with a new version.
