@@ -657,7 +657,7 @@ const FLAMES = [
 ]
 
 /** Flickering flames: additive cones flicker in height, width and opacity; the warm halo in front flickers too. Mounted only when on. */
-function Flames({ y, night }: { y: number; night: boolean }) {
+export function Flames({ y, night }: { y: number; night: boolean }) {
   const group = useRef<THREE.Group>(null)
   const halo = useRef<THREE.Sprite>(null)
   const tex = useMemo(() => glowTexture(), [])

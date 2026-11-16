@@ -250,6 +250,9 @@ export type ItemKind =
   | 'floodlight'
   | 'lightPanels'
   | 'neonSign'
+  | 'portableAc'
+  | 'woodStove'
+  | 'exhaustFan'
 
 export interface Item {
   id: string

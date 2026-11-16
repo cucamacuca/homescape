@@ -1,9 +1,13 @@
-import { useMemo } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { deviceClass, domainOf, isActive } from '@/ha/derive'
-import { Glow, useLitMaterial } from './effects'
+import { deviceClass, domainOf, isActive, num } from '@/ha/derive'
+import { WALL_H } from '@/model/geometry'
+import { markShadows } from '../frame'
+import { Airflow, Glow, Spin, useLitMaterial } from './effects'
 import { C } from './palette'
 import { Ball, Box, Cyl, mat } from './primitives'
+import { Flames } from './smart'
 import type { Visual } from './visual'
 
 /*
@@ -18,6 +22,9 @@ import type { Visual } from './visual'
 type P = { v: Visual }
 
 const TAU = Math.PI * 2
+
+/** Body color: pale gray when unavailable, otherwise the color picked on the card (Item.body) or the default. */
+const bodyOf = (v: Visual, def: string) => (v.unavailable ? '#9aa0b8' : (v.opts.body ?? def))
 
 /** Glowing part: emissive in its own color while lit, plain otherwise (cached by value). */
 const glowing = (color: string, lit: boolean, k = 1.6) => (lit ? mat(color, { emissive: color, emissiveIntensity: Math.round(k * 10) / 10 }) : mat('#4a4e5a'))
@@ -35,6 +42,8 @@ function geo<T extends THREE.BufferGeometry>(key: string, make: () => T) {
   return g
 }
 
+const disc = (r: number, seg = 32) => geo(`d${r},${seg}`, () => new THREE.CircleGeometry(r, seg))
+
 /** Transparent surface (glass, water): one material per color and opacity; no depth write, the contents stay visible. */
 const clears = new Map<string, THREE.MeshStandardMaterial>()
 
@@ -46,6 +55,26 @@ function clear(color: string, opacity: number, roughness = 0.08) {
     clears.set(key, m)
   }
   return m
+}
+
+/** Eases a value toward target and applies it each frame until it arrives (a flap, a lid, a door). */
+function useEase(target: number, apply: (v: number) => void, speed = 6) {
+  const cur = useRef<number | null>(null)
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => invalidate(), [target, invalidate])
+  useFrame((state, dt) => {
+    if (cur.current === null) {
+      cur.current = target
+      apply(target)
+      return
+    }
+    const d = target - cur.current
+    if (Math.abs(d) < 0.0005) return
+    cur.current = Math.abs(d) < 0.002 ? target : cur.current + d * Math.min(1, dt * speed)
+    apply(cur.current)
+    markShadows(1)
+    state.invalidate()
+  })
 }
 
 /* ---------- lights ---------- */
@@ -181,6 +210,92 @@ export function NeonSign({ v }: P) {
       <Box size={[0.6, 0.46, 0.008]} position={[0, 0, -0.008]} material={clear('#ffffff', 0.16, 0.2)} shadow={false} />
       <mesh geometry={neonTube(kind)} material={v.on ? glowing(color, true, 2.4) : mat('#dcdde6', { roughness: 0.3 })} />
       {v.on && <Glow position={[0, 0, 0.06]} color={color} opacity={v.night ? 0.95 : 0.45} size={1.1} />}
+    </group>
+  )
+}
+
+/* ---------- climate ---------- */
+
+/**
+ * Portable air conditioner (on the floor by a wall, 0.75 m): a tower on casters with a display and a top flap, the exhaust
+ * hose into the wall behind it. While it cools the flap opens and cool air streams out.
+ */
+export function PortableAc({ v }: P) {
+  const body = bodyOf(v, '#f4f5f8')
+  const cooling = v.on && (v.domain !== 'climate' || ['cool', 'dry', 'fan_only', 'auto', 'heat_cool'].includes(v.state))
+  const disp = useLitMaterial(C.screenOff, v.on, C.cool, 0.9, 1.6)
+  const flap = useRef<THREE.Group>(null)
+  useEase(cooling ? -0.9 : 0, (a) => {
+    if (flap.current) flap.current.rotation.x = a
+  })
+  return (
+    <group>
+      <Box size={[0.4, 0.7, 0.34]} position={[0, 0.39, 0]} color={body} radius={0.04} />
+      {[-0.14, 0.14].flatMap((x) => [-0.12, 0.12].map((z) => <Cyl key={`${x}${z}`} r={0.022} h={0.035} position={[x, 0.018, z]} color={C.inkSoft} segments={12} />))}
+      <group ref={flap} position={[0, 0.745, 0.15]}>
+        <Box size={[0.32, 0.012, 0.12]} position={[0, 0, -0.06]} color={body} shadow={false} />
+      </group>
+      <Box size={[0.11, 0.035, 0.006]} position={[0, 0.62, 0.171]} material={disp} shadow={false} />
+      <Cyl r={0.055} h={0.12} position={[0, 0.5, -0.2]} rotation={[Math.PI / 2, 0, 0]} color="#d8dbe3" segments={16} />
+      <Airflow active={cooling} color={C.cool} y={0.76} />
+    </group>
+  )
+}
+
+/**
+ * Wood or pellet stove (on the floor by a wall): a black stove on legs with a glass door and a flue pipe up to the ceiling.
+ * While it heats flames flicker behind the glass and a warm halo spreads into the room.
+ */
+export function WoodStove({ v }: P) {
+  const body = bodyOf(v, '#2b2d33')
+  const heating = v.on && (v.domain !== 'climate' || v.state !== 'off')
+  return (
+    <group>
+      {[-0.23, 0.23].flatMap((x) => [-0.18, 0.18].map((z) => <Box key={`${x}${z}`} size={[0.04, 0.14, 0.04]} position={[x, 0.07, z]} color={body} />))}
+      <Box size={[0.56, 0.52, 0.36]} position={[0, 0.4, -0.06]} color={body} radius={0.02} />
+      {/* front frame around the firebox: open behind the glass, so the flames show inside */}
+      <Box size={[0.56, 0.12, 0.12]} position={[0, 0.6, 0.18]} color={body} />
+      <Box size={[0.56, 0.12, 0.12]} position={[0, 0.2, 0.18]} color={body} />
+      {[-1, 1].map((s) => (
+        <Box key={s} size={[0.1, 0.28, 0.12]} position={[s * 0.23, 0.4, 0.18]} color={body} />
+      ))}
+      <Box size={[0.36, 0.28, 0.01]} position={[0, 0.4, 0.125]} color="#15161a" shadow={false} />
+      {[-0.06, 0.06].map((x) => (
+        <Cyl key={x} r={0.025} h={0.3} position={[x, 0.29, 0.18]} rotation={[0, 0, Math.PI / 2 + x * 2]} color="#6b4a34" segments={8} />
+      ))}
+      <Box size={[0.36, 0.28, 0.006]} position={[0, 0.4, 0.237]} material={clear(heating ? '#ffb27a' : '#9aa0b8', heating ? 0.25 : 0.22, 0.1)} shadow={false} />
+      <Cyl r={0.07} h={WALL_H - 0.66} position={[0, 0.66 + (WALL_H - 0.66) / 2, -0.08]} color={body} segments={16} />
+      {heating && (
+        <group position={[0, 0, 0.17]} scale={0.75}>
+          <Flames y={0.38} night={v.night} />
+        </group>
+      )}
+    </group>
+  )
+}
+
+/**
+ * Extractor fan (high on the wall, 2.2 m): a square grille with blades behind it that spin while the fan runs, faster
+ * with the speed (percentage).
+ */
+export function ExhaustFan({ v }: P) {
+  const pct = num(v.attrs.percentage)
+  const speed = v.on ? 6 + ((pct ?? 60) / 100) * 18 : 0
+  const Y = 2.2
+  return (
+    <group position={[0, Y, -0.025]}>
+      <Box size={[0.28, 0.28, 0.04]} color={C.white} radius={0.02} />
+      <mesh position={[0, 0, 0.021]} geometry={disc(0.11, 28)} material={mat('#2a2d38')} />
+      <group position={[0, 0, 0.024]}>
+        <Spin speed={speed} axis="z">
+          {[0, 1, 2, 3].map((i) => (
+            <Box key={i} size={[0.03, 0.1, 0.004]} position={[Math.sin((i / 4) * TAU) * 0.05, Math.cos((i / 4) * TAU) * 0.05, 0]} rotation={[0, 0, -(i / 4) * TAU]} color={C.steel} shadow={false} />
+          ))}
+        </Spin>
+      </group>
+      {[-0.08, -0.04, 0, 0.04, 0.08].map((y) => (
+        <Box key={y} size={[0.24, 0.008, 0.006]} position={[0, y, 0.03]} color={C.white} shadow={false} />
+      ))}
     </group>
   )
 }

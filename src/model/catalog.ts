@@ -253,6 +253,12 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   lightPanels: { label: t('Light panels'), group: 'light', domains: ['light'], size: [0.9, 0.04], labelY: 2.1, wall: true },
   // Neon tube shape on an acrylic board (Item.variant), in Item.body or the bound light color
   neonSign: { label: t('Neon sign'), group: 'light', domains: ['light', 'switch'], size: [0.6, 0.04], labelY: 2.1, wall: true },
+  // Portable AC on casters by a wall, its hose into the wall
+  portableAc: { label: t('Portable air conditioner'), group: 'climate', domains: ['climate', 'switch', 'fan'], size: [0.42, 0.38], labelY: 1.0, wall: true },
+  // Wood or pellet stove with a flue to the ceiling; flames behind the glass while it heats
+  woodStove: { label: t('Wood stove'), group: 'climate', domains: ['climate', 'switch', 'sensor'], size: [0.6, 0.55], labelY: 1.1, wall: true },
+  // Extractor fan high on the wall; the blades spin while on
+  exhaustFan: { label: t('Extractor fan'), group: 'climate', domains: ['fan', 'switch'], size: [0.3, 0.06], labelY: 2.55, wall: true },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */

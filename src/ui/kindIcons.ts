@@ -326,4 +326,7 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   floodlight: Siren,
   lightPanels: Hexagon,
   neonSign: Heart,
+  portableAc: AirVent,
+  woodStove: Flame,
+  exhaustFan: Fan,
 }

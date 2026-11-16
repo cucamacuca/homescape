@@ -625,6 +625,11 @@ function upperFloor(): Level {
   wall(ethan, 'back', 3.2, 'lightPanels', bind('light.us_ethan_panels'))
   wall(bonus, 'right', 8.6, 'neonSign', { ...bind('light.us_bonus_neon'), variant: 'heart', body: '#e2564b' })
 
+  /* --- climate: a portable AC in the gym, a wood stove in the bonus room, an extractor fan in the hall bath --- */
+  wall(gym, 'back', 6.35, 'portableAc', bind('climate.us_gym_ac'))
+  wall(bonus, 'left', 5, 'woodStove', bind('climate.us_bonus_stove'))
+  wall(bath, 'left', 0.6, 'exhaustFan', bind('fan.us_bath_exhaust'))
+
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
 
@@ -864,6 +869,9 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    ent('climate.us_gym_ac', 'cool', t('Gym Air Conditioner'), { hvac_modes: ['off', 'cool', 'dry', 'fan_only'], current_temperature: 24.5, temperature: 21, supported_features: 1 }),
+    ent('climate.us_bonus_stove', 'heat', t('Bonus Room Stove'), { hvac_modes: ['off', 'heat'], current_temperature: 20.5, temperature: 22, supported_features: 1 }),
+    ent('fan.us_bath_exhaust', 'off', t('Hall Bath Extractor Fan'), { percentage: 0 }),
     // new household items
     light('us_hall_night_light', t('Hall Night Light'), true, warm(60, 2200)),
     light('us_ethan_panels', t('Ethan Light Panels'), true, rgb(180, [143, 124, 255])),

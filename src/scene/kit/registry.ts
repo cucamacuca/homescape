@@ -202,6 +202,9 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   floodlight: H.Floodlight,
   lightPanels: H.LightPanels,
   neonSign: H.NeonSign,
+  portableAc: H.PortableAc,
+  woodStove: H.WoodStove,
+  exhaustFan: H.ExhaustFan,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

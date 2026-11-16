@@ -270,6 +270,7 @@ const SPEC: Partial<Record<ItemKind, { at: [number, number, number]; range: numb
   floodlight: { at: [0, 2.4, 0.3], range: 8, power: 6, type: 0 },
   lightPanels: { at: [0, 1.62, 0.1], range: 3, power: 1.6, type: 0 },
   neonSign: { at: [0, 1.7, 0.08], range: 2.4, power: 1.1, type: 0 },
+  woodStove: { at: [0, 0.45, 0.35], range: 4.5, power: 2.4, type: 0 },
 }
 
 /**
