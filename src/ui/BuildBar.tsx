@@ -10,6 +10,7 @@ import { formatNumber, lower, t } from '@/i18n'
 import { KIND_ICON } from './kindIcons'
 import { useThumbs } from './thumbStore'
 import { beginCardDrag } from './usePlacementInput'
+import { useWheelScrollX } from './useWheelScrollX'
 
 const ThumbnailFactory = lazy(() => import('@/scene/Thumbs'))
 
@@ -119,6 +120,9 @@ export default function BuildBar() {
     if (empty) setTab('room')
   }
   const urls = useThumbs((s) => s.urls)
+  // Both rows are horizontal lists: a plain mouse wheel scrolls them sideways (ui/useWheelScrollX.ts)
+  const tabsRow = useWheelScrollX<HTMLDivElement>()
+  const cardsRow = useWheelScrollX<HTMLDivElement>()
   const target = usePlacement((s) => s.target)
   const setTool = useLayout((s) => s.setTool)
   const tool = useLayout((s) => s.tool)
@@ -158,7 +162,7 @@ export default function BuildBar() {
             </button>
           )}
         </label>
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+        <div ref={tabsRow} data-wheel-row="tabs" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
           {TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
@@ -177,7 +181,7 @@ export default function BuildBar() {
           ))}
         </div>
       </div>
-      <div className="flex gap-2 overflow-x-auto px-2.5 py-2.5 [scrollbar-width:thin]">
+      <div ref={cardsRow} data-wheel-row="cards" className="flex gap-2 overflow-x-auto px-2.5 py-2.5 [scrollbar-width:thin]">
         {found ? (
           <>
             {found.rooms.length + found.kinds.length + found.presets.length === 0 && <p className="px-2 py-6 text-[13px] text-ink-3">{t('No items found for "{query}".', { query })}</p>}

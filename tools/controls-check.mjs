@@ -380,6 +380,39 @@ if (spot) {
   }
 }
 
+// --- Build bar: a plain mouse wheel scrolls the tab row and the card row sideways, and does not zoom the camera ---
+{
+  await H(() => window.__homescape.setMode('edit'))
+  // A narrower window so both rows overflow
+  await p.setViewportSize({ width: 1100, height: 900 })
+  await p.waitForTimeout(800)
+  for (const row of ['tabs', 'cards']) {
+    const sel = `nav[aria-label="Build bar"] [data-wheel-row="${row}"]`
+    await p.$eval(sel, (el) => {
+      el.scrollLeft = 0
+    })
+    const box = await p.locator(sel).boundingBox()
+    const before = await p.$eval(sel, (el) => ({ left: el.scrollLeft, over: el.scrollWidth - el.clientWidth }))
+    await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    // Let the camera settle after the window resize (it reframes), so only the wheel could move it
+    let c0 = await cam()
+    for (let i = 0; i < 20; i++) {
+      await p.waitForTimeout(250)
+      const c = await cam()
+      const still = Math.abs(c.distance - c0.distance) < 1e-4
+      c0 = c
+      if (still) break
+    }
+    await p.mouse.wheel(0, 300)
+    await p.waitForTimeout(400)
+    const after = await p.$eval(sel, (el) => el.scrollLeft)
+    const c1 = await cam()
+    ok(before.over > 0 && after > before.left + 50 && Math.abs(c1.distance - c0.distance) < 1e-3, `A mouse wheel over the build bar's ${row} row scrolls it sideways (${before.left} to ${Math.round(after)} of ${before.over} px), the camera does not zoom (distance ${c0.distance.toFixed(3)} to ${c1.distance.toFixed(3)})`)
+  }
+  await p.setViewportSize({ width: 1600, height: 900 })
+  await p.waitForTimeout(500)
+}
+
 await p.click('button[title="Controls and shortcuts"]')
 await p.waitForTimeout(300)
 ok(await p.isVisible('text=Left click + drag'), 'The help card shows the new controls')
