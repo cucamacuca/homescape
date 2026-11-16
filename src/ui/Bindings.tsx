@@ -4,7 +4,7 @@ import { deviceClass, domainOf, friendlyName, isActive, isReading, isUnavailable
 import { useHa } from '@/ha/store'
 import type { HassEntity } from '@/ha/types'
 import { bindingsOf, ledTag, socketLabel } from '@/model/bindings'
-import { CATALOG } from '@/model/catalog'
+import { CATALOG, isSlidingDoor, isWallOpening } from '@/model/catalog'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import type { Item, ItemKind, Room } from '@/model/types'
 import { canToggle, MOMENTARY, toggle } from '@/ha/actions'
@@ -307,5 +307,8 @@ export function itemStateLabel(item: Item, entity: HassEntity) {
 export function itemName(item: Item, entity?: HassEntity) {
   if (item.name) return item.name
   if (entity && CATALOG[item.kind].domains.includes(domainOf(entity.entity_id))) return friendlyName(entity)
+  // Door variants have names of their own
+  if (isWallOpening(item)) return t('Wall opening')
+  if (isSlidingDoor(item)) return t('Sliding glass door')
   return CATALOG[item.kind].label
 }

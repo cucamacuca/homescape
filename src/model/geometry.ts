@@ -1,4 +1,4 @@
-import { CATALOG, isSlidingDoor, SLIDING_DOOR, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
+import { CATALOG, isSlidingDoor, isWallOpening, OPENING_DOOR_H, SLIDING_DOOR, sizeOf, WALL_OPENING, WINDOW_BOTTOM, windowSize } from './catalog'
 import type { Item, Level, Rect, Room, RoomType } from './types'
 
 /*
@@ -372,8 +372,15 @@ export function apertureOf(it: Item) {
   const win = it.kind === 'window'
   const dy = win ? (it.y ?? 0) : 0
   const { w, h } = windowSize(it)
-  // A sliding glass door is as wide as its card says (Item.len); a hinged door is always 1 m
-  const spec = win ? { half: w / 2 - 0.02, y0: WINDOW_BOTTOM + dy, y1: WINDOW_BOTTOM + h + dy } : isSlidingDoor(it) ? { ...base, half: (it.len ?? SLIDING_DOOR.def) / 2 } : base
+  // A sliding glass door is as wide as its card says (Item.len); a hinged door is always 1 m. A wall opening has its own
+  // width and height (Item.len2, up to the ceiling: then no wall is left above it).
+  const spec = win
+    ? { half: w / 2 - 0.02, y0: WINDOW_BOTTOM + dy, y1: WINDOW_BOTTOM + h + dy }
+    : isSlidingDoor(it)
+      ? { ...base, half: (it.len ?? SLIDING_DOOR.def) / 2 }
+      : isWallOpening(it)
+        ? { half: (it.len ?? WALL_OPENING.def) / 2, y0: 0, y1: Math.min(WALL_H, it.len2 ?? OPENING_DOOR_H) }
+        : base
   const fx = Math.sin(it.rot)
   const fz = Math.cos(it.rot)
   if (Math.abs(Math.abs(fz) - 1) < 0.01) return { horizontal: true, line: it.z - Math.sign(fz) * APERTURE_INSET, along: it.x, ...spec }
@@ -420,21 +427,24 @@ export function exteriorSide(it: Item, rooms: Room[]): -1 | 0 | 1 {
 
 /**
  * The plan's (first) exterior door and the inside's side: walk mode starts here, arriving people enter here, people away
- * wait in front of it. A hinged door comes first: a sliding glass door is usually the patio door, not the front door.
+ * wait in front of it. A hinged door comes first: a sliding glass door is usually the patio door, not the front door, and a
+ * doorless wall opening counts only when there is no door at all.
  */
 export function frontDoor(items: Item[], rooms: Room[], stairwell = false) {
   // In a flat (apartment mode, model/apartment.ts) the entrance opens onto the stairwell: a door with nothing behind it
   // comes before a door to the balcony
   if (stairwell)
     for (const it of items) {
-      const side = it.kind === 'door' && !isSlidingDoor(it) ? exteriorSide(it, rooms) : 0
+      const side = it.kind === 'door' && !isSlidingDoor(it) && !isWallOpening(it) ? exteriorSide(it, rooms) : 0
       if (!side) continue
       const { front, back } = doorSides(it, rooms)
       if (!(side > 0 ? back : front)) return { door: it, side }
     }
-  for (const sliding of [false, true])
+  // Hinged doors first, then sliding glass doors; a doorless wall opening only when the house has no real door
+  const rank = (it: Item) => (isWallOpening(it) ? 2 : isSlidingDoor(it) ? 1 : 0)
+  for (const pass of [0, 1, 2])
     for (const it of items) {
-      const side = it.kind === 'door' && isSlidingDoor(it) === sliding ? exteriorSide(it, rooms) : 0
+      const side = it.kind === 'door' && rank(it) === pass ? exteriorSide(it, rooms) : 0
       if (side) return { door: it, side }
     }
   return null

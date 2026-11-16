@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { deviceClass, domainOf, friendlyName, isActive, lightColor, lightLevel, num } from '@/ha/derive'
 import { isSocketEntity, SOCKET_DOMAINS, socketCount } from '@/model/bindings'
 import { isSashSensor, sashesOpen } from '@/model/sashes'
-import { BEAM, consoleModel, STRIP_PITCH, STRIP_WALL_Y, stripWidth, WINDOW_BOTTOM, windowSize } from '@/model/catalog'
+import { BEAM, consoleModel, OPENING_DOOR_H, OPENING_FULL_H, STRIP_PITCH, STRIP_WALL_Y, stripWidth, WALL_OPENING, WINDOW_BOTTOM, windowSize } from '@/model/catalog'
 import { APERTURE_INSET, inRoom, roomAt, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, wallRuns, type Side } from '@/model/geometry'
 import { roofView } from '../camera'
 import { activeLevel, useLayout } from '@/model/layoutStore'
@@ -1291,9 +1291,51 @@ function doorState(v: Visual) {
   return { open, sensedOpen, lock }
 }
 
-/** Door: hinged (a leaf with a swing arc) or a sliding glass door (Item.variant 'sliding'). */
+/** Door: hinged (a leaf with a swing arc), a sliding glass door (Item.variant 'sliding') or a doorless wall opening ('opening'). */
 export function Door({ v }: P) {
+  if (v.opts.variant === 'opening') return <WallOpening v={v} />
   return v.opts.variant === 'sliding' ? <SlidingDoor v={v} /> : <HingedDoor v={v} />
+}
+
+const openingAid = new THREE.MeshBasicMaterial({ color: C.brand, transparent: true, opacity: 0.55, depthWrite: false, toneMapped: false })
+const openingHit = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+const unitCube = new THREE.BoxGeometry(1, 1, 1)
+
+/**
+ * Doorless wall opening (Item.variant 'opening'): a passage cut into the wall (geometry.ts > apertureOf), always open. A
+ * white casing on the reveal: both jambs and, below the ceiling, the head; Item.len wide and Item.len2 high (a full-height
+ * opening has no head, no wall is left above it). Nothing on the floor. In edit mode a dashed line across the passage and
+ * an invisible pane in it mark it, so it can be found and clicked even when the wall is low. Cut with its wall like a door.
+ */
+function WallOpening({ v }: P) {
+  const root = useRef<THREE.Group>(null)
+  const tall = useRef<THREE.Group>(null)
+  const W = v.opts.len ?? WALL_OPENING.def
+  const H = Math.min(OPENING_FULL_H, v.opts.len2 ?? OPENING_DOOR_H)
+  const full = H >= OPENING_FULL_H - 0.005
+  useWallHeight(root, v.interior, (h) => {
+    // Standing walls: the whole casing; a low or cut wall takes the casing down with it
+    const top = h >= FULL_H - 0.001 ? H : Math.min(H, h)
+    if (tall.current) tall.current.scale.y = Math.max(0.01, top / H)
+  })
+  const dashes = Math.max(2, Math.round(W / 0.2))
+  const step = W / dashes
+  return (
+    <group ref={root}>
+      <group ref={tall}>
+        <Box size={[0.06, H, 0.24]} position={[-W / 2, H / 2, EDGE_Z]} color={C.white} />
+        <Box size={[0.06, H, 0.24]} position={[W / 2, H / 2, EDGE_Z]} color={C.white} />
+        {!full && <Box size={[W + 0.06, 0.06, 0.24]} position={[0, H - 0.03, EDGE_Z]} color={C.white} />}
+        {v.edit && (
+          <mesh geometry={unitCube} material={openingHit} position={[0, H / 2, EDGE_Z]} scale={[W - 0.06, H, 0.1]} userData={{ selectionAid: true }} />
+        )}
+      </group>
+      {v.edit &&
+        Array.from({ length: dashes }, (_, i) => (
+          <mesh key={i} geometry={unitCube} material={openingAid} position={[-W / 2 + step * (i + 0.5), 0.012, EDGE_Z]} scale={[step * 0.55, 0.01, 0.06]} renderOrder={3} userData={{ selectionAid: true }} />
+        ))}
+    </group>
+  )
 }
 
 /** Aluminium of a sliding glass door's frame and panels */

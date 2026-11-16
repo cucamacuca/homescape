@@ -1,5 +1,5 @@
 import { t } from '@/i18n'
-import { CATALOG, isSlidingDoor, SLIDING_DOOR, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
+import { CATALOG, doorWidth, isSlidingDoor, isWallOpening, SLIDING_DOOR, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
 import { inRoom, isAperture, rectsOf, roomAt, WALL_H, WALL_IN } from './geometry'
 import type { Item, ItemKind, Level, Rect, Room } from './types'
 
@@ -252,7 +252,8 @@ export function footprints(s: Shape, shrink = 0): Box2[] {
 /**
  * A door's passage area: the opening's width (0.92 m), 0.9 m to the side the leaf opens to, 0.35 m to the other side
  * (the wall line is at local z = -0.21). No floor or wall item may go there; rugs, ceiling and tabletop items are fine.
- * A sliding glass door has no leaf swinging out: its area is its whole width and 0.5 m on both sides of the wall line.
+ * A sliding glass door and a doorless wall opening have no leaf swinging out: their area is their whole width and 0.5 m on
+ * both sides of the wall line.
  */
 export function doorZone(x: number, z: number, rot: number, swing: 'in' | 'out' = 'in', sliding?: { len?: number }): Box2 {
   const c = Math.cos(rot)
@@ -279,8 +280,8 @@ const FREE_NEAR_DOOR: Layer[] = ['rug', 'top', 'ceiling']
 /** Candidate being checked: kind, position, rotation; the swing direction for doors. */
 type Cand = Shape & { y?: number; swing?: 'in' | 'out' }
 
-/** The passage area of a door item (hinged or sliding) */
-const zoneOf = (d: Cand) => doorZone(d.x, d.z, d.rot, d.swing, isSlidingDoor(d) ? { len: d.len } : undefined)
+/** The passage area of a door item (hinged, sliding or a doorless opening) */
+const zoneOf = (d: Cand) => doorZone(d.x, d.z, d.rot, d.swing, isSlidingDoor(d) || isWallOpening(d) ? { len: doorWidth(d) } : undefined)
 
 /** Whether this item blocks a door's passage area (the automatic plan moves furniture away from doors). */
 export function blocksDoor(items: Item[], cand: Cand) {

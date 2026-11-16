@@ -3,6 +3,7 @@ import { play } from '@/audio/engine'
 import { deviceClass, domainOf, isActive } from '@/ha/derive'
 import { useHa } from '@/ha/store'
 import { bindingsOf } from '@/model/bindings'
+import { isWallOpening } from '@/model/catalog'
 import { exteriorSide } from '@/model/geometry'
 import type { Item, Level } from '@/model/types'
 
@@ -87,7 +88,8 @@ export function passDoors(level: Level, movers: { x: number; z: number }[]) {
   const cur = useDoorTraffic.getState().open
   let next: Record<string, Entry> | null = null
   for (const d of level.items) {
-    if (d.kind !== 'door') continue
+    // A doorless wall opening is always open: nothing to open, no sound
+    if (d.kind !== 'door' || isWallOpening(d)) continue
     if (!movers.some((m) => Math.hypot(m.x - d.x, m.z - d.z) < NEAR)) continue
     // A door with a sensor (or lock) is decided by HA: walkers do not open it
     if (controlled(d)) continue

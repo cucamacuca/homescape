@@ -4,7 +4,7 @@ import { canToggle, toggle, turnOffAll } from '@/ha/actions'
 import { friendlyName, isActive, relativeTime, stateLabel } from '@/ha/derive'
 import { useHa } from '@/ha/store'
 import { bindingsOf, boundAnywhere, emitsLight, isBound, ledOf, ledSource } from '@/model/bindings'
-import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, isSlidingDoor, ITEM_PRESETS, OPTIONS, RESIZABLE, RESIZABLE2, SLIDING_DOOR, sizeOf, TOP_COLORS } from '@/model/catalog'
+import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, isSlidingDoor, isWallOpening, ITEM_PRESETS, OPENING_DOOR_H, OPENING_FULL_H, OPTIONS, RESIZABLE, RESIZABLE2, SLIDING_DOOR, sizeOf, TOP_COLORS, WALL_OPENING } from '@/model/catalog'
 import { kindFor, modelName, variantFor } from '@/model/generate'
 import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallLengthAt, wallSnap, type Side } from '@/model/geometry'
 import { groupFamily, groupMates, heatingSummary } from '@/model/groups'
@@ -448,8 +448,8 @@ function tvHeight(item: Item, variant: string) {
 /** Settings of items like desks and cabinets: length, drawers, top and body color. */
 function FurnitureOptions({ item }: { item: Item }) {
   const opt = OPTIONS[item.kind]
-  // A sliding glass door has its own width; a hinged door has none to set
-  const range = item.kind === 'door' ? (isSlidingDoor(item) ? SLIDING_DOOR : undefined) : RESIZABLE[item.kind]
+  // A sliding glass door and a wall opening have their own width; a hinged door has none to set
+  const range = item.kind === 'door' ? (isSlidingDoor(item) ? SLIDING_DOOR : isWallOpening(item) ? WALL_OPENING : undefined) : RESIZABLE[item.kind]
   const range2 = RESIZABLE2[item.kind]
   const { updateItem, checkpoint } = useLayout.getState()
   if (!opt && !range) return null
@@ -801,12 +801,20 @@ function OpeningEdit({ item }: { item: Item }) {
   const inTitle = door && back ? (front ? t('Opens into {room}', { room: front.name }) : t('Opens into this room')) : t('Opens into the room')
   // A window can be fixed (does not open): then no hinge, no direction and no swing arc
   const fixed = !door && Boolean(item.fixed)
-  // A door can be a sliding glass door: then a width (FurnitureOptions) and the side that opens, no swing direction
+  // A door can be a sliding glass door: then a width (FurnitureOptions) and the side that opens, no swing direction. Or a
+  // doorless wall opening: a width and a height, nothing that opens.
   const sliding = isSlidingDoor(item)
-  const setDoorType = (slide: boolean) => {
+  const opening = isWallOpening(item)
+  const doorType = sliding ? 'sliding' : opening ? 'opening' : 'hinged'
+  const setDoorType = (type: 'hinged' | 'sliding' | 'opening') => {
     const level = activeLevel(useLayout.getState())
-    if (!level || slide === sliding) return
-    const patch: Partial<Item> = slide ? { variant: 'sliding', len: SLIDING_DOOR.def } : { variant: undefined, len: undefined }
+    if (!level || type === doorType) return
+    const patch: Partial<Item> =
+      type === 'sliding'
+        ? { variant: 'sliding', len: SLIDING_DOOR.def, len2: undefined }
+        : type === 'opening'
+          ? { variant: 'opening', len: WALL_OPENING.def, len2: undefined }
+          : { variant: undefined, len: undefined, len2: undefined }
     const next = { ...item, ...patch }
     const chk = checkItem(level, { kind: next.kind, x: next.x, z: next.z, rot: next.rot, swing: next.swing, len: next.len, variant: next.variant }, item.id)
     if (!chk.ok) return useHa.setState({ notice: t("This setting doesn't fit: {reason}", { reason: chk.reason ?? '' }) })
@@ -816,15 +824,39 @@ function OpeningEdit({ item }: { item: Item }) {
     <div className="grid grid-cols-[64px_1fr] items-center gap-2">
       <span className="text-[11px] text-ink-3">{t('Type')}</span>
       <div className="flex min-w-0 gap-1.5">
-        <button type="button" id="door-hinged" className={seg(!sliding)} onClick={() => setDoorType(false)}>
+        <button type="button" id="door-hinged" className={seg(doorType === 'hinged')} onClick={() => setDoorType('hinged')}>
           {t('Hinged')}
         </button>
-        <button type="button" id="door-sliding" className={seg(sliding)} onClick={() => setDoorType(true)}>
+        <button type="button" id="door-sliding" className={seg(sliding)} onClick={() => setDoorType('sliding')}>
           {t('Sliding glass')}
+        </button>
+        <button type="button" id="door-opening" className={seg(opening)} onClick={() => setDoorType('opening')}>
+          {tc('door', 'Opening')}
         </button>
       </div>
     </div>
   )
+  if (opening) {
+    const full = (item.len2 ?? OPENING_DOOR_H) >= OPENING_FULL_H - 0.005
+    return (
+      <div className="grid gap-2">
+        <span className="text-[12px] font-semibold text-ink-2">{t('Door')}</span>
+        {doorRow}
+        <div className="grid grid-cols-[64px_1fr] items-center gap-2">
+          <span className="text-[11px] text-ink-3">{t('Height')}</span>
+          <div className="flex min-w-0 gap-1.5">
+            <button type="button" id="opening-door-height" className={seg(!full)} onClick={() => updateItem(item.id, { len2: undefined })}>
+              {t('Door height')}
+            </button>
+            <button type="button" id="opening-full-height" className={seg(full)} onClick={() => updateItem(item.id, { len2: OPENING_FULL_H })}>
+              {t('Up to the ceiling')}
+            </button>
+          </div>
+        </div>
+        <p className="text-[11px] text-ink-3">{t('A passage in the wall with no door: always open, so people, pets and the walk go through and light passes. One wall can have several.')}</p>
+      </div>
+    )
+  }
   if (sliding)
     return (
       <div className="grid gap-2">

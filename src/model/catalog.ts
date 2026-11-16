@@ -1050,6 +1050,19 @@ export const RESIZABLE: Partial<Record<ItemKind, { min: number; max: number; lab
  */
 export const SLIDING_DOOR = { min: 1.2, max: 3.6, def: 1.8, label: t('Door width') }
 export const isSlidingDoor = (it: { kind: ItemKind; variant?: string }) => it.kind === 'door' && it.variant === 'sliding'
+/**
+ * Doorless wall opening (a door with Item.variant 'opening'): a passage cut into the wall, always open, no leaf. Width
+ * Item.len, height Item.len2 from door height up to the ceiling (a full-height opening leaves no wall above it), so a wall
+ * can be partly open: a 4 m wall with a 3 m opening keeps a 1 m stub.
+ */
+export const WALL_OPENING = { min: 0.6, max: 4, def: 1.2, label: t('Width') }
+/** Heights of a wall opening: door height, or up to the ceiling (geometry.ts > WALL_H) */
+export const OPENING_DOOR_H = 2.23
+export const OPENING_FULL_H = 2.6
+export const isWallOpening = (it: { kind: ItemKind; variant?: string }) => it.kind === 'door' && it.variant === 'opening'
+/** Width of a door item (m): set in the card for a sliding glass door or a wall opening, 1 m for a hinged door */
+export const doorWidth = (it: { kind: ItemKind; variant?: string; len?: number }) =>
+  isSlidingDoor(it) ? (it.len ?? SLIDING_DOOR.def) : isWallOpening(it) ? (it.len ?? WALL_OPENING.def) : 1
 
 /** Second size (Item.len2): the arm of an L counter (L shapes only), the height of a window */
 export const RESIZABLE2: Partial<Record<ItemKind, { min: number; max: number; label: string; def: number; onlyL?: boolean }>> = {
@@ -1079,6 +1092,8 @@ export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'windowDouble', kind: 'window', label: t('Double window'), sub: t('opens on both sides'), extra: { double: true, len: 1.6 } },
   // A sliding glass door (patio door): two glass panels, the width is set in its card
   { id: 'doorSliding', kind: 'door', label: t('Sliding glass door'), sub: t('slides open'), extra: { variant: 'sliding', len: SLIDING_DOOR.def } },
+  // A passage cut into the wall with no door (an open plan with a wall stub, a hallway arch)
+  { id: 'wallOpening', kind: 'door', label: t('Wall opening'), sub: t('no door'), extra: { variant: 'opening', len: WALL_OPENING.def } },
   // The power strip can hang on the wall too
   { id: 'powerStripWall', kind: 'powerStrip', label: t('Wall power strip'), sub: t('wall mounted · 2-8 outlets'), extra: { mount: 'wall' } },
   // Rug shapes; all the same kind, the card changes shape and size

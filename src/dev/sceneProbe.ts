@@ -27,7 +27,16 @@ export function pick(x: number, y: number, z: number, dx: number, dy: number, dz
   s.traverse((o) => {
     if ((o as THREE.Mesh).isMesh) meshes.push(o)
   })
-  const hit = r.intersectObjects(meshes, false).find((h) => visible(h.object))
+  // Meshes whose raycast needs a camera (fat lines) are skipped instead of throwing
+  const hits: THREE.Intersection[] = []
+  for (const m of meshes) {
+    try {
+      r.intersectObject(m, false, hits)
+    } catch {
+      /* needs a camera */
+    }
+  }
+  const hit = hits.sort((a, b) => a.distance - b.distance).find((h) => visible(h.object))
   return hit ? { y: hit.point.y, distance: hit.distance, itemId: itemOf(hit.object) } : null
 }
 

@@ -5,6 +5,7 @@ import type { Entities, HassEntity } from '@/ha/types'
 import { currentWeather } from '@/ha/weather'
 import { bindingsOf } from '@/model/bindings'
 import { bounds, doorSides, isAperture, isOutdoor, rectsOf, roomAt } from '@/model/geometry'
+import { isWallOpening } from '@/model/catalog'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import type { Item, ItemKind, Level } from '@/model/types'
 import { cameraApi, useView } from '@/scene/camera'
@@ -245,14 +246,16 @@ function pairMuffles(level: Level, ents: Entities) {
     if (!isAperture(it.kind)) continue
     const { front, back } = doorSides(it, level.rooms)
     const e = it.entityId ? ents[it.entityId] : undefined
-    const open = !e || isActive(e)
+    // A doorless wall opening is always open, to the outside too
+    const hole = isWallOpening(it)
+    const open = hole || !e || isActive(e)
     const a = front && !isOutdoor(front) ? front.id : 'out'
     const b = back && !isOutdoor(back) ? back.id : 'out'
     if (a === b) continue
     const outside = a === 'out' || b === 'out'
     if (it.kind === 'window') {
       if (outside && e && open) set(a, b, 0.45)
-    } else set(a, b, outside ? (open && e ? 0.45 : 0.72) : open ? 0.3 : 0.6)
+    } else set(a, b, outside ? (open && (e || hole) ? 0.45 : 0.72) : open ? 0.3 : 0.6)
   }
   return m
 }

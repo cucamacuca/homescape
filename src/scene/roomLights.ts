@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { deviceClass, isActive, lightColor, lightLevel } from '@/ha/derive'
 import type { HassEntity } from '@/ha/types'
 import { bindingsOf, ledOf, ledSource } from '@/model/bindings'
-import { BEAM, isSlidingDoor } from '@/model/catalog'
+import { BEAM, isSlidingDoor, isWallOpening } from '@/model/catalog'
 import { apertureOf, doorSides, isOutdoor, rectsOf, roomAt, WALL_H, WALL_T } from '@/model/geometry'
 import type { Item, ItemKind, Level, Rect, Room } from '@/model/types'
 import { openNeighbors } from '@/model/walls'
@@ -237,6 +237,8 @@ export interface RoomLight {
 
 /** Whether the door is open: by its door sensor or curtain if there is one, else open unless locked (an interior door is a passage). */
 function doorOpen(door: Item, entities: Record<string, HassEntity>) {
+  // A doorless wall opening is always a passage
+  if (isWallOpening(door)) return true
   const bound = bindingsOf(door)
     .map((id) => entities[id])
     .filter((e): e is HassEntity => Boolean(e))
@@ -354,8 +356,8 @@ function daylightLights(level: Level, entities: Record<string, HassEntity>, sky:
     const a = apertureOf(it)
     const { front, back } = doorSides(it, level.rooms)
     if (!a || !front || isOutdoor(front) || (back && !isOutdoor(back))) continue
-    // A sliding glass door lets daylight in like a window, a little less while it is shut
-    const pass = it.kind === 'window' ? shadePass(it, entities) : outerOpen(it, entities) ? 1 : isSlidingDoor(it) ? 0.85 : 0
+    // A sliding glass door lets daylight in like a window, a little less while it is shut; a wall opening is always open
+    const pass = it.kind === 'window' ? shadePass(it, entities) : isWallOpening(it) || outerOpen(it, entities) ? 1 : isSlidingDoor(it) ? 0.85 : 0
     if (pass <= 0) continue
     // Towards the room: the item's front (local +z)
     const inX = a.horizontal ? 0 : Math.sign(Math.sin(it.rot))
@@ -557,7 +559,7 @@ export function computeRoomLights(level: Level, entities: Record<string, HassEnt
         range: fill ? 7 : Math.max(l.range, 4),
         color: fill ? l.color.clone().multiplyScalar(1.4) : l.color,
         rects: rectsOf(other),
-        // the opening's width: 0.92 m for a hinged door, the whole width of a sliding glass door
+        // the opening's width: 0.92 m for a hinged door, the whole width of a sliding glass door or a wall opening
         portal: { horizontal: a.horizontal, line: a.line, a0: a.along - (a.half - 0.04), a1: a.along + (a.half - 0.04) },
         power: l.power * 0.5,
       }
