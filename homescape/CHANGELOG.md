@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.0
+
+- **Kitchen islands** ([#6](https://github.com/muratozturkdev/homescape/issues/6)): counters, the stove, sink,
+  dishwasher, oven and fridge can stand away from a wall; near a wall they still stick to it. A counter in an island has
+  no wall cabinets.
+- **Half walls** ([#6](https://github.com/muratozturkdev/homescape/issues/6)): every wall can be full height, half
+  height (1.05 m) or open. Light passes over a half wall; people, pets and walk mode do not.
+- **Sliding glass doors** ([#6](https://github.com/muratozturkdev/homescape/issues/6)), 1.2 to 3.6 m wide, that let
+  daylight in like a window.
+- **Double windows** ([#7](https://github.com/muratozturkdev/homescape/issues/7)): two sashes that open from the
+  middle, each following its own sensor.
+- **Fixed windows** that do not open ([#5](https://github.com/muratozturkdev/homescape/pull/5)).
+- **Apartment mode** for flats: no roof, the street the right number of floors below, and the entrance opens onto the
+  stairwell.
+- **63 new items**: lights (night light, floodlight, light panels, neon sign), climate (portable AC, wood stove,
+  extractor fan), media (turntable, floor speaker, streaming box, smart display, voice assistant), security, smart
+  devices (hub, server rack, solar inverter, phone on a charger, UPS), kitchen (toaster, multicooker, freezer, wine
+  fridge, ironing board), bathroom, furniture (bar stool, crib, pouf, coat rack, treadmill, exercise bike, piano, office
+  chair), decor (wall clock, candles, Christmas tree, wall shelf, memo board...), pets, garden and garage. Beds come in
+  three sizes and the sofa has a two-seat option.
+- Plans are now saved in format 8. Older versions never write over them: they stop syncing until they are updated.
+
 ## 0.2.1
 
 - The average temperature counts only indoor rooms: terraces, balconies and gardens no longer change it
