@@ -422,7 +422,16 @@ export function exteriorSide(it: Item, rooms: Room[]): -1 | 0 | 1 {
  * The plan's (first) exterior door and the inside's side: walk mode starts here, arriving people enter here, people away
  * wait in front of it. A hinged door comes first: a sliding glass door is usually the patio door, not the front door.
  */
-export function frontDoor(items: Item[], rooms: Room[]) {
+export function frontDoor(items: Item[], rooms: Room[], stairwell = false) {
+  // In a flat (apartment mode, model/apartment.ts) the entrance opens onto the stairwell: a door with nothing behind it
+  // comes before a door to the balcony
+  if (stairwell)
+    for (const it of items) {
+      const side = it.kind === 'door' && !isSlidingDoor(it) ? exteriorSide(it, rooms) : 0
+      if (!side) continue
+      const { front, back } = doorSides(it, rooms)
+      if (!(side > 0 ? back : front)) return { door: it, side }
+    }
   for (const sliding of [false, true])
     for (const it of items) {
       const side = it.kind === 'door' && isSlidingDoor(it) === sliding ? exteriorSide(it, rooms) : 0

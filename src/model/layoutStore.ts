@@ -9,6 +9,7 @@ import { splitTvUnits } from './migrate'
 import { isDefault as isDefaultDashboard } from './dashboardLayout'
 import { edgePatch, shiftItemsWithEdge, type Edge } from './resize'
 import { uid } from './ids'
+import { buildingBase, clampFloor } from './apartment'
 import { isSide, withWalls, type WallState } from './walls'
 import type { DashboardLayout, Item, ItemKind, Layout, Level, Rect, Room, Selection } from './types'
 
@@ -48,7 +49,7 @@ const HISTORY = 60
 
 const STORE_KEY = 'homescape-layout-v1'
 /** Format of saved plans; plans in Home Assistant carry it too (ha/planSync.ts) */
-export const STORE_VERSION = 7
+export const STORE_VERSION = 8
 
 /** Writes a copy of the raw record to a separate key (silently skipped when storage is unavailable). */
 function keepCopy(key: string, raw: string | null) {
@@ -206,6 +207,8 @@ interface LayoutState {
   renameLevel: (id: string, name: string) => void
   /** Compass direction of the top of the plan (degrees, 0 north): the sun's angle relative to the house (Layout.up). */
   setBearing: (deg: number) => void
+  /** Makes the home a flat on this building floor, or a house again with null (Layout.apartment; one undo step). */
+  setApartment: (apartment: { floor: number } | null) => void
   /** Deletes a level with everything on it (not the last one). */
   deleteLevel: (id: string) => void
 }
@@ -223,9 +226,13 @@ const LEGACY_LEVEL_NAME = 'Ev'
 export const unnamedLevel = (l: Pick<Level, 'name'>) => !l.name || l.name === LEGACY_LEVEL_NAME
 
 /** Shown name of a level: its own name, else from its number. */
-export function levelName(l: Level) {
+/**
+ * Shown name of a level: its own name, else from its height. In a flat (Layout.apartment) the height counts from the
+ * building's ground floor, so the one level of a flat on the 5th floor reads "Floor 5".
+ */
+export function levelName(l: Level, base = buildingBase(useLayout.getState().layout)) {
   if (!unnamedLevel(l)) return l.name
-  const e = l.elevation ?? 0
+  const e = (l.elevation ?? 0) + base
   return e === 0 ? t('Ground floor') : e < 0 ? (e === -1 ? t('Basement') : t('Basement {n}', { n: -e })) : t('Floor {n}', { n: floorNumber(e) })
 }
 
@@ -263,6 +270,7 @@ export function migrateLayout(layout: Layout, from: number): Layout {
   // 6: walls left out (Room.open). Nothing to convert: older plans have all their walls. The new version keeps a version
   // that cannot read Room.open from writing over a plan that has it (ha/planSync.ts).
   // 7: half walls (Room.half), the same way: nothing to convert.
+  // 8: apartment mode (Layout.apartment), the same way: older plans are houses.
   return lay
 }
 
@@ -582,6 +590,14 @@ export const useLayout = create<LayoutState>()(
           const up = ((Math.round(deg) % 360) + 360) % 360
           if ((layout.up ?? 0) === up) return
           set({ layout: { ...layout, up }, past: [...past, layout].slice(-HISTORY), future: [] })
+        },
+        setApartment: (apartment) => {
+          const { layout, past } = get()
+          if (!layout) return
+          const next = apartment ? { floor: clampFloor(apartment.floor) } : null
+          if ((layout.apartment?.floor ?? null) === (next?.floor ?? null)) return
+          const { apartment: _, ...rest } = layout
+          set({ layout: next ? { ...rest, apartment: next } : rest, past: [...past, layout].slice(-HISTORY), future: [] })
         },
         deleteLevel: (id) => {
           const { layout, past, levelId } = get()

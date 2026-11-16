@@ -14,6 +14,8 @@ import { stairwellsOf } from '@/model/stairwell'
 import { cameraApi, FOV, useView } from './camera'
 import { CameraRig } from './CameraRig'
 import { Ground, RoomHandles } from './EditLayer'
+import { ApartmentFacade } from './Apartment'
+import { isApartment, streetFloors } from '@/model/apartment'
 import { HomeFlight } from './HomeFlight'
 import { QuickAnchor } from './QuickAnchor'
 import { ItemNode } from './ItemNode'
@@ -549,10 +551,13 @@ function Contents() {
   const night = useNight()
   const lite = useView((s) => s.lite)
   const real = useRealSun()
-  // On an upper floor the ground plane drops to the ground floor level (so lower floors show)
+  // On an upper floor the ground plane drops to the ground floor level (so lower floors show); a flat's street is always
+  // its height in the building below (model/apartment.ts)
   const lower = useView((s) => s.lowerFloors)
   const fps = useView((s) => s.fps)
-  const groundY = lower || fps ? -Math.max(0, level?.elevation ?? 0) * FLOOR_H : 0
+  const flat = useLayout((s) => streetFloors(s.layout, activeLevel(s)))
+  const apartment = useLayout((s) => isApartment(s.layout))
+  const groundY = apartment ? -flat * FLOOR_H : lower || fps ? -Math.max(0, level?.elevation ?? 0) * FLOOR_H : 0
 
   if (!level) return null
   return (
@@ -567,6 +572,7 @@ function Contents() {
       <StreetLife />
       <SoundScape />
       <Ground night={night} y={groundY} />
+      {apartment && <ApartmentFacade />}
       <Levels night={night} />
       <Roofs />
       <RoomHandles />

@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
+import { isApartment } from '@/model/apartment'
 import { isOutdoor } from '@/model/geometry'
 import { activeHomeId, activeLevel, FLOOR_H, useLayout } from '@/model/layoutStore'
 import type { Level } from '@/model/types'
@@ -104,6 +105,8 @@ export function Roofs() {
   const fps = useView((s) => s.fps)
   const lower = useView((s) => s.lowerFloors)
   const focus = useView((s) => s.focus)
+  // A flat (apartment mode) has no roof: the roofs stay lifted and hidden, the walls are never "covered"
+  const flat = useLayout((s) => isApartment(s.layout))
   const e0 = level?.elevation ?? 0
   const groups = useRef(new Map<string, THREE.Group>())
   const alpha = useRef(new Map<string, number>())
@@ -126,7 +129,7 @@ export function Roofs() {
       // Whether this floor is drawn (same rule as Scene > Levels)
       const drawn = fps || en.elevation === e0 || (lower && en.elevation < e0)
       let want = false
-      if (pref !== 'off' && drawn) {
+      if (pref !== 'off' && drawn && !flat) {
         // Exposed roofs of lower floors (garage) follow the same rule: they lift when zooming in
         if (fps || pref === 'on') want = true
         // Lifts when zooming in (threshold: the home's diagonal; 15% hysteresis on the way back, so it does not flicker)

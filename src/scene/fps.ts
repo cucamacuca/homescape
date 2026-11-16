@@ -40,16 +40,19 @@ const WALKABLE: string[] = ['rug', 'doormat', 'stairs', 'robotVacuum', 'lawnMowe
  * Collision geometry of a floor: walls of indoor rooms (door openings are gaps), balcony and terrace railings, footprints
  * of large floor items. The garden edge is open.
  */
-export function buildColliders(level: Level, rails: { a: { x: number; z: number }; b: { x: number; z: number } }[] = []): { segs: Seg[]; boxes: Box2[] } {
+export function buildColliders(level: Level, rails: { a: { x: number; z: number }; b: { x: number; z: number } }[] = [], closed = false): { segs: Seg[]; boxes: Box2[] } {
   // Railings around the stairwell on the upper floor (model/stairwell.ts): you cannot fall in from the side, you go down at the arrival end
   const segs: Seg[] = rails.map(({ a, b }) => ({ x1: a.x, z1: a.z, x2: b.x, z2: b.z, half: 0.05 }))
   for (const room of level.rooms) {
     const kind = room.type ?? 'room'
     if (kind === 'garden') continue
-    for (const run of wallRuns(room, level.rooms)) {
+    for (const run of wallRuns(room, level.rooms, 'walls', closed)) {
       const rail = isOutdoor(room)
+      // closed: a flat (apartment mode, model/apartment.ts); a door to open space leads to the stairwell, which is not
+      // drawn, so the wall stays shut there and the walk cannot leave the flat
+      const shut = closed && !rail && !run.neighbor
       // Openings that start at the floor (door, garage door; not full-height windows: window y0 > 0) are passages
-      const gaps = rail ? [] : runOpenings(run, level.items).filter((o) => o.y0 < 0.1).sort((a, b) => a.a0 - b.a0)
+      const gaps = rail || shut ? [] : runOpenings(run, level.items).filter((o) => o.y0 < 0.1).sort((a, b) => a.a0 - b.a0)
       let a = run.a0 - (rail ? 0 : WALL_IN)
       const end = run.a1 + (rail ? 0 : WALL_IN)
       const push = (s: number, e: number) => {
@@ -62,6 +65,12 @@ export function buildColliders(level: Level, rails: { a: { x: number; z: number 
       }
       push(a, end)
     }
+    // In a flat an edge whose wall was left out toward open space is shut too: there is nothing outside to walk on
+    if (closed)
+      for (const run of wallRuns(room, level.rooms, 'open', true)) {
+        if (run.neighbor) continue
+        segs.push(run.horizontal ? { x1: run.a0, z1: run.line, x2: run.a1, z2: run.line, half: 0.03 } : { x1: run.line, z1: run.a0, x2: run.line, z2: run.a1, half: 0.03 })
+      }
   }
   const boxes: Box2[] = []
   for (const it of level.items) {
@@ -147,7 +156,7 @@ export function stairHeight(it: Item, x: number, z: number): number | null {
  * Start point: the selected room or the inner side of the front door (even when a porch or garden is in front of it:
  * geometry.ts > frontDoor), else the center of the first indoor room; looking towards the room center.
  */
-export function spawnPoint(level: Level, roomId?: string | null): { x: number; z: number; yaw: number } {
+export function spawnPoint(level: Level, roomId?: string | null, stairwell = false): { x: number; z: number; yaw: number } {
   const center = (id?: string | null) => {
     const r = level.rooms.find((q) => q.id === id) ?? level.rooms.find((q) => !isOutdoor(q)) ?? level.rooms[0]
     if (!r) return { x: 0, z: 0 }
@@ -158,7 +167,8 @@ export function spawnPoint(level: Level, roomId?: string | null): { x: number; z
     const c = center(roomId)
     return { ...c, yaw: 0 }
   }
-  const front = frontDoor(level.items, level.rooms)
+  // A flat's entrance is the door to the stairwell, not the balcony door (apartment mode)
+  const front = frontDoor(level.items, level.rooms, stairwell)
   if (front) {
     // 81 cm inside the wall, looking in through the door (view -sin(yaw), -cos(yaw)). The inside is usually in front of
     // the door (local +z); behind it when the door was placed from outside (from the porch).

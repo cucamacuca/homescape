@@ -285,6 +285,15 @@ function bedSpots(level: Level): Spot[] {
   return out
 }
 
+/**
+ * Where someone coming home appears: 45 cm outside the front door (a porch, a garden or the street), or just inside it in a
+ * flat (apartment mode: outside is the stairwell, which is not drawn). null without a front door.
+ */
+export function arrivalPoint(level: Level, apartment = false) {
+  const f = frontDoor(level.items, level.rooms, apartment)
+  return f ? besideDoor(f.door, apartment ? f.side : -f.side, 0.45) : null
+}
+
 /** Outside the front door: 1.4 m out on the non-indoor side of the door (empty space, porch or garden), side by side along the wall. */
 function outsideSpots(level: Level, n: number): Spot[] {
   const front = frontDoor(level.items, level.rooms)
@@ -590,10 +599,15 @@ export interface PeopleInput {
   now: number
   /** Household size (from the settings; default 2) */
   residents: number
+  /**
+   * A flat (Layout.apartment): its entrance door opens onto the stairwell, so nobody waits outside it while the home is
+   * empty (they are simply not home).
+   */
+  apartment?: boolean
 }
 
 /** Plan of the people: mode, how many, who is where. */
-export function planPeople({ level, entities, registry, alarm, now, residents }: PeopleInput): PeoplePlan {
+export function planPeople({ level, entities, registry, alarm, now, residents, apartment = false }: PeopleInput): PeoplePlan {
   const signals = roomSignals(level, entities, registry, now)
   const anchorOf = new Map(signals.map((s) => [s.roomId, s.anchor]))
   // Someone sits at a computer that is on: strong activity; that room's motion and light are the same person
@@ -605,7 +619,7 @@ export function planPeople({ level, entities, registry, alarm, now, residents }:
   const mode = peopleMode(alarm, now, active.length > 0)
   // Every room with motion at the same time and every computer on is at least one person: more than the household (guests) up to 3 or the household size
   const count = mode === 'away' ? residents : Math.min(Math.max(3, residents), Math.max(residents, desks.length + moved.length))
-  if (mode === 'away' || !level.rooms.length) return { mode, count, active, lit, desk, spots: outsideSpots(level, count) }
+  if (mode === 'away' || !level.rooms.length) return { mode, count, active, lit, desk, spots: apartment ? [] : outsideSpots(level, count) }
   const used = new Set<string>()
   const spots: Spot[] = []
   const take = (s: Spot) => {

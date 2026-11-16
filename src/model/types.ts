@@ -422,6 +422,12 @@ export interface Layout {
    * house follows it (scene/sun.ts): in walk mode sunlight comes in through the right window.
    */
   up?: number
+  /**
+   * The home is a flat in a building (apartment mode, model/apartment.ts): floor is the building floor of the plan's ground
+   * level (elevation 0; 0 the building's ground floor). It has no roof, the street is drawn that many floors below, and
+   * its entrance door opens onto the stairwell: nobody waits outside it.
+   */
+  apartment?: { floor: number }
 }
 
 /** wall: a wall of room id (wall: its Room.open key, the neighbor room's id or the side facing open space) */

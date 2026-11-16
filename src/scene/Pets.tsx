@@ -6,6 +6,7 @@ import { play } from '@/audio/engine'
 import { passDoors } from './doorTraffic'
 import { useHa } from '@/ha/store'
 import { activeLevel, useLayout } from '@/model/layoutStore'
+import { isApartment } from '@/model/apartment'
 import {
   ACTION_LABEL,
   buildPetGrid,
@@ -306,7 +307,9 @@ export function Pets() {
   const level = useLayout((s) => activeLevel(s))
   const entities = useHa((s) => s.entities)
   const [hour, setHour] = useState<number | null>(null)
-  // visitors are decoration: none in light mode or while the dashboard is open
+  // visitors are decoration: none in light mode or while the dashboard is open, and none at a flat (apartment mode: the
+  // street is far below, nothing passes by outside)
+  const flat = useLayout((s) => isApartment(s.layout))
   const lite = useView((s) => s.lite)
   const dashboard = useView((s) => s.dashboard)
   // clock (for night mode and the feeder; every 15 s)
@@ -343,7 +346,7 @@ export function Pets() {
   return (
     <>
       {live && level && <PetsLive level={level} pets={pets} mode={petMd} day={day} feeding={feeding} />}
-      {mode === 'view' && level && !lite && !dashboard && (level.elevation ?? 0) === 0 && <Visitors level={level} night={petMd === 'night' || !day} />}
+      {mode === 'view' && level && !lite && !dashboard && !flat && (level.elevation ?? 0) === 0 && <Visitors level={level} night={petMd === 'night' || !day} />}
     </>
   )
 }

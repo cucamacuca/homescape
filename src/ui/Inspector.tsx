@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Check, ChevronDown, ChevronUp, PanelBottomOpen, Compass, Copy, PersonStanding, Power, Fish, Group, History, Lightbulb, Link, Pencil, RotateCcw, RotateCw, Search, SquarePlus, Trash2, TriangleAlert, WandSparkles, X } from 'lucide-react'
+import { ArrowLeftRight, Building, Check, ChevronDown, ChevronUp, PanelBottomOpen, Compass, Copy, PersonStanding, Power, Fish, Group, History, House, Lightbulb, Link, Minus, Pencil, Plus, RotateCcw, RotateCw, Search, SquarePlus, Trash2, TriangleAlert, WandSparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { canToggle, toggle, turnOffAll } from '@/ha/actions'
 import { friendlyName, isActive, relativeTime, stateLabel } from '@/ha/derive'
@@ -16,7 +16,8 @@ import { containerOf, INTERIOR, moveWithContents, placeInside, toLocal } from '@
 import { counterSink } from '@/model/counter'
 import { mountCenter, mountY, setMountY, setWallMount } from './mount'
 import type { FloorMaterial, Item, ItemKind, Room, RoomType } from '@/model/types'
-import { currentLang, lower, msg, t, tc, tn } from '@/i18n'
+import { currentLang, floorNumber, lower, msg, t, tc, tn } from '@/i18n'
+import { clampFloor, DEFAULT_BUILDING_FLOOR, MAX_BUILDING_FLOOR } from '@/model/apartment'
 import { useView } from '@/scene/camera'
 import { BindingEditor, BindingSummary, itemName, itemStateLabel } from './Bindings'
 import { EntityControls } from './Controls'
@@ -1664,6 +1665,51 @@ const STEPS: Record<'empty' | 'edit', [string, string][]> = {
   ],
 }
 
+/**
+ * House or flat (apartment mode, model/apartment.ts): a flat has no roof, sits on its floor of the building with the street
+ * below, and its entrance door opens onto the stairwell. Every change is one undo step.
+ */
+function HomeType() {
+  const apt = useLayout((s) => s.layout?.apartment)
+  const { setApartment } = useLayout.getState()
+  const floor = apt?.floor ?? 0
+  const name = floor === 0 ? t('Ground floor') : t('Floor {n}', { n: floorNumber(floor) })
+  const step = (d: number) => setApartment({ floor: clampFloor(floor + d) })
+  const stepper = 'grid size-8 shrink-0 place-items-center rounded-lg border border-line text-ink-2 hover:text-ink disabled:opacity-40'
+  return (
+    <div id="home-type" className="grid gap-2 rounded-xl border border-line px-3 py-2.5">
+      <span className="text-[12px] font-semibold text-ink-2">{t('Home type')}</span>
+      <div className="flex gap-1.5">
+        <button type="button" id="home-house" className={seg(!apt)} onClick={() => setApartment(null)}>
+          <House size={14} className="mr-1.5 inline align-[-2px]" />
+          {t('House')}
+        </button>
+        <button type="button" id="home-apartment" className={seg(Boolean(apt))} onClick={() => !apt && setApartment({ floor: DEFAULT_BUILDING_FLOOR })}>
+          <Building size={14} className="mr-1.5 inline align-[-2px]" />
+          {t('Apartment')}
+        </button>
+      </div>
+      {apt && (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 text-[12px] text-ink-2">{t('Building floor')}</span>
+            <button type="button" id="apartment-floor-down" className={stepper} disabled={floor <= 0} onClick={() => step(-1)} aria-label={t('One floor down')} title={t('One floor down')}>
+              <Minus size={14} />
+            </button>
+            <span id="apartment-floor" className="min-w-20 text-center text-[12.5px] font-semibold tabular-nums text-ink">
+              {name}
+            </span>
+            <button type="button" id="apartment-floor-up" className={stepper} disabled={floor >= MAX_BUILDING_FLOOR} onClick={() => step(1)} aria-label={t('One floor up')} title={t('One floor up')}>
+              <Plus size={14} />
+            </button>
+          </div>
+          <p className="text-[11px] leading-relaxed text-ink-3">{t('A flat in a building: no roof, the street far below, and the entrance door opens onto the stairwell.')}</p>
+        </>
+      )}
+    </div>
+  )
+}
+
 function EditHelp() {
   const empty = useLayout((s) => (activeLevel(s)?.rooms.length ?? 0) === 0)
   const backup = useLayout((s) => s.backup)
@@ -1685,6 +1731,7 @@ function EditHelp() {
             </li>
           ))}
         </ol>
+        {!empty && <HomeType />}
         {empty && hasRegistry && (
           <button type="button" onClick={regenerateFromHa} className="flex items-center justify-center gap-2 rounded-xl border border-line py-2 text-[12.5px] font-semibold text-ink-2 hover:border-brand hover:text-brand">
             <WandSparkles size={15} />

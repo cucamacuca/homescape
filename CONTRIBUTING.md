@@ -90,6 +90,7 @@ pull request). Then run the browser suites for what you changed, with the dev se
 | Doors and windows | `check:windows`, `check:home` |
 | The Dashboard | `check:dashboard`, `check:world` |
 | Floors, roofs, stairs, the walk | `check:building`, `check:world` |
+| Apartment mode | `check:apartment`, `check:building` |
 | People, pets, interiors | `check:interior`, `check:pets` |
 | The yard and the street | `check:outdoor`, `check:street` |
 | Sound, weather, the sample home | `check:sound`, `check:weather`, `check:demo` |

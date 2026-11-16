@@ -11,6 +11,7 @@ import type { Item } from '@/model/types'
 import { AlarmBanner } from '@/ui/AlarmBanner'
 import { generateLayout } from '@/model/generate'
 import { activeLevel, useLayout } from '@/model/layoutStore'
+import { isApartment } from '@/model/apartment'
 import { usePlacement } from '@/model/placement'
 import { cameraApi, toggleRoof, useView } from '@/scene/camera'
 import { useNight } from '@/scene/useNight'
@@ -161,9 +162,9 @@ function useShortcuts() {
       }
       if (e.key === '+' || e.key === '=') return cameraApi.zoomIn()
       if (e.key === '-' || e.key === '_') return cameraApi.zoomOut()
-      // Hide / show the roof (scene/roof.ts)
+      // Hide / show the roof (scene/roof.ts); a flat has none (apartment mode)
       if (key === 't' && !mod) {
-        toggleRoof()
+        if (!isApartment(useLayout.getState().layout)) toggleRoof()
         return
       }
       // Close / open the right panel (ui/panelState.ts)

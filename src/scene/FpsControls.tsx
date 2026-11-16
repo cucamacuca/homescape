@@ -9,6 +9,7 @@ import { toggle } from '@/ha/actions'
 import type { HassEntity } from '@/ha/types'
 import { roomAt } from '@/model/geometry'
 import { activeLevel, FLOOR_H, levelName, useLayout } from '@/model/layoutStore'
+import { isApartment } from '@/model/apartment'
 import { itemName, itemStateLabel } from '@/ui/Bindings'
 import { cameraApi, useView } from './camera'
 import { useBins } from './bins'
@@ -64,12 +65,14 @@ function FpsRig() {
   const invalidate = useThree((s) => s.invalidate)
   const level = useLayout((s) => activeLevel(s))
   const levels = useLayout((s) => s.layout?.levels)
+  // A flat (apartment mode) is closed: its entrance door leads to the stairwell, which is not drawn
+  const flat = useLayout((s) => isApartment(s.layout))
   // The stairwell edges other than the arrival end act like walls (model/stairwell.ts)
   const colliders = useMemo(() => {
     if (!level) return { segs: [], boxes: [] }
     const rails = stairwellsOf(levels ?? [], level).flatMap((w) => railEdges(w, []))
-    return buildColliders(level, rails)
-  }, [level, levels])
+    return buildColliders(level, rails, flat)
+  }, [level, levels, flat])
   const st = useRef({ x: 0, z: 0, yaw: 0, pitch: -0.05, h: 0, stride: 0, foot: 0, aimAt: 0, placed: false, keys: new Set<string>() })
 
   // On enter: camera settings, start point; on exit the old settings come back and the pointer lock is released
@@ -92,7 +95,7 @@ function FpsRig() {
       roomId = it ? (roomAt(lv.rooms, it.x, it.z)?.id ?? null) : null
     }
     if (lv) {
-      const sp = spawnPoint(lv, roomId)
+      const sp = spawnPoint(lv, roomId, isApartment(useLayout.getState().layout))
       Object.assign(st.current, { x: sp.x, z: sp.z, yaw: sp.yaw, pitch: -0.05, h: 0 })
     }
     L.select(null)

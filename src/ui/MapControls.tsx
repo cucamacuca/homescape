@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { cameraApi, type StreetKinds, toggleRoof, useView } from '@/scene/camera'
 import { usePeoplePlan } from '@/scene/People'
 import { t, tn } from '@/i18n'
+import { isApartment } from '@/model/apartment'
+import { useLayout } from '@/model/layoutStore'
 import { usePanel } from './panelState'
 
 // Key names (Q, F, Esc, ...) stay untranslated
@@ -165,6 +167,8 @@ export default function MapControls() {
   const leftDrag = useView((s) => s.leftDrag)
   const innerWalls = useView((s) => s.innerWalls)
   const roof = useView((s) => s.roof)
+  // A flat (apartment mode) has no roof, so no roof button either
+  const flat = useLayout((s) => isApartment(s.layout))
   const labels = useView((s) => s.labels)
   const setInnerWalls = useView((s) => s.setInnerWalls)
   const setLeftDrag = useView((s) => s.setLeftDrag)
@@ -225,16 +229,18 @@ export default function MapControls() {
           <House size={16} />
         </button>
         {/* Roof: hide / show with one click (scene/roof.ts > toggleRoof); Automatic is in the floor menu */}
-        <button
-          type="button"
-          id="roof-toggle"
-          className={`${btn} ${roof === 'off' ? 'text-ink-3' : 'text-brand'}`}
-          onClick={() => toggleRoof()}
-          title={roof === 'off' ? t('Roof removed. Click to bring it back (visible from afar, lifts as you come closer) (T)') : t('Remove the roof completely (T)')}
-          aria-pressed={roof !== 'off'}
-        >
-          <Warehouse size={16} />
-        </button>
+        {!flat && (
+          <button
+            type="button"
+            id="roof-toggle"
+            className={`${btn} ${roof === 'off' ? 'text-ink-3' : 'text-brand'}`}
+            onClick={() => toggleRoof()}
+            title={roof === 'off' ? t('Roof removed. Click to bring it back (visible from afar, lifts as you come closer) (T)') : t('Remove the roof completely (T)')}
+            aria-pressed={roof !== 'off'}
+          >
+            <Warehouse size={16} />
+          </button>
+        )}
         {/* Room names in view mode (remembered); edit mode always shows them */}
         <button
           type="button"

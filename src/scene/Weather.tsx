@@ -5,7 +5,8 @@ import { play } from '@/audio/engine'
 import { currentWeather, useWeatherPref } from '@/ha/weather'
 import { useHa } from '@/ha/store'
 import { bounds, isOutdoor, rectsOf, WALL_H } from '@/model/geometry'
-import { activeHomeId, activeLevel, useLayout } from '@/model/layoutStore'
+import { activeHomeId, activeLevel, FLOOR_H, useLayout } from '@/model/layoutStore'
+import { streetFloors } from '@/model/apartment'
 import type { Level } from '@/model/types'
 import { roofView, useView } from './camera'
 import { useAmbient } from './kit/effects'
@@ -37,6 +38,7 @@ const ROOF_LIFT = 0.16
 const VERT = /* glsl */ `
 uniform float uTime;
 uniform float uTop;
+uniform float uBottom;
 uniform float uSpeed;
 uniform float uLen;
 uniform float uWidth;
@@ -58,8 +60,9 @@ void main() {
     return;
   }
   // Falls from the top to the ground; the height below (roof, wall top) is read from a texture at the drop's current
-  // position, so a drop the wind carries over the house ends on the roof
-  float h = uTop + 0.2;
+  // position, so a drop the wind carries over the house ends on the roof. uBottom: the ground (below 0 under a flat high
+  // in a building, apartment mode)
+  float h = uTop - uBottom + 0.2;
   float fall = uSpeed * ( 0.85 + 0.3 * fract( aSeed.z * 7.13 ) );
   float y = uTop - mod( uTime * fall + aSeed.z * h, h );
   float age = ( uTop - y ) / fall;
@@ -156,12 +159,15 @@ function regionOf(level: Level) {
 }
 type Region = ReturnType<typeof regionOf>
 
-/** Ground height texture (per cell): R wall top (roof lifted), G roof surface; both 0 outdoors */
-function floorTexture(region: Region, style: 'tile' | 'concrete') {
+/** Ground height texture (per cell): R wall top (roof lifted), G roof surface; both the ground (bottom) outdoors */
+function floorTexture(region: Region, style: 'tile' | 'concrete', bottom: number) {
   const data = new Float32Array(region.nx * region.nz * 2)
   for (let k = 0; k < region.nx * region.nz; k++) {
     const dc = region.dist[k]
-    if (!dc) continue
+    if (!dc) {
+      data[k * 2] = data[k * 2 + 1] = bottom
+      continue
+    }
     data[k * 2] = WALL_H + 0.05
     data[k * 2 + 1] = style === 'concrete' ? WALL_H + 0.25 : WALL_H + ROOF_LIFT + ROOF_PITCH * Math.min((dc - 0.5) * CELL, ROOF_MAX / ROOF_PITCH) + 0.05
   }
@@ -171,9 +177,10 @@ function floorTexture(region: Region, style: 'tile' | 'concrete') {
   return t
 }
 
-function Precip({ kind, density, region, style, levelId, wind, night }: { kind: Kind; density: number; region: Region; style: 'tile' | 'concrete'; levelId: string; wind: [number, number]; night: boolean }) {
+function Precip({ kind, density, region, style, levelId, wind, night, bottom }: { kind: Kind; density: number; region: Region; style: 'tile' | 'concrete'; levelId: string; wind: [number, number]; night: boolean; bottom: number }) {
   const k = KIND[kind]
-  const n = Math.min(k.cap, Math.round(region.w * region.d * k.perM2))
+  // Under a flat the fall is longer: as many more drops, so the rain around the flat stays as dense (within the cap)
+  const n = Math.min(k.cap, Math.round(region.w * region.d * k.perM2 * ((TOP - bottom) / TOP)))
   const geo = useMemo(() => {
     const base = new THREE.PlaneGeometry(1, 1)
     if (!k.flake) base.translate(0, 0.5, 0)
@@ -188,7 +195,7 @@ function Precip({ kind, density, region, style, levelId, wind, night }: { kind: 
     return g
   }, [n, k.flake])
   useEffect(() => () => geo.dispose(), [geo])
-  const floorTex = useMemo(() => floorTexture(region, style), [region, style])
+  const floorTex = useMemo(() => floorTexture(region, style, bottom), [region, style, bottom])
   useEffect(() => () => floorTex.dispose(), [floorTex])
   const mat = useMemo(
     () =>
@@ -200,6 +207,7 @@ function Precip({ kind, density, region, style, levelId, wind, night }: { kind: 
         uniforms: {
           uTime: { value: 0 },
           uTop: { value: TOP },
+          uBottom: { value: 0 },
           uSpeed: { value: k.speed },
           uLen: { value: k.len },
           uWidth: { value: k.width },
@@ -220,7 +228,7 @@ function Precip({ kind, density, region, style, levelId, wind, night }: { kind: 
   useFrame(({ clock, camera }) => {
     // In walk mode the area surrounds the camera (rain in every direction), from above it surrounds the house
     const at = useView.getState().fps ? [camera.position.x - region.w / 2, camera.position.z - region.d / 2] : [region.minX, region.minZ]
-    drive(mat, { time: clock.elapsedTime, density, roof: roofView.alpha[levelId] ?? 0, wind, region, at, kind, night, floor: floorTex })
+    drive(mat, { time: clock.elapsedTime, density, roof: roofView.alpha[levelId] ?? 0, wind, region, at, kind, night, floor: floorTex, bottom })
   })
   useEffect(() => {
     weatherDebug[kind] = Math.round(n * density)
@@ -232,8 +240,9 @@ function Precip({ kind, density, region, style, levelId, wind, night }: { kind: 
 }
 
 /** Uploads the frame's values to the GPU */
-function drive(mat: THREE.ShaderMaterial, o: { time: number; density: number; roof: number; wind: [number, number]; region: Region; at: number[]; kind: Kind; night: boolean; floor: THREE.DataTexture }) {
+function drive(mat: THREE.ShaderMaterial, o: { time: number; density: number; roof: number; wind: [number, number]; region: Region; at: number[]; kind: Kind; night: boolean; floor: THREE.DataTexture; bottom: number }) {
   const u = mat.uniforms
+  u.uBottom.value = o.bottom
   u.uFloor.value = o.floor
   u.uTime.value = o.time
   u.uDensity.value = o.density
@@ -257,6 +266,8 @@ export function Weather() {
   const style = useView((s) => s.roofStyle[homeId] ?? 'tile')
   const lite = useView((s) => s.lite)
   const night = useNight()
+  // Under a flat high in a building the drops fall on down to the street (apartment mode, model/apartment.ts)
+  const bottom = useLayout((s) => -streetFloors(s.layout, activeLevel(s)) * FLOOR_H)
   // The area is rebuilt only when rooms change (not on every frame while an item is dragged)
   const roomsSig = useLayout((s) => JSON.stringify(activeLevel(s)?.rooms.map((r) => [r.x, r.z, r.w, r.d, r.parts ?? null, isOutdoor(r)]) ?? []))
   const region = useMemo(
@@ -319,9 +330,9 @@ export function Weather() {
   return (
     <>
       <ambientLight ref={amb} color="#e3e9ff" intensity={0} />
-      {region && level && !lite && f.rain > 0 && <Precip kind="rain" density={f.rain} region={region} style={style} levelId={level.id} wind={wind} night={night} />}
-      {region && level && !lite && f.snow > 0 && <Precip kind="snow" density={f.snow} region={region} style={style} levelId={level.id} wind={[wind[0] * 0.35, wind[1] * 0.35]} night={night} />}
-      {region && level && !lite && f.hail > 0 && <Precip kind="hail" density={f.hail} region={region} style={style} levelId={level.id} wind={wind} night={night} />}
+      {region && level && !lite && f.rain > 0 && <Precip kind="rain" density={f.rain} region={region} style={style} levelId={level.id} wind={wind} night={night} bottom={bottom} />}
+      {region && level && !lite && f.snow > 0 && <Precip kind="snow" density={f.snow} region={region} style={style} levelId={level.id} wind={[wind[0] * 0.35, wind[1] * 0.35]} night={night} bottom={bottom} />}
+      {region && level && !lite && f.hail > 0 && <Precip kind="hail" density={f.hail} region={region} style={style} levelId={level.id} wind={wind} night={night} bottom={bottom} />}
     </>
   )
 }

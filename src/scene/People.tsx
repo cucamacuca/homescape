@@ -4,9 +4,9 @@ import { play } from '@/audio/engine'
 import { stepAt } from '@/audio/floor'
 import { passDoors } from './doorTraffic'
 import { useHa } from '@/ha/store'
-import { besideDoor, frontDoor } from '@/model/geometry'
+import { isApartment } from '@/model/apartment'
 import { activeLevel, useLayout } from '@/model/layoutStore'
-import { planPeople, route, type Activity, type PeoplePlan, type Pose, type Spot } from '@/model/people'
+import { arrivalPoint, planPeople, route, type Activity, type PeoplePlan, type Pose, type Spot } from '@/model/people'
 import type { Level } from '@/model/types'
 import { useView } from './camera'
 import { markShadows } from './frame'
@@ -65,12 +65,6 @@ interface Walker {
 export const peopleDebug: { plan: PeoplePlan | null; persons: { x: number; z: number; pose: Pose; walking: boolean; roomId: string | null; activity: Activity; heading: number; act: number }[] } = { plan: null, persons: [] }
 
 const same = (a: Spot | undefined, b: Spot) => Boolean(a) && Math.abs(a!.x - b.x) < 0.01 && Math.abs(a!.z - b.z) < 0.01 && a!.pose === b.pose
-
-/** Outside of the front door (45 cm outside the wall; may be a porch or garden): people arriving later enter here. */
-function entrance(level: Level) {
-  const f = frontDoor(level.items, level.rooms)
-  return f ? besideDoor(f.door, -f.side, 0.45) : null
-}
 
 /** Point to stop at before reaching the spot: 42 cm in front of the seat (the person turns their back to it), the near side of the bed. */
 function approach(s: Spot, from: { x: number; z: number }) {
@@ -237,7 +231,7 @@ function step(w: Walker, dt: number, t: number): boolean {
   return busy
 }
 
-function Crowd({ plan, level }: { plan: PeoplePlan; level: Level }) {
+function Crowd({ plan, level, apartment }: { plan: PeoplePlan; level: Level; apartment: boolean }) {
   const walkers = useRef<(Walker | null)[]>(Array(MAX).fill(null))
   const refs = useRef<(HumanRefs | null)[]>(Array(MAX).fill(null))
   const registers = useMemo(() => Array.from({ length: MAX }, (_, i) => (r: HumanRefs | null) => void (refs.current[i] = r)), [])
@@ -249,7 +243,8 @@ function Crowd({ plan, level }: { plan: PeoplePlan; level: Level }) {
   useEffect(() => {
     const ws = walkers.current
     const firstTime = ws.every((w) => !w)
-    const door = entrance(level)
+    // People arriving later come in through the front door (model/people.ts > arrivalPoint; inside it in a flat)
+    const door = arrivalPoint(level, apartment)
     const spots = plan.spots.slice(0, MAX)
     const free = new Set(ws.map((w, i) => (w ? i : -1)).filter((i) => i >= 0))
     const assigned = new Set<number>()
@@ -293,7 +288,7 @@ function Crowd({ plan, level }: { plan: PeoplePlan; level: Level }) {
     })
     peopleDebug.plan = plan
     invalidate()
-  }, [plan, level, invalidate])
+  }, [plan, level, apartment, invalidate])
 
   const doorAt = useRef(0)
   useFrame((state, delta) => {
@@ -384,15 +379,16 @@ export function usePeoplePlan() {
     return () => window.clearInterval(id)
   }, [])
   const alarm = useMemo(() => Object.values(entities).find((e) => e.entity_id.startsWith('alarm_control_panel.'))?.state, [entities])
-  const plan = useMemo(() => (level ? planPeople({ level, entities, registry, alarm, now, residents }) : null), [level, entities, registry, alarm, now, residents])
-  return { plan, level }
+  const apartment = useLayout((s) => isApartment(s.layout))
+  const plan = useMemo(() => (level ? planPeople({ level, entities, registry, alarm, now, residents, apartment }) : null), [level, entities, registry, alarm, now, residents, apartment])
+  return { plan, level, apartment }
 }
 
 /** Draws the people (in view mode, when enabled). */
 export function People() {
   const show = useView((s) => s.people)
   const mode = useLayout((s) => s.mode)
-  const { plan, level } = usePeoplePlan()
+  const { plan, level, apartment } = usePeoplePlan()
   const visible = show && mode === 'view' && Boolean(plan && level)
   useEffect(() => {
     if (visible) return
@@ -400,5 +396,5 @@ export function People() {
     peopleDebug.persons = []
   }, [visible, show, plan])
   if (!visible || !plan || !level) return null
-  return <Crowd plan={plan} level={level} />
+  return <Crowd plan={plan} level={level} apartment={apartment} />
 }
