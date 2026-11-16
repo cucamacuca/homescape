@@ -13,10 +13,10 @@ import { usePlacement } from '@/model/placement'
 import { maxWidth, PANEL_DEFAULT, usePanel } from './panelState'
 import { checkItem, isWallMounted, MOUNTABLE, mountRange, overlapsRoom, SURFACE_Y, surfaceAt, wallTop } from '@/model/rules'
 import { containerOf, INTERIOR, moveWithContents, placeInside, toLocal } from '@/model/containers'
-import { counterSink } from '@/model/counter'
+import { counterSink, islandParts } from '@/model/counter'
 import { mountCenter, mountY, setMountY, setWallMount } from './mount'
 import type { FloorMaterial, Item, ItemKind, Room, RoomType } from '@/model/types'
-import { currentLang, floorNumber, lower, msg, t, tc, tn } from '@/i18n'
+import { currentLang, floorNumber, formatNumber, lower, msg, t, tc, tn } from '@/i18n'
 import { clampFloor, DEFAULT_BUILDING_FLOOR, MAX_BUILDING_FLOOR } from '@/model/apartment'
 import { useView } from '@/scene/camera'
 import { BindingEditor, BindingSummary, itemName, itemStateLabel } from './Bindings'
@@ -627,12 +627,13 @@ function FurnitureOptions({ item }: { item: Item }) {
           <span className="text-[11px] text-ink-3">{t('Left and right as seen by the person sitting at the desk.')}</span>
         </div>
       )}
-      {item.kind === 'kitchenCounter' &&
+      {(item.kind === 'kitchenCounter' || item.kind === 'kitchenIsland') &&
         (() => {
-          // Built-in sink (model/counter.ts): when not chosen, in the center unless a separate sink stands next to the counter
+          // Built-in sink (model/counter.ts): counter: when not chosen, in the center unless a separate sink stands next to the
+          // counter; island: none when not chosen
           const lv = activeLevel(useLayout.getState())
           const at = lv ? counterSink(lv.items, item) : null
-          const L = item.len ?? CATALOG.kitchenCounter.size[0]
+          const L = item.len ?? CATALOG[item.kind].size[0]
           const cur = item.sink ?? (at == null ? 'none' : 'center')
           return (
             <div className="grid gap-1.5" id="counter-sink">
@@ -655,6 +656,38 @@ function FurnitureOptions({ item }: { item: Item }) {
                 {L < 0.9
                   ? t('A sink needs a counter of at least {length} m.', { length: 0.9 })
                   : t('The steel basin and tap are built into the counter; left and right as seen standing in front of it.')}
+              </span>
+            </div>
+          )
+        })()}
+      {item.kind === 'kitchenIsland' &&
+        (() => {
+          // Built-in dishwasher (model/counter.ts > islandParts): beside the sink, or at that end without a sink
+          const L = item.len ?? CATALOG.kitchenIsland.size[0]
+          const cur = item.dishwasher ?? 'none'
+          const fits = islandParts(L, item.sink, cur === 'none' ? 'left' : cur).dish != null
+          return (
+            <div className="grid gap-1.5" id="island-dishwasher">
+              <span className="text-[12px] font-semibold text-ink-2">{t('Dishwasher')}</span>
+              <div className="flex gap-1.5">
+                {(
+                  [
+                    ['none', t('None')],
+                    ['left', t('On the left')],
+                    ['right', t('On the right')],
+                  ] as const
+                ).map(([k, label]) => (
+                  <button key={k} type="button" data-dishwasher={k} className={seg(cur === k)} onClick={() => updateItem(item.id, { dishwasher: k })}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-ink-3">
+                {!fits
+                  ? t('A sink with a dishwasher needs an island of at least {length} m.', { length: formatNumber(1.5) })
+                  : item.sink && item.sink !== 'none'
+                    ? t('Built in right beside the sink.')
+                    : t('Built in at that end of the island.')}
               </span>
             </div>
           )

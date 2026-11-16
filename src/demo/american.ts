@@ -216,6 +216,8 @@ function groundFloor(): Level {
   put('homepod', 3.99, 1.2, -PI / 2, { ...bind('media_player.us_kitchen_homepod'), y: ON_COUNTER, variant: 'mini', body: '#5d7fa8' })
   put('pendant', 3.99, 1.25, 0, { ...bind('light.us_kitchen_island'), group: 'us-grp-island' })
   put('pendant', 3.99, 2.1, 0, { ...bind('light.us_kitchen_island'), group: 'us-grp-island' })
+  // A prep island between the L counter and the front wall: cabinets toward the counter, a seating overhang behind
+  put('kitchenIsland', 4.6, 4.2, PI, { len: 1.8, top: '#ecdcc4', body: '#3a3f5c' })
   put('diningTable', 1.6, 3.6, 0)
   put('chair', 1.25, 2.95, 0)
   put('chair', 1.95, 2.95, 0)

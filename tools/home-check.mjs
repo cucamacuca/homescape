@@ -2329,6 +2329,46 @@ ok(components(L) === 1, `Inner doors are added when an old plan (without inner d
   await p.waitForTimeout(1200)
 }
 
+// Kitchen island: length and depth sliders, optional built-in sink and dishwasher (model/counter.ts > islandParts)
+{
+  const id = await p.evaluate(() => {
+    const L = window.__homescape.getState().layout
+    const room = L.addRoom({ name: 'Island kitchen', x: 60, z: 60, w: 6, d: 5 })
+    const it = L.addItem('kitchenIsland', 63, 62.5, 0)
+    L.setMode('edit')
+    window.__homescape.select({ type: 'item', id: it })
+    return { room, it }
+  })
+  const island = () => p.evaluate((id) => window.__homescape.getState().layout.layout.levels.flatMap((l) => l.items).find((i) => i.id === id), id.it)
+  await p.waitForSelector('#island-dishwasher')
+  const card = await p.textContent('#side-panel')
+  ok(/Island length/.test(card) && /Island depth/.test(card) && /Counter color/.test(card) && /Cabinet color/.test(card), 'The kitchen island card has length, depth, counter and cabinet color settings')
+  const fresh = await island()
+  ok(!fresh.sink && !fresh.dishwasher, 'A new kitchen island has no sink or dishwasher')
+  await p.click('#counter-sink [data-sink="center"]')
+  await p.click('#island-dishwasher [data-dishwasher="left"]')
+  await p.waitForTimeout(300)
+  const parts = await p.evaluate(async (id) => {
+    const c = await import('/src/model/counter.ts')
+    const it = window.__homescape.getState().layout.layout.levels.flatMap((l) => l.items).find((i) => i.id === id)
+    return { sink: it.sink, dw: it.dishwasher, at: c.islandParts(it.len ?? 1.8, it.sink, it.dishwasher) }
+  }, id.it)
+  ok(parts.sink === 'center' && parts.dw === 'left' && parts.at.dish != null && parts.at.sink != null && parts.at.dish < parts.at.sink && Math.abs(parts.at.sink - parts.at.dish - 0.6) < 1e-6, `The island's dishwasher sits right beside its sink, on the left (sink ${parts.at.sink?.toFixed(2)} m, dishwasher ${parts.at.dish?.toFixed(2)} m)`)
+  const short = await p.evaluate(async () => (await import('/src/model/counter.ts')).islandParts(1.2, 'center', 'left'))
+  ok(short.sink === 0 && short.dish === null, 'A 1.2 m island keeps its sink but has no room for a dishwasher beside it')
+  await p.evaluate((id) => window.__homescape.getState().layout.updateItem(id, { len: 2.6, len2: 1.2 }), id.it)
+  const big = await island()
+  const fp = await p.evaluate(async (it) => (await import('/src/model/catalog.ts')).sizeOf(it.kind, it.len, it.len2), big)
+  ok(fp[0] === 2.6 && fp[1] === 1.2, `The island's footprint follows its length and depth (${fp.join(' × ')} m)`)
+  await p.evaluate((ids) => {
+    const L = window.__homescape.getState().layout
+    L.select(null)
+    L.deleteRoom(ids.room)
+    L.setMode('view')
+  }, id)
+  await p.waitForTimeout(500)
+}
+
 // Save protection: before a migration a raw copy of the old version is kept; an unreadable record is copied to the rescue key before it can be overwritten
 {
   const pre = await p.evaluate(() => localStorage.getItem('homescape-layout-v1-backup-s1') ?? '')

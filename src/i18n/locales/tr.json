@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "{room} silindi. Geri almak için ⌘Z.",
  "{value}%": "%{value}",
  "Ø {d} m · can be oval": "Ø {d} m · oval de olur",
- "⌥ or ⇧ + left drag": "⌥ ya da ⇧ + sol sürükle"
+ "⌥ or ⇧ + left drag": "⌥ ya da ⇧ + sol sürükle",
+ "Kitchen island": "Mutfak adası",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "Dolaplar öne bakar; arkada tezgâh taşar, böylece bar tabureleri altına girer. Çalıştığını göstermek için bulaşık makinesinin prizini veya sensörünü bağlayın.",
+ "Island length": "Ada uzunluğu",
+ "Island depth": "Ada derinliği",
+ "Island with sink": "Evyeli ada",
+ "sink · dishwasher": "evye · bulaşık makinesi",
+ "A sink with a dishwasher needs an island of at least {length} m.": "Bulaşık makineli bir evye için en az {length} m'lik bir ada gerekir.",
+ "Built in right beside the sink.": "Evyenin hemen yanına gömülü.",
+ "Built in at that end of the island.": "Adanın o ucuna gömülü."
 }

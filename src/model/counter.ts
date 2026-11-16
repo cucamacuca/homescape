@@ -13,8 +13,9 @@ export const SINK_W = 0.56
 const EDGE = 0.45
 const CORNER = 0.6 + SINK_W / 2 + 0.06
 
-/** Center of the counter's built-in sink along local x; null without a sink. */
+/** Center of the counter's (or island's) built-in sink along local x; null without a sink. */
 export function counterSink(items: Item[], c: Item): number | null {
+  if (c.kind === 'kitchenIsland') return islandParts(c.len ?? CATALOG.kitchenIsland.size[0], c.sink, c.dishwasher).sink
   if (c.kind !== 'kitchenCounter') return null
   const L = c.len ?? CATALOG.kitchenCounter.size[0]
   if (L < 0.9) return null
@@ -37,4 +38,37 @@ export function counterSink(items: Item[], c: Item): number | null {
   if (lo > hi) return null
   const x = side === 'left' ? lo : side === 'right' ? hi : 0
   return Math.min(hi, Math.max(lo, x))
+}
+
+/** Width of a base cabinet slot: the sink cabinet and the dishwasher (m) */
+export const SLOT_W = 0.6
+/** Gap between the island's end and a sink or dishwasher slot pushed to that end (m) */
+const ISLAND_EDGE = 0.15
+
+/**
+ * Kitchen island (Item.sink, Item.dishwasher; left and right as seen at the cabinet side): centers of the built-in sink and
+ * dishwasher along local x, null when absent or when the island is too short. The dishwasher sits right beside the sink
+ * (sink and dishwasher cabinets side by side); without a sink it goes to that end of the island. A sink pushed to one end
+ * keeps 0.45 m from it, or leaves room for the dishwasher between it and the end.
+ */
+export function islandParts(L: number, sinkSide?: Item['sink'], dishSide?: Item['dishwasher']): { sink: number | null; dish: number | null } {
+  const side = sinkSide ?? 'none'
+  const dishOn = dishSide === 'left' || dishSide === 'right'
+  const ds = dishSide === 'left' ? -1 : 1
+  const lo = -L / 2 + ISLAND_EDGE
+  const hi = L / 2 - ISLAND_EDGE
+  if (side === 'none') {
+    if (!dishOn || hi - lo < SLOT_W) return { sink: null, dish: null }
+    return { sink: null, dish: ds < 0 ? lo + SLOT_W / 2 : hi - SLOT_W / 2 }
+  }
+  // Sink alone: like the wall counter, 0.45 m from the end or in the middle
+  let sink = side === 'left' ? -L / 2 + EDGE : side === 'right' ? L / 2 - EDGE : 0
+  if (!dishOn || hi - lo < 2 * SLOT_W) {
+    sink = Math.min(L / 2 - EDGE, Math.max(-L / 2 + EDGE, sink))
+    return { sink, dish: null }
+  }
+  // Sink and dishwasher as one 1.2 m block, kept inside the island (the sink moves inward when the block would stick out)
+  const left = Math.min(hi - 2 * SLOT_W, Math.max(lo, side === 'left' ? lo : side === 'right' ? hi - 2 * SLOT_W : ds < 0 ? -SLOT_W * 1.5 : -SLOT_W / 2))
+  const sinkC = ds < 0 ? left + SLOT_W * 1.5 : left + SLOT_W / 2
+  return { sink: sinkC, dish: ds < 0 ? left + SLOT_W / 2 : left + SLOT_W * 1.5 }
 }

@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "Комната {room} удалена. Отменить: ⌘Z.",
  "{value}%": "{value} %",
  "Ø {d} m · can be oval": "Ø {d} m · может быть овальным",
- "⌥ or ⇧ + left drag": "⌥ или ⇧ + перетаскивание левой кнопкой"
+ "⌥ or ⇧ + left drag": "⌥ или ⇧ + перетаскивание левой кнопкой",
+ "Kitchen island": "Кухонный остров",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "Шкафы обращены вперёд; сзади столешница выступает, чтобы под неё помещались барные стулья. Привяжите розетку или датчик посудомойки, чтобы видеть, когда она работает.",
+ "Island length": "Длина острова",
+ "Island depth": "Глубина острова",
+ "Island with sink": "Остров с мойкой",
+ "sink · dishwasher": "мойка · посудомойка",
+ "A sink with a dishwasher needs an island of at least {length} m.": "Для мойки с посудомойкой нужен остров длиной не менее {length} м.",
+ "Built in right beside the sink.": "Встроена прямо рядом с мойкой.",
+ "Built in at that end of the island.": "Встроена в этом конце острова."
 }

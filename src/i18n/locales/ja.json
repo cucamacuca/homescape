@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "{room}を削除しました。⌘Zで元に戻せます。",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø{d} m · 楕円にもできます",
- "⌥ or ⇧ + left drag": "⌥ または ⇧ + 左ドラッグ"
+ "⌥ or ⇧ + left drag": "⌥ または ⇧ + 左ドラッグ",
+ "Kitchen island": "キッチンアイランド",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "キャビネットは正面側にあり、背面は天板が張り出していてバースツールが収まります。食洗機のプラグやセンサーを連携すると運転中かどうかが表示されます。",
+ "Island length": "アイランドの長さ",
+ "Island depth": "アイランドの奥行き",
+ "Island with sink": "シンク付きアイランド",
+ "sink · dishwasher": "シンク · 食洗機",
+ "A sink with a dishwasher needs an island of at least {length} m.": "食洗機付きのシンクには{length} m以上のアイランドが必要です。",
+ "Built in right beside the sink.": "シンクのすぐ横に組み込み。",
+ "Built in at that end of the island.": "アイランドのその端に組み込み。"
 }
