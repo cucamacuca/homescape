@@ -253,6 +253,11 @@ export type ItemKind =
   | 'portableAc'
   | 'woodStove'
   | 'exhaustFan'
+  | 'turntable'
+  | 'floorSpeaker'
+  | 'streamingBox'
+  | 'smartDisplay'
+  | 'voiceAssistant'
 
 export interface Item {
   id: string

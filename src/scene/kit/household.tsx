@@ -1,10 +1,11 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { deviceClass, domainOf, isActive, num } from '@/ha/derive'
 import { WALL_H } from '@/model/geometry'
+import { assistRing, clockText } from '@/model/household'
 import { markShadows } from '../frame'
-import { Airflow, Glow, Spin, useLitMaterial } from './effects'
+import { Airflow, Glow, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
 import { C } from './palette'
 import { Ball, Box, Cyl, mat } from './primitives'
 import { Flames } from './smart'
@@ -22,6 +23,8 @@ import type { Visual } from './visual'
 type P = { v: Visual }
 
 const TAU = Math.PI * 2
+
+const MONO = '"JetBrains Mono", ui-monospace, monospace'
 
 /** Body color: pale gray when unavailable, otherwise the color picked on the card (Item.body) or the default. */
 const bodyOf = (v: Visual, def: string) => (v.unavailable ? '#9aa0b8' : (v.opts.body ?? def))
@@ -42,7 +45,11 @@ function geo<T extends THREE.BufferGeometry>(key: string, make: () => T) {
   return g
 }
 
+const torus = (r: number, tube: number, seg = 32) => geo(`t${r},${tube},${seg}`, () => new THREE.TorusGeometry(r, tube, 8, seg))
+
 const disc = (r: number, seg = 32) => geo(`d${r},${seg}`, () => new THREE.CircleGeometry(r, seg))
+
+const plane = (w: number, h: number) => geo(`p${w},${h}`, () => new THREE.PlaneGeometry(w, h))
 
 /** Transparent surface (glass, water): one material per color and opacity; no depth write, the contents stay visible. */
 const clears = new Map<string, THREE.MeshStandardMaterial>()
@@ -55,6 +62,69 @@ function clear(color: string, opacity: number, roughness = 0.08) {
     clears.set(key, m)
   }
   return m
+}
+
+/** Small display textures with text (clock, scale, inverter): cached by key, the least recently used disposed. */
+const texts = new Map<string, THREE.CanvasTexture>()
+
+function textTexture(key: string, w: number, h: number, draw: (g: CanvasRenderingContext2D) => void) {
+  let t = texts.get(key)
+  if (t) {
+    texts.delete(key)
+    texts.set(key, t)
+    return t
+  }
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  draw(c.getContext('2d')!)
+  t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.anisotropy = 4
+  texts.set(key, t)
+  if (texts.size > 48) {
+    const [oldKey, old] = texts.entries().next().value!
+    texts.delete(oldKey)
+    old.dispose()
+  }
+  return t
+}
+
+/** Display with one line of text, centered: green LCD, white screen or dim when off */
+function lcdTexture(text: string, style: 'lcd' | 'screen' | 'off') {
+  return textTexture(`lcd-${style}-${text}`, 256, 96, (g) => {
+    g.fillStyle = style === 'lcd' ? '#0e2a1e' : style === 'screen' ? '#202a4a' : '#1b2036'
+    g.fillRect(0, 0, 256, 96)
+    g.fillStyle = style === 'lcd' ? '#7dffb2' : style === 'screen' ? '#ffffff' : 'rgba(255, 255, 255, 0.35)'
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.font = `600 52px ${MONO}`
+    const w = g.measureText(text).width
+    if (w > 236) g.font = `600 ${Math.floor((52 * 236) / w)}px ${MONO}`
+    g.fillText(text, 128, 52)
+  })
+}
+
+/** A display material on a text texture (disposed with its component; the texture stays in the cache) */
+function useDisplay(text: string, style: 'lcd' | 'screen' | 'off') {
+  const tex = lcdTexture(text, style)
+  const m = useMemo(() => new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }), [tex])
+  useEffect(() => () => m.dispose(), [m])
+  return m
+}
+
+/** The current time, refreshed every half minute (clocks); requests a frame when it changes. */
+function useNow(ms = 30_000) {
+  const [now, setNow] = useState(() => new Date())
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNow(new Date())
+      invalidate()
+    }, ms)
+    return () => clearInterval(id)
+  }, [ms, invalidate])
+  return now
 }
 
 /** Eases a value toward target and applies it each frame until it arrives (a flap, a lid, a door). */
@@ -75,6 +145,19 @@ function useEase(target: number, apply: (v: number) => void, speed = 6) {
     markShadows(1)
     state.invalidate()
   })
+}
+
+/** Pulses the scale of a mesh while active (a ring, a status light). */
+function usePulse(active: boolean, speed = 6, amount = 0.12) {
+  const ref = useRef<THREE.Mesh>(null)
+  useAmbient(active)
+  useFrame(({ clock }) => {
+    const m = ref.current
+    if (!m) return
+    const s = active ? 1 + amount * Math.sin(clock.elapsedTime * speed) : 1
+    m.scale.set(s, s, s)
+  })
+  return ref
 }
 
 /* ---------- lights ---------- */
@@ -296,6 +379,129 @@ export function ExhaustFan({ v }: P) {
       {[-0.08, -0.04, 0, 0.04, 0.08].map((y) => (
         <Box key={y} size={[0.24, 0.008, 0.006]} position={[0, y, 0.03]} color={C.white} shadow={false} />
       ))}
+    </group>
+  )
+}
+
+/* ---------- media ---------- */
+
+/**
+ * Turntable (on a surface): a wooden plinth, a black platter with a red label, the tonearm at the back right. While the
+ * bound player plays the record spins, the arm swings onto it and notes rise.
+ */
+export function Turntable({ v }: P) {
+  const playing = v.domain === 'media_player' ? v.state === 'playing' : v.on
+  const arm = useRef<THREE.Group>(null)
+  useEase(playing ? 0.45 : 0, (a) => {
+    if (arm.current) arm.current.rotation.y = a
+  })
+  return (
+    <group>
+      <Box size={[0.44, 0.08, 0.34]} position={[0, 0.04, 0]} color={bodyOf(v, '#6b4a34')} radius={0.01} />
+      <Box size={[0.42, 0.004, 0.32]} position={[0, 0.082, 0]} color="#1f2024" shadow={false} />
+      <group position={[-0.05, 0.088, 0]}>
+        <Spin speed={playing ? 3.5 : 0} axis="y">
+          <Cyl r={0.15} h={0.006} color="#141416" segments={40} />
+          <Cyl r={0.05} h={0.007} position={[0.01, 0.0005, 0]} color="#e2564b" segments={24} shadow={false} />
+        </Spin>
+      </group>
+      <group ref={arm} position={[0.17, 0.1, -0.12]}>
+        <Cyl r={0.018} h={0.03} color={C.steel} segments={12} />
+        <Box size={[0.012, 0.01, 0.21]} position={[-0.03, 0.012, 0.1]} rotation={[0, 0.25, 0]} color={C.steel} shadow={false} />
+      </group>
+      <MusicNotes active={playing} y={0.16} size={0.05} />
+    </group>
+  )
+}
+
+/**
+ * Floor-standing speaker (about 1 m): a tall cabinet with two woofers and a tweeter. While the bound player plays the
+ * woofers pulse, harder with the volume, and notes rise above it.
+ */
+export function FloorSpeaker({ v }: P) {
+  const playing = v.domain === 'media_player' && v.state === 'playing'
+  const vol = num(v.attrs.volume_level) ?? 0.5
+  const cones = useRef<THREE.Group>(null)
+  useAmbient(playing)
+  useFrame(({ clock }) => {
+    const g = cones.current
+    if (!g) return
+    const s = playing ? 1 + 0.07 * vol * Math.max(0, Math.sin(clock.elapsedTime * 14)) : 1
+    for (const c of g.children) c.scale.set(s, s, 1)
+  })
+  return (
+    <group>
+      <Box size={[0.24, 1.0, 0.28]} position={[0, 0.52, 0]} color={bodyOf(v, '#2a2c33')} radius={0.015} />
+      {[-0.08, 0.08].map((x) => (
+        <Cyl key={x} r={0.02} h={0.02} position={[x, 0.01, 0]} color={C.inkSoft} segments={10} />
+      ))}
+      <group ref={cones} position={[0, 0, 0.141]}>
+        {[0.32, 0.56].map((y) => (
+          <mesh key={y} position={[0, y, 0]} geometry={disc(0.075)} material={mat('#141518')} />
+        ))}
+      </group>
+      <mesh position={[0, 0.82, 0.141]} geometry={disc(0.028)} material={mat('#3a3d47')} />
+      <MusicNotes active={playing} y={1.08} size={0.07} />
+    </group>
+  )
+}
+
+/** Streaming box (on a surface): a small rounded box with a status light that glows while on and pulses while it plays. */
+export function StreamingBox({ v }: P) {
+  const playing = v.state === 'playing'
+  const led = useLitMaterial('#3a3d47', v.on, '#ffffff', 1, 2.2)
+  const ref = usePulse(playing, 4, 0.3)
+  return (
+    <group>
+      <Box size={[0.098, 0.035, 0.098]} position={[0, 0.0175, 0]} color={bodyOf(v, '#16171b')} radius={0.014} />
+      <mesh ref={ref} position={[0.03, 0.02, 0.0495]} geometry={disc(0.004, 12)} material={led} />
+    </group>
+  )
+}
+
+/**
+ * Smart display (on a surface): a screen tilted back on a speaker base. With a bound entity the screen shows the time
+ * while idle and a bright tint while it plays; dark when unbound or unavailable.
+ */
+export function SmartDisplay({ v }: P) {
+  const now = useNow()
+  const live = v.bound && !v.unavailable
+  const playing = v.domain === 'media_player' && v.state === 'playing'
+  const screen = useDisplay(live ? clockText(now) : '', live ? 'screen' : 'off')
+  return (
+    <group>
+      <Box size={[0.2, 0.05, 0.1]} position={[0, 0.025, -0.01]} color={bodyOf(v, '#e9e6e1')} radius={0.02} />
+      <group position={[0, 0.1, 0.02]} rotation={[-0.3, 0, 0]}>
+        <Box size={[0.19, 0.13, 0.012]} color="#1d1f24" radius={0.008} />
+        <mesh position={[0, 0, 0.0065]} geometry={plane(0.17, 0.11)} material={playing ? mat('#8f7cff', { emissive: '#8f7cff', emissiveIntensity: 0.9 }) : screen} />
+      </group>
+    </group>
+  )
+}
+
+/**
+ * Voice assistant (a speaker puck on a surface): its LED ring follows the assist_satellite state, steady blue while
+ * listening, a spinning light while processing, pulsing while responding (model/household.ts > assistRing).
+ */
+export function VoiceAssistant({ v }: P) {
+  const ring = assistRing(v.domain, v.state)
+  const lit = ring !== 'off'
+  const color = ring === 'listen' ? '#4f9dff' : ring === 'spin' ? '#8f7cff' : '#4fc3ff'
+  const led = useLitMaterial('#3a3d47', lit, color, 1, 2.6)
+  const spin = useRef<THREE.Group>(null)
+  const pulse = usePulse(ring === 'pulse', 8, 0.08)
+  useAmbient(ring === 'spin')
+  useFrame((_, dt) => {
+    if (spin.current && ring === 'spin') spin.current.rotation.y += Math.min(dt, 0.1) * 6
+  })
+  return (
+    <group>
+      <Cyl r={0.043} h={0.03} position={[0, 0.015, 0]} color={bodyOf(v, '#1d1f24')} segments={32} />
+      <group ref={spin} position={[0, 0.031, 0]}>
+        <mesh ref={pulse} rotation-x={Math.PI / 2} geometry={torus(0.036, 0.004, 32)} material={led} />
+        {ring === 'spin' && <Ball r={0.006} position={[0.036, 0.002, 0]} color="#ffffff" shadow={false} />}
+      </group>
+      {lit && <Glow position={[0, 0.04, 0]} color={color} opacity={v.night ? 0.6 : 0.3} size={0.25} />}
     </group>
   )
 }

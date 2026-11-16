@@ -107,6 +107,7 @@ const LABELS: Record<string, Record<string, string>> = {
   valve: { open: t('Open'), closed: t('Closed'), opening: t('Opening'), closing: t('Closing') },
   water_heater: { off: t('Off'), eco: t('Eco'), electric: t('Electric'), gas: t('Gas'), heat_pump: t('Heat pump'), high_demand: t('High demand'), performance: t('Performance') },
   camera: { idle: t('Idle'), recording: t('Recording'), streaming: t('Live') },
+  assist_satellite: { idle: t('Idle'), listening: t('Listening'), processing: t('Processing'), responding: t('Responding') },
   device_tracker: { home: t('At home'), not_home: t('Away') },
   person: { home: t('At home'), not_home: t('Away') },
 }
@@ -228,6 +229,7 @@ const DOMAIN_LABEL: Record<string, string> = {
   select: t('Selection'),
   person: t('Person'),
   device_tracker: t('Location'),
+  assist_satellite: t('Voice assistant'),
   weather: t('Weather'),
   remote: t('Remote'),
   siren: t('Siren'),
@@ -245,7 +247,7 @@ export function roleLabel(e?: HassEntity) {
 /** Is it a read-only value (sensor, binary sensor, weather, person...)? */
 export function isReading(e?: HassEntity) {
   if (!e) return false
-  return ['sensor', 'binary_sensor', 'weather', 'person', 'device_tracker', 'sun', 'number', 'select', 'input_number', 'input_select', 'input_text', 'update', 'event'].includes(domainOf(e.entity_id))
+  return ['sensor', 'binary_sensor', 'weather', 'person', 'device_tracker', 'sun', 'number', 'select', 'input_number', 'input_select', 'input_text', 'update', 'event', 'assist_satellite', 'todo', 'calendar', 'image'].includes(domainOf(e.entity_id))
 }
 
 export const deviceClass = (e?: HassEntity) => String(e?.attributes.device_class ?? '')

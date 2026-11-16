@@ -259,6 +259,16 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   woodStove: { label: t('Wood stove'), group: 'climate', domains: ['climate', 'switch', 'sensor'], size: [0.6, 0.55], labelY: 1.1, wall: true },
   // Extractor fan high on the wall; the blades spin while on
   exhaustFan: { label: t('Extractor fan'), group: 'climate', domains: ['fan', 'switch'], size: [0.3, 0.06], labelY: 2.55, wall: true },
+  // Turntable: the record spins and the arm swings in while the bound player plays
+  turntable: { label: t('Turntable'), group: 'media', domains: ['media_player', 'switch'], size: [0.44, 0.34], labelY: 0.4 },
+  // Floor-standing speaker; woofers pulse while playing
+  floorSpeaker: { label: t('Floor-standing speaker'), group: 'media', domains: ['media_player'], size: [0.26, 0.3], labelY: 1.3 },
+  // Streaming box with a status light
+  streamingBox: { label: t('Streaming box'), group: 'media', domains: ['media_player', 'remote'], size: [0.1, 0.1], labelY: 0.25 },
+  // Smart display: the time while idle, a tint while it plays
+  smartDisplay: { label: t('Smart display'), group: 'media', domains: ['media_player', 'camera'], size: [0.2, 0.12], labelY: 0.35 },
+  // Voice assistant puck; its LED ring follows the assist_satellite state
+  voiceAssistant: { label: t('Voice assistant'), group: 'media', domains: ['assist_satellite', 'media_player'], size: [0.09, 0.09], labelY: 0.25 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */

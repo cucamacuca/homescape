@@ -465,6 +465,11 @@ function groundFloor(): Level {
   /* --- new lights: a floodlight on the house wall over the deck --- */
   wall(deck, 'front', -3.2, 'floodlight', bind('light.us_deck_floodlight', 'camera.us_backyard'))
 
+  /* --- media: a streaming box under the family TV, a smart display and a voice assistant in the kitchen --- */
+  put('streamingBox', -4.65, 5.2, PI, { ...bind('media_player.us_family_streamer'), y: 0.5 })
+  put('smartDisplay', 3.3, 0.35, 0, { ...bind('media_player.us_kitchen_display'), y: ON_COUNTER })
+  put('voiceAssistant', 1.55, 0.33, 0, { ...bind('assist_satellite.us_kitchen_voice'), y: ON_COUNTER })
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -629,6 +634,10 @@ function upperFloor(): Level {
   wall(gym, 'back', 6.35, 'portableAc', bind('climate.us_gym_ac'))
   wall(bonus, 'left', 5, 'woodStove', bind('climate.us_bonus_stove'))
   wall(bath, 'left', 0.6, 'exhaustFan', bind('fan.us_bath_exhaust'))
+
+  /* --- media: a turntable on the bonus room sideboard, a floor-standing speaker in the gym --- */
+  put('turntable', bonus.x + WALL_IN + 0.22, 6.75, PI / 2, { ...bind('media_player.us_bonus_turntable'), y: 0.5 })
+  put('floorSpeaker', 9.2, 3.1, -PI / 2, bind('media_player.us_gym_speaker'))
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -869,6 +878,11 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    media('us_bonus_turntable', t('Bonus Room Turntable'), 'playing', { volume_level: 0.4, media_title: t('Vinyl') }),
+    media('us_gym_speaker', t('Gym Speaker'), 'idle', { volume_level: 0.6 }),
+    media('us_family_streamer', t('Family Room Streamer'), 'playing', { media_title: t('Nature documentary') }),
+    media('us_kitchen_display', t('Kitchen Display'), 'idle', {}),
+    ent('assist_satellite.us_kitchen_voice', 'idle', t('Kitchen Voice Assistant'), {}),
     ent('climate.us_gym_ac', 'cool', t('Gym Air Conditioner'), { hvac_modes: ['off', 'cool', 'dry', 'fan_only'], current_temperature: 24.5, temperature: 21, supported_features: 1 }),
     ent('climate.us_bonus_stove', 'heat', t('Bonus Room Stove'), { hvac_modes: ['off', 'heat'], current_temperature: 20.5, temperature: 22, supported_features: 1 }),
     ent('fan.us_bath_exhaust', 'off', t('Hall Bath Extractor Fan'), { percentage: 0 }),

@@ -205,6 +205,11 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   portableAc: H.PortableAc,
   woodStove: H.WoodStove,
   exhaustFan: H.ExhaustFan,
+  turntable: H.Turntable,
+  floorSpeaker: H.FloorSpeaker,
+  streamingBox: H.StreamingBox,
+  smartDisplay: H.SmartDisplay,
+  voiceAssistant: H.VoiceAssistant,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

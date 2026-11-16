@@ -134,6 +134,10 @@ import {
   Heart,
   Hexagon,
   Moon,
+  Cast,
+  Disc3,
+  Mic,
+  TabletSmartphone,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -329,4 +333,9 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   portableAc: AirVent,
   woodStove: Flame,
   exhaustFan: Fan,
+  turntable: Disc3,
+  floorSpeaker: Speaker,
+  streamingBox: Cast,
+  smartDisplay: TabletSmartphone,
+  voiceAssistant: Mic,
 }
