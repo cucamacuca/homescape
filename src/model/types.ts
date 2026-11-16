@@ -263,6 +263,8 @@ export interface Item {
   hinge?: 'left' | 'right'
   /** Which way the door/window opens: into its room (in, default) or to the other side of the wall (out / neighbor room) */
   swing?: 'in' | 'out'
+  /** Window that does not open (fixed glazing): one pane, no swing arc, no opening direction; a window sensor leaves it shut */
+  fixed?: boolean
   /** Length of items with adjustable length (local x, m): desk */
   len?: number
   /** Drawer unit of the desk */

@@ -97,7 +97,7 @@ function SelectedTag() {
             <button type="button" className={act} title={t('Rotate right (R)')} onClick={() => L.updateItem(item.id, { rot: item.rot + Math.PI / 2 })}>
               <RotateCw size={15} />
             </button>
-            {(item.kind === 'door' || item.kind === 'window') && (
+            {(item.kind === 'door' || (item.kind === 'window' && !item.fixed)) && (
               <button type="button" className={act} title={t('Flip the opening direction')} onClick={() => L.updateItem(item.id, nextOpening(item))}>
                 <FlipHorizontal2 size={15} />
               </button>

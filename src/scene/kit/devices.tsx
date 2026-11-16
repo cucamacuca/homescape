@@ -1573,7 +1573,8 @@ export function Window({ v }: P) {
   const gw = W - 0.06
   const gh = H - 0.06
   // The sash opens into the room by default (negative rotation toward local +z, into the room); only with a window sensor.
-  const sash = useEased(sashOpen(v) ? -0.5 : 0)
+  // A fixed window (Item.fixed) never opens: one pane in the frame, no sash bar, no swing arc.
+  const sash = useEased(!v.fixed && sashOpen(v) ? -0.5 : 0)
   // With a low wall the window is hidden; a thin glass line on top of the low wall stands in for it (floor plan mark).
   useWallHeight(root, v.interior, (h) => {
     const low = h < 1.2
@@ -1594,17 +1595,21 @@ export function Window({ v }: P) {
         <Box size={[W + 0.04, 0.06, 0.22]} position={[0, T, EDGE_Z]} color={C.white} />
         <Box size={[0.06, H, 0.22]} position={[-W / 2, B + H / 2, EDGE_Z]} color={C.white} />
         <Box size={[0.06, H, 0.22]} position={[W / 2, B + H / 2, EDGE_Z]} color={C.white} />
-        <Mirror x={v.hingeRight} z={v.swingOut}>
-          <group ref={sash} position={[-gw / 2, 0, EDGE_Z + 0.04]}>
-            <Box size={[gw, gh, 0.025]} position={[gw / 2, B + H / 2, 0]} material={glass} shadow={false} />
-            <Box size={[0.03, gh, 0.035]} position={[gw / 2, B + H / 2, 0]} color={C.white} shadow={false} />
-          </group>
-        </Mirror>
+        {v.fixed ? (
+          <Box size={[gw, gh, 0.025]} position={[0, B + H / 2, EDGE_Z + 0.04]} material={glass} shadow={false} />
+        ) : (
+          <Mirror x={v.hingeRight} z={v.swingOut}>
+            <group ref={sash} position={[-gw / 2, 0, EDGE_Z + 0.04]}>
+              <Box size={[gw, gh, 0.025]} position={[gw / 2, B + H / 2, 0]} material={glass} shadow={false} />
+              <Box size={[0.03, gh, 0.035]} position={[gw / 2, B + H / 2, 0]} color={C.white} shadow={false} />
+            </group>
+          </Mirror>
+        )}
         {B + yoff > 0.3 && <Box size={[W + 0.3, 0.04, 0.2]} position={[0, B - 0.03, EDGE_Z + WALL_IN + 0.1]} color={C.white} />}
         <Shade v={v} W={W} B={B} T={T} yoff={yoff} />
       </group>
-      {/* Sash swing direction in edit mode: outline arc on the floor (visible when the wall is low too) */}
-      {v.edit && (
+      {/* Sash swing direction in edit mode: outline arc on the floor (visible when the wall is low too); none on a fixed window */}
+      {v.edit && !v.fixed && (
         <Mirror x={v.hingeRight} z={v.swingOut}>
           <SwingArc at={[-gw / 2, 0.014 - yoff, EDGE_Z + 0.04]} r={gw - 0.04} strong outline />
         </Mirror>

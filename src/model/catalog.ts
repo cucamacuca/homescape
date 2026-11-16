@@ -900,10 +900,12 @@ export interface ItemPreset {
   kind: ItemKind
   label: string
   sub: string
-  extra: Partial<Pick<Item, 'len' | 'len2' | 'y' | 'variant' | 'mount'>>
+  extra: Partial<Pick<Item, 'len' | 'len2' | 'y' | 'variant' | 'mount' | 'fixed'>>
 }
 export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'windowFull', kind: 'window', label: t('Full-height window'), sub: `${formatNumber(1.2)} × ${formatNumber(2.1)} m`, extra: { len2: 2.1, y: -0.82 } },
+  // A window that does not open (fixed glazing): no sash and no swing arc; Opens / Fixed in its card switches it
+  { id: 'windowFixed', kind: 'window', label: t('Fixed window'), sub: t('does not open'), extra: { fixed: true } },
   // The power strip can hang on the wall too
   { id: 'powerStripWall', kind: 'powerStrip', label: t('Wall power strip'), sub: t('wall mounted · 2-8 outlets'), extra: { mount: 'wall' } },
   // Rug shapes; all the same kind, the card changes shape and size
