@@ -18,7 +18,7 @@ export type Layer = 'floor' | 'wall' | 'ceiling' | 'rug' | 'top'
  * Wall-mounted items: their height is adjustable (Item.y = offset up/down from the default; for an LED strip the strip's
  * height above the floor). Items standing on the floor against a wall (cabinet, counter, fridge) are not in this list.
  */
-export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign', 'exhaustFan', 'fireExtinguisher', 'chime', 'parkingSensor', 'solarInverter']
+export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign', 'exhaustFan', 'fireExtinguisher', 'chime', 'parkingSensor', 'solarInverter', 'wallClock', 'wallShelf', 'whiteboard']
 
 /**
  * Items that can optionally hang on a wall (Item.mount 'wall', e.g. a power strip). While hung they behave like wall
@@ -79,6 +79,9 @@ const WALL_SPAN: Record<string, [number, number]> = {
   chime: [1.785, 1.915],
   parkingSensor: [0.95, 1.05],
   solarInverter: [1.17, 1.73],
+  wallClock: [1.64, 1.96],
+  wallShelf: [1.37, 1.52],
+  whiteboard: [1.1, 1.7],
 }
 function spanOf(kind: ItemKind, variant?: string, len2?: number): [number, number] {
   // Window: bottom edge 0.9 (sill 3 cm below), curtain rail 10 cm on top; height Item.len2
@@ -141,14 +144,16 @@ export const SURFACE_Y: Partial<Record<ItemKind, number>> = {
   dryer: 0.86,
   dishwasher: 0.86,
   workbench: 0.9,
+  // the shelf top at its default height; surfaceAt adds its height offset (Item.y)
+  wallShelf: 1.52,
   storageRack: 0.42,
 }
 
 /** Small items that can be stacked on a surface. */
-export const STACKABLE: ItemKind[] = ['monitor', 'deskLamp', 'console', 'vibrationSensor', 'diffuser', 'keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'powerStrip', 'homepod', 'deskCamera', 'tableLamp', 'humidifier', 'speaker', 'soundbar', 'computer', 'airQuality', 'smartButton', 'router', 'nas', 'printer', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'turntable', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'smartHub', 'phone', 'ups', 'toaster', 'multicooker', 'toothbrush']
+export const STACKABLE: ItemKind[] = ['monitor', 'deskLamp', 'console', 'vibrationSensor', 'diffuser', 'keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'powerStrip', 'homepod', 'deskCamera', 'tableLamp', 'humidifier', 'speaker', 'soundbar', 'computer', 'airQuality', 'smartButton', 'router', 'nas', 'printer', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'turntable', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'smartHub', 'phone', 'ups', 'toaster', 'multicooker', 'toothbrush', 'alarmClock', 'vase', 'photoFrame', 'candles']
 
 /** Items that only go on a surface (desk, coffee table, cabinet, washbasin): pointless on the floor. */
-export const DESK_ONLY: ItemKind[] = ['keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'tableLamp', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'smartButton', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'phone', 'toaster', 'multicooker', 'toothbrush']
+export const DESK_ONLY: ItemKind[] = ['keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'tableLamp', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'smartButton', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'phone', 'toaster', 'multicooker', 'toothbrush', 'alarmClock', 'photoFrame']
 
 /** Appliances that stack (a dryer on a washing machine): only on each other. */
 export const APPLIANCE_STACK: ItemKind[] = ['washer', 'dryer', 'dishwasher']
@@ -163,7 +168,7 @@ const TUCKS: Partial<Record<ItemKind, ItemKind[]>> = { barStool: ['kitchenCounte
  * Ceiling items (ceiling layer: no collision with floor and wall items). The pergola / gazebo is in this layer too, like a
  * roof: a garden table, bench or sun lounger goes under it.
  */
-export const CEILING: ItemKind[] = ['pendant', 'downlight', 'ceilingStrip', 'ceilingFan', 'ceilingLight', 'trackLight', 'projector', 'smokeDetector', 'pergola']
+export const CEILING: ItemKind[] = ['pendant', 'downlight', 'ceilingStrip', 'ceilingFan', 'ceilingLight', 'trackLight', 'projector', 'smokeDetector', 'pergola', 'hangingPlant']
 
 export function layerOf(kind: ItemKind, y?: number, variant?: string, mount?: Item['mount']): Layer {
   if (kind === 'rug' || kind === 'doormat' || kind === 'yogaMat') return 'rug'
@@ -290,7 +295,7 @@ export function surfaceAt(items: Item[], x: number, z: number, ignoreId?: string
     const s = SURFACE_Y[it.kind]
     if (s == null) continue
     // If it stands on something itself (a dryer on a washing machine), its surface is that much higher.
-    const y = s + (it.y != null && it.y > 0.05 ? it.y : 0)
+    const y = s + (it.kind === 'wallShelf' ? (it.y ?? 0) : it.y != null && it.y > 0.05 ? it.y : 0)
     const inside = footprints(it, 0.05).some((b) => x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ)
     if (inside && (!best || y > best.y)) best = { item: it, y }
   }

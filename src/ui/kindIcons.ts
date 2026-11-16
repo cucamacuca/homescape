@@ -149,6 +149,12 @@ import {
   Circle,
   Martini,
   Piano,
+  AlarmClock,
+  ClipboardList,
+  Clock,
+  Image,
+  MirrorRectangular,
+  TreePine,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -375,4 +381,14 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   yogaMat: RectangleHorizontal,
   piano: Piano,
   officeChair: Armchair,
+  wallClock: Clock,
+  alarmClock: AlarmClock,
+  vase: Flower2,
+  photoFrame: Image,
+  candles: Flame,
+  christmasTree: TreePine,
+  wallShelf: Rows3,
+  hangingPlant: Sprout,
+  chevalMirror: MirrorRectangular,
+  whiteboard: ClipboardList,
 }

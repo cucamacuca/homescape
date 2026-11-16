@@ -599,7 +599,7 @@ function upperFloor(): Level {
   /* --- Ethan's room (gamer): desk, gaming chair, RGB lights, Xbox --- */
   put('bed', 4.6, 5 + WALL_IN + 1.05 + 0.02, 0, { led: 'none' })
   put('nightstand', 5.72, 5.27, 0)
-  put('humidifier', 5.72, 5.27, 0, { y: 0.48 })
+  put('humidifier', 5.6, 5.27, 0, { y: 0.48 })
   wall(ethan, 'front', 3.3, 'desk', { len: 1.6, drawers: 'right', top: '#1f2440', body: '#1f2440' })
   put('gamingChair', 3.3, 8.6, 0, { body: '#1f2440', top: '#e2564b' })
   put('monitor', 3.3, 9.72, PI, { ...bind('switch.us_ethan_monitor', 'binary_sensor.us_ethan_pc'), y: 0.75 })
@@ -687,6 +687,19 @@ function upperFloor(): Level {
   /* --- furniture: a loveseat facing the bonus room sideboard, an office chair at its desk, a piano --- */
   put('sofa', 8, 7, -PI / 2, { variant: '2', len: 1.6 })
   put('officeChair', 9.9, 4.6, PI / 2, { body: '#3f56e0' })
+
+  /* --- decor: a clock and a memo board in the gym, a shelf with a vase, candles, a tree and a hanging plant in the bonus room --- */
+  wall(gym, 'left', 2, 'wallClock')
+  wall(gym, 'left', 1, 'whiteboard', bind('todo.us_shopping', 'calendar.us_family'))
+  wall(bonus, 'left', 7, 'wallShelf')
+  put('vase', bonus.x + WALL_IN + 0.12, 7.2, PI / 2, { y: 1.52, variant: 'tulips' })
+  put('candles', bonus.x + WALL_IN + 0.22, 7.42, PI / 2, { y: 0.5 })
+  put('christmasTree', 8, 9.35, 0, bind('light.us_christmas_tree'))
+  put('hangingPlant', 7.4, 9.65, 0)
+  put('chevalMirror', 10.45, 9.5, (-3 * PI) / 4)
+  /* --- decor: a wake-up light on Ethan's nightstand, a photo on the master dresser --- */
+  put('alarmClock', 5.84, 5.27, 0, { ...bind('light.us_ethan_wakeup'), y: 0.48 })
+  put('photoFrame', -5.95, 4.3, 0, { y: 0.81 })
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -927,6 +940,10 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    ent('todo.us_shopping', '3', t('Shopping List'), {}),
+    ent('calendar.us_family', 'off', t('Family Calendar'), {}),
+    light('us_christmas_tree', t('Christmas Tree'), true, rgb(200, [255, 214, 106])),
+    light('us_ethan_wakeup', t('Ethan Wake-up Light'), false),
     sw('us_treadmill', t('Treadmill'), false),
     sensor('us_bath_scale', t('Bathroom Scale'), 72.4, 'weight', 'kg'),
     ent('sensor.us_toothbrush', 'idle', t('Toothbrush'), {}),

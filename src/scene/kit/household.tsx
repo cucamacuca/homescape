@@ -5,12 +5,13 @@ import { deviceClass, domainOf, isActive, num } from '@/ha/derive'
 import type { HassEntity } from '@/ha/types'
 import { formatNumber } from '@/i18n'
 import { WALL_H } from '@/model/geometry'
-import { assistRing, clockText, distanceM, parkingBar, phoneState } from '@/model/household'
+import { assistRing, clockHands, clockText, distanceM, parkingBar, phoneState } from '@/model/household'
 import { markShadows } from '../frame'
 import { Airflow, Glow, Mist, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
 import { C } from './palette'
 import { Ball, Box, Cyl, mat } from './primitives'
 import { Flames } from './smart'
+import { artTexture } from './textures'
 import type { Visual } from './visual'
 
 /*
@@ -27,6 +28,9 @@ type P = { v: Visual }
 const TAU = Math.PI * 2
 
 const MONO = '"JetBrains Mono", ui-monospace, monospace'
+
+/** Effect meshes (halo, cone, steam) must not catch clicks. */
+const noHit = () => null
 
 /** Body color: pale gray when unavailable, otherwise the color picked on the card (Item.body) or the default. */
 const bodyOf = (v: Visual, def: string) => (v.unavailable ? '#9aa0b8' : (v.opts.body ?? def))
@@ -55,6 +59,9 @@ const torus = (r: number, tube: number, seg = 32) => geo(`t${r},${tube},${seg}`,
 const disc = (r: number, seg = 32) => geo(`d${r},${seg}`, () => new THREE.CircleGeometry(r, seg))
 
 const plane = (w: number, h: number) => geo(`p${w},${h}`, () => new THREE.PlaneGeometry(w, h))
+
+/** Open ended cone: apex at +y (h/2), base at -y. */
+const cone = (r: number, h: number, seg = 16) => geo(`k${r},${h},${seg}`, () => new THREE.ConeGeometry(r, h, seg, 1, true))
 
 /** Transparent surface (glass, water): one material per color and opacity; no depth write, the contents stay visible. */
 const clears = new Map<string, THREE.MeshStandardMaterial>()
@@ -1150,6 +1157,233 @@ export function OfficeChair({ v }: P) {
           <Box size={[0.06, 0.03, 0.24]} position={[0, 0.69, 0]} material={frame} radius={0.012} />
         </group>
       ))}
+    </group>
+  )
+}
+
+/* ---------- decor ---------- */
+
+/** Wall clock (on the wall, 1.8 m): a round face whose hands show the local time (model/household.ts > clockHands). */
+export function WallClock({ v }: P) {
+  const now = useNow()
+  const { hour, minute } = clockHands(now)
+  const Y = 1.8
+  return (
+    <group position={[0, Y, -0.012]}>
+      <Cyl r={0.16} h={0.03} rotation={[Math.PI / 2, 0, 0]} color={v.opts.body ?? '#2a2c33'} segments={40} />
+      <mesh position={[0, 0, 0.0155]} geometry={disc(0.145, 40)} material={mat('#f6f5f0')} />
+      {Array.from({ length: 12 }, (_, i) => (
+        <Box key={i} size={[0.008, i % 3 ? 0.012 : 0.022, 0.002]} position={[Math.sin((i / 12) * TAU) * 0.125, Math.cos((i / 12) * TAU) * 0.125, 0.017]} rotation={[0, 0, -(i / 12) * TAU]} color="#2a2c33" shadow={false} />
+      ))}
+      <group position={[0, 0, 0.019]} rotation-z={-hour}>
+        <Box size={[0.012, 0.075, 0.003]} position={[0, 0.032, 0]} color="#1d1f24" shadow={false} />
+      </group>
+      <group position={[0, 0, 0.021]} rotation-z={-minute}>
+        <Box size={[0.008, 0.11, 0.003]} position={[0, 0.048, 0]} color="#1d1f24" shadow={false} />
+      </group>
+      <Cyl r={0.008} h={0.006} position={[0, 0, 0.023]} rotation={[Math.PI / 2, 0, 0]} color={C.alarm} segments={12} shadow={false} />
+    </group>
+  )
+}
+
+/** Alarm clock or wake-up light (on a surface): digits show the time; with a light bound, its dome glows in the light's color. */
+export function AlarmClock({ v }: P) {
+  const now = useNow()
+  const screen = useDisplay(clockText(now), 'lcd')
+  const lit = v.domain === 'light' && v.on
+  return (
+    <group>
+      <Box size={[0.15, 0.08, 0.08]} position={[0, 0.04, 0]} color={bodyOf(v, '#f2f2ee')} radius={0.02} />
+      <mesh position={[0, 0.045, 0.0405]} geometry={plane(0.1, 0.035)} material={screen} />
+      <Ball r={0.045} position={[0, 0.09, -0.005]} scale={[1, 0.6, 0.8]} material={lit ? glowing(v.color, true, 0.6 + v.level) : mat('#f7f4ea')} />
+      {lit && <Glow position={[0, 0.12, 0]} color={v.color} opacity={v.night ? 0.7 : 0.3} size={0.5} />}
+    </group>
+  )
+}
+
+/** Vase with flowers (on a surface or the floor): tulips, bare branches or dried grasses (Item.variant), the vase in Item.body. */
+export function Vase({ v }: P) {
+  const kind = v.opts.variant ?? 'tulips'
+  const vase = mat(v.opts.body ?? '#ffffff', { roughness: 0.3 })
+  const stems = kind === 'branches' ? '#7a5236' : kind === 'dried' ? '#c9a26a' : '#3e9e72'
+  return (
+    <group>
+      <Cyl r={0.05} rTop={0.035} h={0.2} position={[0, 0.1, 0]} material={vase} segments={24} />
+      {[-0.4, -0.15, 0.1, 0.35].map((a, i) => (
+        <group key={i} position={[0, 0.2, 0]} rotation={[Math.sin(a * 3) * 0.25, 0, a]}>
+          <Cyl r={0.004} h={kind === 'tulips' ? 0.2 : 0.32} position={[0, kind === 'tulips' ? 0.1 : 0.16, 0]} color={stems} segments={6} shadow={false} />
+          {kind === 'tulips' && <Ball r={0.022} position={[0, 0.21, 0]} scale={[1, 1.4, 1]} color={['#e2564b', '#f2b8c6', '#f5c04a', '#ff8a7a'][i]} />}
+          {kind === 'dried' && <Box size={[0.02, 0.08, 0.004]} position={[0, 0.34, 0]} color="#e3cfa2" shadow={false} />}
+        </group>
+      ))}
+    </group>
+  )
+}
+
+/** Photo frame standing on a surface: a printed picture, or a digital frame (Item.variant 'digital') that glows while bound. */
+export function PhotoFrame({ v }: P) {
+  const tex = useMemo(() => artTexture(), [])
+  const digital = v.opts.variant === 'digital'
+  const photo = useMemo(() => new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: digital && v.bound && !v.unavailable ? 0.6 : 0 }), [tex, digital, v.bound, v.unavailable])
+  useEffect(() => () => photo.dispose(), [photo])
+  return (
+    <group rotation-x={-0.15}>
+      <Box size={[0.2, 0.15, 0.015]} position={[0, 0.08, 0]} color={digital ? '#1d1f24' : (v.opts.body ?? '#c9a26a')} radius={0.004} />
+      <mesh position={[0, 0.08, 0.0081]} geometry={plane(digital ? 0.18 : 0.16, digital ? 0.12 : 0.11)} material={photo} />
+      <Box size={[0.015, 0.12, 0.012]} position={[0, 0.06, -0.04]} rotation={[0.45, 0, 0]} color={C.inkSoft} />
+    </group>
+  )
+}
+
+/**
+ * Three pillar candles on a tray (on a surface). With a light or switch bound (LED candles) the flames flicker and glow
+ * while on; unbound they stand unlit.
+ */
+export function Candles({ v }: P) {
+  const flames = useRef<THREE.Group>(null)
+  const on = v.on
+  useAmbient(on)
+  useFrame(({ clock }) => {
+    const g = flames.current
+    if (!g || !on) return
+    const t = clock.elapsedTime
+    g.children.forEach((c, i) => c.scale.set(1, 0.85 + 0.2 * Math.sin(t * (9 + i * 2.3) + i), 1))
+  })
+  const wax = mat(v.opts.body ?? '#f6f1e6', { roughness: 0.8 })
+  const candles: [number, number][] = [
+    [-0.06, 0.12],
+    [0.0, 0.08],
+    [0.06, 0.15],
+  ]
+  return (
+    <group>
+      <Cyl r={0.11} h={0.012} position={[0, 0.006, 0]} color={C.steel} segments={28} />
+      {candles.map(([x, h], i) => (
+        <Cyl key={i} r={0.028} h={h} position={[x, 0.012 + h / 2, (i - 1) * 0.02]} material={wax} segments={18} />
+      ))}
+      <group ref={flames} visible={on}>
+        {candles.map(([x, h], i) => (
+          <mesh key={i} position={[x, 0.032 + h, (i - 1) * 0.02]} geometry={cone(0.008, 0.03, 8)} raycast={noHit}>
+            <meshBasicMaterial color="#ffd76a" transparent opacity={0.85} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+          </mesh>
+        ))}
+      </group>
+      {on && <Glow position={[0, 0.18, 0]} color="#ffb35a" opacity={v.night ? 0.8 : 0.35} size={0.6} />}
+    </group>
+  )
+}
+
+const TREE_BULBS = Array.from({ length: 22 }, (_, i) => {
+  const y = 0.35 + (i / 22) * 1.3
+  const r = 0.48 * (1 - (y - 0.3) / 1.55)
+  const a = i * 2.4
+  return { x: Math.sin(a) * r, y, z: Math.cos(a) * r, color: ['#ff4f5e', '#f5c04a', '#4fc3ff', '#8fd8bd'][i % 4] }
+})
+
+/** Christmas tree in a pot: stacked green cones, baubles and a star; while on the lights twinkle and the star glows. */
+export function ChristmasTree({ v }: P) {
+  const bulbs = useRef<THREE.Group>(null)
+  useAmbient(v.on, true)
+  useFrame(({ clock }) => {
+    const g = bulbs.current
+    if (!g || !v.on) return
+    const t = clock.elapsedTime
+    for (let i = 0; i < g.children.length; i++) g.children[i].visible = Math.sin(t * 2.2 + i * 1.3) > -0.5
+  })
+  return (
+    <group>
+      <Cyl r={0.2} rTop={0.24} h={0.25} position={[0, 0.125, 0]} color="#8a3b3b" segments={20} />
+      <Cyl r={0.04} h={0.2} position={[0, 0.3, 0]} color="#6b4a34" segments={10} />
+      {[0, 1, 2].map((i) => (
+        <mesh key={i} position={[0, 0.65 + i * 0.4, 0]} castShadow>
+          <coneGeometry args={[0.5 - i * 0.13, 0.7, 18]} />
+          <meshStandardMaterial color="#2f6b46" roughness={0.9} />
+        </mesh>
+      ))}
+      <group ref={bulbs}>
+        {TREE_BULBS.map((b, i) => (
+          <Ball key={i} r={0.025} position={[b.x, b.y, b.z]} material={glowing(b.color, v.on, 2)} detail={1} shadow={false} />
+        ))}
+      </group>
+      <Ball r={0.06} position={[0, 1.95, 0]} material={glowing('#f5c04a', v.on, 2.2)} detail={0} flat />
+      {v.on && <Glow position={[0, 1.0, 0]} color="#ffd76a" opacity={v.night ? 0.5 : 0.2} size={1.6} />}
+    </group>
+  )
+}
+
+/** Wall shelf (on the wall, top at 1.52 m): a floating board on two brackets; small items stand on it (rules.ts > surfaceAt). */
+export function WallShelf({ v }: P) {
+  const wood = mat(v.opts.body ?? '#c9a26a', { roughness: 0.6 })
+  return (
+    <group>
+      <Box size={[0.8, 0.03, 0.22]} position={[0, 1.505, 0]} material={wood} />
+      {[-0.3, 0.3].map((x) => (
+        <Box key={x} size={[0.02, 0.12, 0.16]} position={[x, 1.43, -0.02]} color="#2a2c33" />
+      ))}
+    </group>
+  )
+}
+
+/** Hanging plant: a pot in a macrame hanger on cords from the ceiling, trailing leaves. */
+export function HangingPlant() {
+  const leaf = mat(C.leaf, { roughness: 0.8 })
+  return (
+    <group>
+      {[0, 1, 2].map((i) => (
+        <Cyl key={i} r={0.003} h={0.62} position={[Math.sin((i / 3) * TAU) * 0.06, WALL_H - 0.31, Math.cos((i / 3) * TAU) * 0.06]} rotation={[Math.cos((i / 3) * TAU) * 0.1, 0, -Math.sin((i / 3) * TAU) * 0.1]} color="#e9dcc4" segments={4} shadow={false} />
+      ))}
+      <Cyl r={0.12} rTop={0.14} h={0.14} position={[0, WALL_H - 0.7, 0]} color="#e98b6d" segments={20} />
+      {Array.from({ length: 7 }, (_, i) => {
+        const a = (i / 7) * TAU
+        return <Ball key={i} r={0.07} position={[Math.sin(a) * 0.12, WALL_H - 0.72 - (i % 3) * 0.12, Math.cos(a) * 0.12]} scale={[1, 1.6, 0.6]} material={leaf} detail={1} />
+      })}
+    </group>
+  )
+}
+
+/**
+ * Memo board (on the wall, 1.1 to 1.7 m): a whiteboard with one written line per open item of a bound to-do list (at most
+ * six), and a red pin while a bound calendar has an event on.
+ */
+export function Whiteboard({ v }: P) {
+  const ents = entitiesOf(v)
+  const todo = ents.find((e) => domainOf(e.entity_id) === 'todo')
+  const lines = Math.min(6, Math.max(0, Math.round(num(todo?.state) ?? 0)))
+  const event = ents.some((e) => domainOf(e.entity_id) === 'calendar' && e.state === 'on')
+  const Y = 1.4
+  return (
+    <group position={[0, Y, -0.008]}>
+      <Box size={[0.9, 0.6, 0.02]} color={C.steel} radius={0.01} />
+      <Box size={[0.86, 0.56, 0.004]} position={[0, 0, 0.011]} color="#fbfbfd" shadow={false} />
+      {Array.from({ length: lines }, (_, i) => (
+        <Box key={i} size={[0.3 + ((i * 37) % 30) / 100, 0.012, 0.002]} position={[-0.38 + (0.15 + ((i * 37) % 30) / 200), 0.2 - i * 0.07, 0.014]} color="#3f56e0" shadow={false} />
+      ))}
+      {event && <Ball r={0.018} position={[0.33, 0.2, 0.022]} color={C.alarm} />}
+      <Box size={[0.4, 0.02, 0.04]} position={[0, -0.3, 0.02]} color={C.steel} />
+    </group>
+  )
+}
+
+/** Standing (cheval) mirror: a full-length mirror tilted back slightly between two posts on feet; the frame in Item.body. */
+export function ChevalMirror({ v }: P) {
+  const frame = mat(v.opts.body ?? '#8a5a3b', { roughness: 0.6 })
+  const glass = mat('#dfe8f5', { metalness: 0.75, roughness: 0.08, emissive: '#cfdcf0', emissiveIntensity: 0.15 })
+  const W = 0.5
+  const H = 1.3
+  return (
+    <group>
+      {[-1, 1].map((s) => (
+        <group key={s} position={[s * (W / 2 + 0.04), 0, 0]}>
+          <Box size={[0.05, 0.03, 0.46]} position={[0, 0.015, 0]} material={frame} radius={0.01} />
+          <Box size={[0.04, 1.6, 0.04]} position={[0, 0.8, 0]} material={frame} />
+          <Ball r={0.026} position={[0, 1.62, 0]} material={frame} />
+          <Cyl r={0.018} h={0.03} position={[-s * 0.03, 1.03, 0]} rotation={[0, 0, Math.PI / 2]} color={C.steel} segments={10} />
+        </group>
+      ))}
+      <group position={[0, 1.03, 0]} rotation-x={-0.08}>
+        <Box size={[W + 0.04, H + 0.04, 0.03]} material={frame} radius={0.012} />
+        <mesh geometry={plane(W - 0.02, H - 0.02)} material={glass} position={[0, 0, 0.0155]} />
+      </group>
     </group>
   )
 }

@@ -236,6 +236,16 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   yogaMat: H.YogaMat,
   piano: H.Piano,
   officeChair: H.OfficeChair,
+  wallClock: H.WallClock,
+  alarmClock: H.AlarmClock,
+  vase: H.Vase,
+  photoFrame: H.PhotoFrame,
+  candles: H.Candles,
+  christmasTree: H.ChristmasTree,
+  wallShelf: H.WallShelf,
+  hangingPlant: H.HangingPlant,
+  chevalMirror: H.ChevalMirror,
+  whiteboard: H.Whiteboard,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

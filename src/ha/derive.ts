@@ -111,6 +111,7 @@ const LABELS: Record<string, Record<string, string>> = {
   device_tracker: { home: t('At home'), not_home: t('Away') },
   person: { home: t('At home'), not_home: t('Away') },
   update: { on: t('Update available'), off: t('Up to date') },
+  calendar: { on: t('Event now'), off: t('No event') },
 }
 
 const OPEN_CLOSED: [string, string] = [t('Open'), t('Closed')]
@@ -154,6 +155,11 @@ export function stateLabel(e?: HassEntity) {
   if (d === 'binary_sensor') {
     const pair = BINARY[String(e.attributes.device_class)] ?? ON_OFF
     return e.state === 'on' ? pair[0] : pair[1]
+  }
+  // A to-do list's state is the number of open items
+  if (d === 'todo') {
+    const n = num(e.state)
+    if (n != null) return tn(n, '{count} open item', '{count} open items')
   }
   return LABELS[d]?.[e.state] ?? (e.state === 'on' ? ON_OFF[0] : e.state === 'off' ? ON_OFF[1] : e.state)
 }
@@ -232,6 +238,9 @@ const DOMAIN_LABEL: Record<string, string> = {
   device_tracker: t('Location'),
   assist_satellite: t('Voice assistant'),
   update: t('Update'),
+  todo: t('To-do list'),
+  calendar: t('Calendar'),
+  image: t('Image'),
   weather: t('Weather'),
   remote: t('Remote'),
   siren: t('Siren'),

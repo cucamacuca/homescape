@@ -272,6 +272,8 @@ const SPEC: Partial<Record<ItemKind, { at: [number, number, number]; range: numb
   neonSign: { at: [0, 1.7, 0.08], range: 2.4, power: 1.1, type: 0 },
   woodStove: { at: [0, 0.45, 0.35], range: 4.5, power: 2.4, type: 0 },
   sauna: { at: [0, 1.6, 0], range: 2.2, power: 1.4, type: 0 },
+  alarmClock: { at: [0, 0.09, 0], range: 1.6, power: 0.6, type: 0 },
+  christmasTree: { at: [0, 1.0, 0], range: 3, power: 1.6, type: 0 },
 }
 
 /**

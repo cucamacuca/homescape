@@ -321,6 +321,26 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   piano: { label: t('Piano'), group: 'furniture', domains: ['media_player'], size: [1.5, 0.6], labelY: 1.5, wall: true },
   // Office chair on casters; tucks under a desk
   officeChair: { label: t('Office chair'), group: 'furniture', domains: [], size: [0.62, 0.62], labelY: 1.25 },
+  // Wall clock; the hands show the local time
+  wallClock: { label: t('Wall clock'), group: 'decor', domains: [], size: [0.34, 0.05], labelY: 2.15, wall: true },
+  // Alarm clock or wake-up light; the dome glows with a bound light
+  alarmClock: { label: t('Alarm clock'), group: 'decor', domains: ['light', 'sensor'], size: [0.15, 0.09], labelY: 0.3 },
+  // Vase with tulips, branches or dried flowers
+  vase: { label: t('Vase with flowers'), group: 'decor', domains: [], size: [0.16, 0.16], labelY: 0.5 },
+  // Standing photo frame, printed or digital
+  photoFrame: { label: t('Photo frame'), group: 'decor', domains: ['image'], size: [0.2, 0.08], labelY: 0.3 },
+  // Three pillar candles; with LED candles bound the flames flicker while on
+  candles: { label: t('Candles'), group: 'decor', domains: ['light', 'switch'], size: [0.22, 0.16], labelY: 0.35 },
+  // Christmas tree; the lights twinkle while on
+  christmasTree: { label: t('Christmas tree'), group: 'decor', domains: ['switch', 'light'], size: [1.0, 1.0], labelY: 2.2 },
+  // Floating wall shelf; small items stand on it
+  wallShelf: { label: t('Wall shelf'), group: 'decor', domains: [], size: [0.8, 0.22], labelY: 1.8, wall: true },
+  // Plant in a macrame hanger from the ceiling
+  hangingPlant: { label: t('Hanging plant'), group: 'decor', domains: [], size: [0.36, 0.36], labelY: 2.4 },
+  // Standing (cheval) mirror that tilts between two posts
+  chevalMirror: { label: t('Standing mirror'), group: 'decor', domains: [], size: [0.65, 0.5], labelY: 1.85 },
+  // Whiteboard: a line per open to-do item, a red pin while a calendar event is on
+  whiteboard: { label: t('Memo board'), group: 'decor', domains: ['todo', 'calendar'], size: [0.9, 0.04], labelY: 1.9, wall: true },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -873,6 +893,9 @@ export const OPTIONS: Partial<
   yogaMat: { variantLabel: t('Type'), variants: [['flat', t('Rolled out')], ['rolled', t('Rolled up')]], variantDef: 'flat', body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#8f6cf0' },
   piano: { variantLabel: t('Type'), variants: [['upright', t('Upright')], ['digital', t('Digital')]], variantDef: 'upright' },
   officeChair: { body: t('Seat color'), bodyList: BODY_COLORS, bodyDef: '#c3c8dc' },
+  vase: { variantLabel: t('Type'), variants: [['tulips', t('Tulips')], ['branches', t('Branches')], ['dried', t('Dried flowers')]], variantDef: 'tulips', body: t('Color'), bodyList: BODY_COLORS, bodyDef: '#ffffff' },
+  photoFrame: { variantLabel: t('Type'), variants: [['print', t('Printed')], ['digital', t('Digital')]], variantDef: 'print' },
+  chevalMirror: { body: t('Frame color'), bodyList: TOP_COLORS, bodyDef: '#8a5a3b' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

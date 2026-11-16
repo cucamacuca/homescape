@@ -284,6 +284,16 @@ export type ItemKind =
   | 'yogaMat'
   | 'piano'
   | 'officeChair'
+  | 'wallClock'
+  | 'alarmClock'
+  | 'vase'
+  | 'photoFrame'
+  | 'candles'
+  | 'christmasTree'
+  | 'wallShelf'
+  | 'hangingPlant'
+  | 'chevalMirror'
+  | 'whiteboard'
 
 export interface Item {
   id: string
