@@ -213,6 +213,7 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   safe: H.Safe,
   fireExtinguisher: H.FireExtinguisher,
   chime: H.Chime,
+  parkingSensor: H.ParkingSensor,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

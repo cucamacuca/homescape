@@ -2,8 +2,9 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { deviceClass, domainOf, isActive, num } from '@/ha/derive'
+import type { HassEntity } from '@/ha/types'
 import { WALL_H } from '@/model/geometry'
-import { assistRing, clockText } from '@/model/household'
+import { assistRing, clockText, distanceM, parkingBar } from '@/model/household'
 import { markShadows } from '../frame'
 import { Airflow, Glow, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
 import { C } from './palette'
@@ -31,6 +32,9 @@ const bodyOf = (v: Visual, def: string) => (v.unavailable ? '#9aa0b8' : (v.opts.
 
 /** Glowing part: emissive in its own color while lit, plain otherwise (cached by value). */
 const glowing = (color: string, lit: boolean, k = 1.6) => (lit ? mat(color, { emissive: color, emissiveIntensity: Math.round(k * 10) / 10 }) : mat('#4a4e5a'))
+
+/** The bound entities as records: the main one first, then the extras (for items whose state comes from several) */
+const entitiesOf = (v: Visual): HassEntity[] => [...(v.bound ? [{ entity_id: `${v.domain}.main`, state: v.state, attributes: v.attrs } as unknown as HassEntity] : []), ...v.related]
 
 const relatedOf = (v: Visual, domain: string) => (v.domain === domain ? { state: v.state, attributes: v.attrs } : v.related.find((e) => domainOf(e.entity_id) === domain))
 
@@ -580,6 +584,30 @@ export function Chime({ v }: P) {
         <Ball key={x} r={0.004} position={[x, 0, 0.016]} color={C.steel} shadow={false} />
       ))}
       {ringing && <Glow position={[0, 0, 0.06]} color="#4fc3ff" opacity={v.night ? 0.7 : 0.4} size={0.45} />}
+    </group>
+  )
+}
+
+/* ---------- sensors ---------- */
+
+/**
+ * Garage parking sensor (on the wall, 1 m): five LED segments that light from the bound distance sensor, green while the
+ * car is far, amber when close, red when it should stop; dark while the bay is empty (a bound occupancy sensor is off).
+ * model/household.ts > parkingBar.
+ */
+export function ParkingSensor({ v }: P) {
+  const ents = entitiesOf(v)
+  const dist = ents.find((e) => domainOf(e.entity_id) === 'sensor')
+  const occ = ents.find((e) => domainOf(e.entity_id) === 'binary_sensor')
+  const bar = parkingBar(distanceM(dist), occ ? isActive(occ) : Boolean(dist))
+  const Y = 1.0
+  return (
+    <group position={[0, Y, -0.01]}>
+      <Box size={[0.14, 0.1, 0.03]} color="#2a2c33" radius={0.01} />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Box key={i} size={[0.018, 0.05, 0.004]} position={[-0.048 + i * 0.024, 0, 0.016]} material={glowing(bar.color, i < bar.lit, 1.8)} shadow={false} />
+      ))}
+      {bar.lit > 0 && <Glow position={[0, 0, 0.05]} color={bar.color} opacity={v.night ? 0.6 : 0.3} size={0.3} />}
     </group>
   )
 }

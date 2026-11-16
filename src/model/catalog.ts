@@ -275,6 +275,8 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   fireExtinguisher: { label: t('Fire extinguisher'), group: 'security', domains: [], size: [0.18, 0.16], labelY: 1.0, wall: true },
   // Doorbell chime; its ring flashes after a bound doorbell event or while a siren or switch is on
   chime: { label: t('Doorbell chime'), group: 'security', domains: ['event', 'siren', 'switch'], size: [0.14, 0.04], labelY: 2.1, wall: true },
+  // Garage parking sensor: green, amber and red lights from the distance to the car
+  parkingSensor: { label: t('Parking sensor'), group: 'sensor', domains: ['sensor', 'binary_sensor'], size: [0.14, 0.05], labelY: 1.3, wall: true },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */

@@ -474,6 +474,9 @@ function groundFloor(): Level {
   wall(kitchen, 'left', 3.4, 'fireExtinguisher')
   wall(foyer, 'front', -1.2, 'chime', bind('event.us_doorbell_press'))
 
+  /* --- sensors: a parking sensor in front of the SUV --- */
+  wall(garage, 'back', 9.75, 'parkingSensor', bind('sensor.us_parking_distance', 'binary_sensor.us_garage_bay'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -885,6 +888,8 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    sensor('us_parking_distance', t('Garage Parking Distance'), 85, 'distance', 'cm'),
+    bin('us_garage_bay', t('Garage Bay'), true, 'occupancy'),
     ent('lock.us_closet_safe', 'locked', t('Closet Safe'), {}),
     ent('event.us_doorbell_press', ago(600), t('Doorbell Press'), { event_type: 'ring', event_types: ['ring'] }),
     media('us_bonus_turntable', t('Bonus Room Turntable'), 'playing', { volume_level: 0.4, media_title: t('Vinyl') }),

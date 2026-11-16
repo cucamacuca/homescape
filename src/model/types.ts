@@ -261,6 +261,7 @@ export type ItemKind =
   | 'safe'
   | 'fireExtinguisher'
   | 'chime'
+  | 'parkingSensor'
 
 export interface Item {
   id: string
