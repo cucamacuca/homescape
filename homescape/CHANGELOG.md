@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+- **Wall openings**: a passage with no door, 0.6 to 4 m wide, at door height or up to the ceiling. Put one or more in a
+  wall to leave only part of it standing; people, pets, light and walk mode pass through.
+- The build bar's category tabs and item cards scroll with a mouse wheel.
+
 ## 0.3.0
 
 - **Kitchen islands** ([#6](https://github.com/muratozturkdev/homescape/issues/6)): counters, the stove, sink,
