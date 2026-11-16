@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "Комната {room} удалена. Отменить: ⌘Z.",
  "{value}%": "{value} %",
  "Ø {d} m · can be oval": "Ø {d} m · может быть овальным",
- "⌥ or ⇧ + left drag": "⌥ или ⇧ + перетаскивание левой кнопкой"
+ "⌥ or ⇧ + left drag": "⌥ или ⇧ + перетаскивание левой кнопкой",
+ "Stand": "Подставка",
+ "In a pot": "В горшке",
+ "Planted": "В грунте",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "Привяжите умную розетку (выключатель) или свет, который питает ёлку: пока она включена, огоньки мерцают, а звезда светится. Задайте высоту ниже; в помещении она должна помещаться под потолком, на улице может быть до 5 м.",
+ "Tree height": "Высота ёлки",
+ "Outdoor Christmas tree": "Уличная ёлка",
+ "{h} m · planted": "{h} м · в грунте",
+ "Too tall for the ceiling: make it lower or place it outside": "Слишком высокая для потолка: уменьшите её или поставьте на улице"
 }

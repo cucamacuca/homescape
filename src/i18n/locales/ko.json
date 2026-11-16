@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "{room} 삭제됨. ⌘Z로 되돌릴 수 있어요.",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · 타원도 가능해요",
- "⌥ or ⇧ + left drag": "⌥ 또는 ⇧ + 왼쪽 드래그"
+ "⌥ or ⇧ + left drag": "⌥ 또는 ⇧ + 왼쪽 드래그",
+ "Stand": "받침",
+ "In a pot": "화분",
+ "Planted": "땅에 심기",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "트리에 전원을 공급하는 스마트 플러그(스위치)나 조명을 연결하세요. 켜져 있는 동안 조명이 반짝이고 별이 빛납니다. 아래에서 높이를 설정하세요. 실내에서는 천장 아래에 들어가야 하고, 실외에서는 최대 5 m까지 키울 수 있습니다.",
+ "Tree height": "트리 높이",
+ "Outdoor Christmas tree": "실외 크리스마스 트리",
+ "{h} m · planted": "{h} m · 땅에 심음",
+ "Too tall for the ceiling: make it lower or place it outside": "천장에 비해 너무 높습니다: 낮추거나 밖에 두세요"
 }

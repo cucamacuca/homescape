@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "已删除 {room}。按 ⌘Z 可撤销。",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · 也可做成椭圆",
- "⌥ or ⇧ + left drag": "⌥ 或 ⇧ + 左键拖动"
+ "⌥ or ⇧ + left drag": "⌥ 或 ⇧ + 左键拖动",
+ "Stand": "摆放",
+ "In a pot": "盆栽",
+ "Planted": "种在地里",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "绑定为圣诞树供电的智能插座（开关）或灯：开启时彩灯闪烁、星星发光。在下方设置高度；室内必须低于天花板，室外最高可达 5 米。",
+ "Tree height": "树高",
+ "Outdoor Christmas tree": "户外圣诞树",
+ "{h} m · planted": "{h} 米 · 种在地里",
+ "Too tall for the ceiling: make it lower or place it outside": "对天花板来说太高：把它调低或放到室外"
 }

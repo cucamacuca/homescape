@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "{room} verwijderd. Ongedaan maken met ⌘Z.",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · kan ovaal zijn",
- "⌥ or ⇧ + left drag": "⌥ of ⇧ + met links slepen"
+ "⌥ or ⇧ + left drag": "⌥ of ⇧ + met links slepen",
+ "Stand": "Voet",
+ "In a pot": "In een pot",
+ "Planted": "Geplant",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "Koppel de slimme stekker (schakelaar) of de lamp die de boom van stroom voorziet: zolang hij aan is, twinkelen de lichtjes en straalt de ster. Stel hieronder de hoogte in; binnen moet hij onder het plafond passen, buiten kan hij tot 5 m hoog worden.",
+ "Tree height": "Boomhoogte",
+ "Outdoor Christmas tree": "Kerstboom voor buiten",
+ "{h} m · planted": "{h} m · geplant",
+ "Too tall for the ceiling: make it lower or place it outside": "Te hoog voor het plafond: maak hem lager of zet hem buiten"
 }

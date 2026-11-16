@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "{room}を削除しました。⌘Zで元に戻せます。",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø{d} m · 楕円にもできます",
- "⌥ or ⇧ + left drag": "⌥ または ⇧ + 左ドラッグ"
+ "⌥ or ⇧ + left drag": "⌥ または ⇧ + 左ドラッグ",
+ "Stand": "置き方",
+ "In a pot": "鉢植え",
+ "Planted": "地植え",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "ツリーに電源を供給するスマートプラグ（スイッチ）またはライトを連携します。オンの間、ライトがきらめき星が光ります。下で高さを設定します。屋内では天井の下に収まる必要があり、屋外では最大5 mまで大きくできます。",
+ "Tree height": "ツリーの高さ",
+ "Outdoor Christmas tree": "屋外用クリスマスツリー",
+ "{h} m · planted": "{h} m · 地植え",
+ "Too tall for the ceiling: make it lower or place it outside": "天井に対して高すぎます：低くするか屋外に置いてください"
 }

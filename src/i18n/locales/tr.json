@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "{room} silindi. Geri almak için ⌘Z.",
  "{value}%": "%{value}",
  "Ø {d} m · can be oval": "Ø {d} m · oval de olur",
- "⌥ or ⇧ + left drag": "⌥ ya da ⇧ + sol sürükle"
+ "⌥ or ⇧ + left drag": "⌥ ya da ⇧ + sol sürükle",
+ "Stand": "Duruş",
+ "In a pot": "Saksıda",
+ "Planted": "Toprağa dikili",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "Ağaca güç veren akıllı prizi (anahtar) veya ışığı bağlayın: açıkken ışıklar parıldar ve yıldız parlar. Yüksekliğini aşağıdan ayarlayın; içeride tavana sığmalı, dışarıda 5 m'ye kadar uzayabilir.",
+ "Tree height": "Ağaç yüksekliği",
+ "Outdoor Christmas tree": "Dış mekân yılbaşı ağacı",
+ "{h} m · planted": "{h} m · toprağa dikili",
+ "Too tall for the ceiling: make it lower or place it outside": "Tavan için çok yüksek: alçaltın veya dışarı koyun"
 }
