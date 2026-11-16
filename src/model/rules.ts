@@ -84,6 +84,14 @@ export const isWallMounted = (kind: ItemKind, variant?: string, mount?: Item['mo
 /** Whether it sticks to the nearest wall while dragged: a wall item in the catalog or hung on the wall. */
 export const snapsToWall = (kind: ItemKind, mount?: Item['mount']) => Boolean(CATALOG[kind].wall) || (mount === 'wall' && MOUNTABLE.includes(kind))
 
+/**
+ * Kitchen cabinets and appliances that can also stand away from a wall (a kitchen island, GitHub issue #6): within
+ * FREE_SNAP of a wall they still stick to it, elsewhere they stand where they are dropped and turn with R. A counter away
+ * from a wall has no wall cabinets (geometry.ts > backOnWall, Visual.free).
+ */
+export const FREESTANDING: ItemKind[] = ['kitchenCounter', 'stove', 'sink', 'dishwasher', 'oven', 'fridge']
+export const FREE_SNAP = 0.35
+
 /** Current vertical range of a wall-mounted item, above the floor (m). */
 export function wallSpan(s: { kind: ItemKind; variant?: string; y?: number; len2?: number }): [number, number] {
   const [a, b] = spanOf(s.kind, s.variant, s.len2)
@@ -296,7 +304,7 @@ export function checkItem(level: Level, cand: Cand, ignoreId?: string, onWall = 
   if (!room) return { ok: false, reason: t('Drop it inside a room') }
   const layer = layerOf(cand.kind, cand.y, cand.variant, cand.mount)
   const wallish = snapsToWall(cand.kind, cand.mount)
-  if (wallish && (cand.y == null || isWallMounted(cand.kind, cand.variant, cand.mount)) && !onWall) return { ok: false, reason: t('Move it closer to a wall') }
+  if (wallish && (cand.y == null || isWallMounted(cand.kind, cand.variant, cand.mount)) && !onWall && !FREESTANDING.includes(cand.kind)) return { ok: false, reason: t('Move it closer to a wall') }
 
   if (DESK_ONLY.includes(cand.kind) && cand.y == null) return { ok: false, reason: t('Put it on a desk or a table') }
   // A wall-mounted item must stay within the wall (height and window size)

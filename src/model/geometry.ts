@@ -262,6 +262,17 @@ export function wallSnap(rooms: Room[], x: number, z: number, depth: number, max
 }
 
 /**
+ * Whether an item that sticks to walls stands against one, exactly where wallSnap puts it (a kitchen counter in an island
+ * does not; rules.ts > FREESTANDING).
+ */
+export function backOnWall(rooms: Room[], it: Pick<Item, 'kind' | 'x' | 'z' | 'rot' | 'len'>) {
+  const w = wallSnap(rooms, it.x, it.z, CATALOG[it.kind].size[1], 0.05, sizeOf(it.kind, it.len)[0])
+  if (!w) return false
+  const d = w.rot - it.rot
+  return Math.hypot(w.x - it.x, w.z - it.z) < 0.03 && Math.abs(Math.atan2(Math.sin(d), Math.cos(d))) < 0.01
+}
+
+/**
  * Inner length of the wall of the room that a wall item at (x, z) facing rot hangs on (between the side walls); null when
  * it hangs on none. An LED strip cannot be made longer than its wall.
  */

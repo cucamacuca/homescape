@@ -11,10 +11,10 @@ import { toggle } from '@/ha/actions'
 import { t } from '@/i18n'
 import { isBound } from '@/model/bindings'
 import { CATALOG, isLightKind, sizeOf } from '@/model/catalog'
-import { doorSides, isAperture, isOutdoor, snap, wallSnap } from '@/model/geometry'
+import { backOnWall, doorSides, isAperture, isOutdoor, snap, wallSnap } from '@/model/geometry'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import { usePlacement } from '@/model/placement'
-import { APPLIANCE_STACK, checkItem, isWallMounted, snapsToWall, STACKABLE, surfaceAt } from '@/model/rules'
+import { APPLIANCE_STACK, checkItem, FREE_SNAP, FREESTANDING, isWallMounted, snapsToWall, STACKABLE, surfaceAt } from '@/model/rules'
 import { counterSink } from '@/model/counter'
 import { carryPatches, containerOf, contentsOf, DRAWER_SLIDE, INTERIOR, OPENS, shelfAt, toLocal } from '@/model/containers'
 import type { Item } from '@/model/types'
@@ -80,6 +80,8 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
     const back = doorSides(item, lvOf(s)?.rooms ?? []).back
     return Boolean(back && !isOutdoor(back))
   })
+  // A kitchen cabinet or appliance standing away from a wall (an island): the counter draws no wall cabinets then
+  const free = useLayout((s) => FREESTANDING.includes(item.kind) && !backOnWall(lvOf(s)?.rooms ?? [], item))
   const edit = useLayout((s) => s.mode === 'edit') && !still
   // In view mode only linked (controllable) items are clickable
   // Cabinets and drawers are clickable in view mode too: opens and closes the door (scene/bins.ts)
@@ -156,7 +158,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
   })
 
   const v: Visual = useMemo(() => {
-    const opening = { related, interior, hingeRight, swingOut, fixed, edit, opts, at: { x: item.x, z: item.z, rot: item.rot, y: item.y } }
+    const opening = { related, interior, hingeRight, swingOut, fixed, free, edit, opts, at: { x: item.x, z: item.z, rot: item.rot, y: item.y } }
     if (!entity) return { ...OFF_VISUAL, bound: Boolean(item.entityId), night, unavailable: Boolean(item.entityId), ...opening, open: open ? 1 : 0, openParts }
     const on = isActive(entity)
     return {
@@ -174,7 +176,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
       open: open ? 1 : 0,
       openParts,
     }
-  }, [entity, item.entityId, item.kind, item.x, item.z, item.rot, item.y, night, related, interior, hingeRight, swingOut, fixed, edit, opts, intensity, open, openParts])
+  }, [entity, item.entityId, item.kind, item.x, item.z, item.rot, item.y, night, related, interior, hingeRight, swingOut, fixed, free, edit, opts, intensity, open, openParts])
 
   const y = item.y ?? DEFAULT_Y[item.kind] ?? 0
   // The model is not re-rendered unless its look changes (selection, hover and floor change only update this node)
@@ -215,7 +217,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
     const mounted = isWallMounted(item.kind, item.variant, item.mount)
     if (STACKABLE.includes(item.kind) && !mounted) ny = surfaceAt(level.items, x, z, item.id)?.y ?? shelfAt(level.items, x, z, item.kind, item.id)
     if (snapsToWall(item.kind, item.mount) && (ny == null || mounted)) {
-      const w = wallSnap(level.rooms, x, z, meta.size[1], 0.6, sizeOf(item.kind, item.len)[0], isAperture(item.kind), item.mount === 'wall')
+      const w = wallSnap(level.rooms, x, z, meta.size[1], FREESTANDING.includes(item.kind) ? FREE_SNAP : 0.6, sizeOf(item.kind, item.len)[0], isAperture(item.kind), item.mount === 'wall')
       if (w) ({ x, z, rot } = w)
       else onWall = false
     }

@@ -766,7 +766,8 @@ export function KitchenCounter({ v }: { v: Visual }) {
   const run = { top, body, door, led, lit, v: lv }
   return (
     <group>
-      <CounterRun len={L} {...run} sinkAt={v.opts.sinkAt} />
+      {/* Away from a wall (an island, Visual.free) there is nothing to hang wall cabinets on */}
+      <CounterRun len={L} {...run} sinkAt={v.opts.sinkAt} uppers={!v.free} />
       {isL && (
         // Run along the side wall: starts after the corner square, its front faces into the room (towards the opposite corner).
         <group position={[sx * (L / 2 - D / 2), 0, D / 2 + (leg - D) / 2]} rotation-y={sx > 0 ? -Math.PI / 2 : Math.PI / 2}>

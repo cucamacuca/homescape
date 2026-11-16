@@ -752,6 +752,48 @@ await p.evaluate(() => window.__homescape.select(null))
   }
 }
 
+// --- Kitchen island: counters and kitchen appliances can stand away from a wall (GitHub issue #6) ---
+{
+  const r = await p.evaluate(async () => {
+    const rules = await import('/src/model/rules.ts')
+    const geo = await import('/src/model/geometry.ts')
+    const h = window.__homescape
+    const s = h.getState().layout
+    // An empty 5 x 4 m test room away from the home, its middle well away from the walls
+    const rid = s.addRoom({ name: 'Island test', floor: 'tile', x: 50, z: 50, w: 5, d: 4 })
+    const now = () => h.getState().layout
+    const lv2 = now().layout.levels.find((l) => l.id === now().levelId)
+    const room = lv2.rooms.find((o) => o.id === rid)
+    const cx = room.x + room.w / 2
+    const cz = room.z + room.d / 2
+    const kinds = ['kitchenCounter', 'stove', 'sink', 'dishwasher', 'oven', 'fridge']
+    const check = (kind) => rules.checkItem(lv2, { kind, x: cx, z: cz, rot: 0, len: kind === 'kitchenCounter' ? 1.2 : undefined }, undefined, false)
+    const blocked = kinds.filter((k) => !check(k).ok).map((k) => `${k}: ${check(k).reason}`)
+    const wardrobe = check('wardrobe')
+    // Near a wall it still sticks to it, far from one it does not
+    const nearWall = geo.wallSnap(lv2.rooms, room.x + 0.55, cz, 0.62, rules.FREE_SNAP, 1.2)
+    const farWall = geo.wallSnap(lv2.rooms, cx, cz, 0.62, rules.FREE_SNAP, 1.2)
+    const id = s.addItem('kitchenCounter', cx, cz, 0, null, undefined, { len: 1.2 })
+    s.select(null)
+    return { room: room.id, id, blocked, wardrobe: wardrobe.ok, nearWall: Boolean(nearWall), farWall: Boolean(farWall) }
+  })
+  ok(!r.blocked.length, `Kitchen counters and appliances can stand away from a wall (an island)${r.blocked.length ? `: ${r.blocked.join(', ')}` : ''}`)
+  ok(!r.wardrobe, 'Other wall furniture (a wardrobe) still needs a wall')
+  ok(r.nearWall && !r.farWall, 'Close to a wall a counter still sticks to it, in the middle of the room it does not')
+  // (the camera stays where it is: the next sections drag onto items in view)
+  await p.waitForTimeout(600)
+  const island = await p.evaluate((id) => window.__homescape.itemObject(id), r.id)
+  const onWall = await p.evaluate(async () => {
+    const geo = await import('/src/model/geometry.ts')
+    const s = window.__homescape.getState().layout
+    const lv = s.layout.levels.find((l) => l.id === s.levelId) ?? s.layout.levels[0]
+    const c = lv.items.find((i) => i.kind === 'kitchenCounter' && geo.backOnWall(lv.rooms, i))
+    return c ? window.__homescape.itemObject(c.id) : null
+  })
+  ok(island && island.size[1] < 1.6 && (!onWall || onWall.size[1] > 2), `A counter away from a wall has no wall cabinets (${island?.size[1].toFixed(2)} m tall; against a wall ${onWall ? onWall.size[1].toFixed(2) : '-'} m)`)
+  await p.evaluate((id) => window.__homescape.getState().layout.deleteRoom(id), r.room)
+}
+
 // --- Power strip: numbered outlets in one item; placed on a desk; outlet count 2-5 ---
 {
   L = await level()

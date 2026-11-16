@@ -6,7 +6,7 @@ import { CATALOG, sizeOf } from '@/model/catalog'
 import { ceilingFit, isAperture, rectBounds, snap, wallRuns, wallSnap } from '@/model/geometry'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import { presetRects, usePlacement, type RoomPreset } from '@/model/placement'
-import { APPLIANCE_STACK, checkItem, magnetRoom, overlapsRoom, snapsToWall, STACKABLE, surfaceAt } from '@/model/rules'
+import { APPLIANCE_STACK, checkItem, FREE_SNAP, FREESTANDING, magnetRoom, overlapsRoom, snapsToWall, STACKABLE, surfaceAt } from '@/model/rules'
 import { shelfAt } from '@/model/containers'
 import type { Item, ItemKind } from '@/model/types'
 import { C } from './kit/palette'
@@ -91,7 +91,8 @@ function ItemGhost({ kind, extra }: { kind: ItemKind; extra?: Partial<Item> }) {
     let y: number | undefined
     let onWall = true
     if (snapsToWall(kind, extra?.mount)) {
-      const w = wallSnap(level.rooms, x, z, meta.size[1], 1, sizeOf(kind, extra?.len)[0], isAperture(kind), extra?.mount === 'wall')
+      // Kitchen cabinets and appliances stick to a wall only close to it; elsewhere they stand free (an island)
+      const w = wallSnap(level.rooms, x, z, meta.size[1], FREESTANDING.includes(kind) ? FREE_SNAP : 1, sizeOf(kind, extra?.len)[0], isAperture(kind), extra?.mount === 'wall')
       if (w) ({ x, z, rot } = w)
       else onWall = false
     }
