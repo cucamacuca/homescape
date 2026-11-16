@@ -110,6 +110,7 @@ const LABELS: Record<string, Record<string, string>> = {
   assist_satellite: { idle: t('Idle'), listening: t('Listening'), processing: t('Processing'), responding: t('Responding') },
   device_tracker: { home: t('At home'), not_home: t('Away') },
   person: { home: t('At home'), not_home: t('Away') },
+  update: { on: t('Update available'), off: t('Up to date') },
 }
 
 const OPEN_CLOSED: [string, string] = [t('Open'), t('Closed')]
@@ -230,6 +231,7 @@ const DOMAIN_LABEL: Record<string, string> = {
   person: t('Person'),
   device_tracker: t('Location'),
   assist_satellite: t('Voice assistant'),
+  update: t('Update'),
   weather: t('Weather'),
   remote: t('Remote'),
   siren: t('Siren'),

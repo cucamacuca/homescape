@@ -277,6 +277,16 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   chime: { label: t('Doorbell chime'), group: 'security', domains: ['event', 'siren', 'switch'], size: [0.14, 0.04], labelY: 2.1, wall: true },
   // Garage parking sensor: green, amber and red lights from the distance to the car
   parkingSensor: { label: t('Parking sensor'), group: 'sensor', domains: ['sensor', 'binary_sensor'], size: [0.14, 0.05], labelY: 1.3, wall: true },
+  // Smart home hub: green while connected, amber with an update available
+  smartHub: { label: t('Smart home hub'), group: 'device', domains: ['binary_sensor', 'update', 'sensor'], size: [0.12, 0.12], labelY: 0.25 },
+  // Server or network rack; its lights blink while on
+  serverRack: { label: t('Server rack'), group: 'device', domains: ['switch', 'sensor', 'binary_sensor'], size: [0.6, 0.6], labelY: 1.45, wall: true },
+  // Solar inverter: the display shows the bound power sensor
+  solarInverter: { label: t('Solar inverter'), group: 'device', domains: ['sensor'], size: [0.42, 0.18], labelY: 2.0, wall: true },
+  // Phone on a wireless charger: see-through while away, the battery level on its screen
+  phone: { label: t('Phone on a charger'), group: 'device', domains: ['device_tracker', 'sensor', 'binary_sensor'], size: [0.1, 0.16], labelY: 0.25 },
+  // UPS: green on mains power, blinking amber on battery
+  ups: { label: t('UPS'), group: 'device', domains: ['sensor', 'binary_sensor'], size: [0.15, 0.36], labelY: 0.5 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */

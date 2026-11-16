@@ -477,6 +477,13 @@ function groundFloor(): Level {
   /* --- sensors: a parking sensor in front of the SUV --- */
   wall(garage, 'back', 9.75, 'parkingSensor', bind('sensor.us_parking_distance', 'binary_sensor.us_garage_bay'))
 
+  /* --- smart devices: a hub and a phone on the office desk, a rack, an inverter and a UPS in the garage --- */
+  put('smartHub', 5.1, 7.3, 0, { ...bind('binary_sensor.us_hub_online', 'update.us_hub_firmware'), y: DESK })
+  put('phone', 3.95, 7.55, 0, { ...bind('device_tracker.us_phone', 'sensor.us_phone_battery', 'binary_sensor.us_phone_charging'), y: DESK })
+  wall(garage, 'back', 8.1, 'serverRack', bind('switch.us_server_rack'))
+  wall(garage, 'left', 7.2, 'solarInverter', bind('sensor.us_solar_power'))
+  put('ups', 10.6, 3.85, 0, { ...bind('binary_sensor.us_ups_power'), y: 0.9 })
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -888,6 +895,13 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    bin('us_hub_online', t('Hub Connected'), true, 'connectivity'),
+    ent('update.us_hub_firmware', 'on', t('Hub Firmware'), { installed_version: '2.1', latest_version: '2.2' }),
+    ent('device_tracker.us_phone', 'home', t('Phone'), { source_type: 'gps' }),
+    sensor('us_phone_battery', t('Phone Battery'), 64, 'battery', '%'),
+    bin('us_phone_charging', t('Phone Charging'), true, 'battery_charging'),
+    sw('us_server_rack', t('Server Rack'), true),
+    bin('us_ups_power', t('UPS Mains Power'), true, 'power'),
     sensor('us_parking_distance', t('Garage Parking Distance'), 85, 'distance', 'cm'),
     bin('us_garage_bay', t('Garage Bay'), true, 'occupancy'),
     ent('lock.us_closet_safe', 'locked', t('Closet Safe'), {}),

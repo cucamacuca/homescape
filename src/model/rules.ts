@@ -18,7 +18,7 @@ export type Layer = 'floor' | 'wall' | 'ceiling' | 'rug' | 'top'
  * Wall-mounted items: their height is adjustable (Item.y = offset up/down from the default; for an LED strip the strip's
  * height above the floor). Items standing on the floor against a wall (cabinet, counter, fridge) are not in this list.
  */
-export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign', 'exhaustFan', 'fireExtinguisher', 'chime', 'parkingSensor']
+export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign', 'exhaustFan', 'fireExtinguisher', 'chime', 'parkingSensor', 'solarInverter']
 
 /**
  * Items that can optionally hang on a wall (Item.mount 'wall', e.g. a power strip). While hung they behave like wall
@@ -78,6 +78,7 @@ const WALL_SPAN: Record<string, [number, number]> = {
   fireExtinguisher: [0.29, 0.83],
   chime: [1.785, 1.915],
   parkingSensor: [0.95, 1.05],
+  solarInverter: [1.17, 1.73],
 }
 function spanOf(kind: ItemKind, variant?: string, len2?: number): [number, number] {
   // Window: bottom edge 0.9 (sill 3 cm below), curtain rail 10 cm on top; height Item.len2
@@ -144,10 +145,10 @@ export const SURFACE_Y: Partial<Record<ItemKind, number>> = {
 }
 
 /** Small items that can be stacked on a surface. */
-export const STACKABLE: ItemKind[] = ['monitor', 'deskLamp', 'console', 'vibrationSensor', 'diffuser', 'keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'powerStrip', 'homepod', 'deskCamera', 'tableLamp', 'humidifier', 'speaker', 'soundbar', 'computer', 'airQuality', 'smartButton', 'router', 'nas', 'printer', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'turntable', 'streamingBox', 'smartDisplay', 'voiceAssistant']
+export const STACKABLE: ItemKind[] = ['monitor', 'deskLamp', 'console', 'vibrationSensor', 'diffuser', 'keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'powerStrip', 'homepod', 'deskCamera', 'tableLamp', 'humidifier', 'speaker', 'soundbar', 'computer', 'airQuality', 'smartButton', 'router', 'nas', 'printer', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'turntable', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'smartHub', 'phone', 'ups']
 
 /** Items that only go on a surface (desk, coffee table, cabinet, washbasin): pointless on the floor. */
-export const DESK_ONLY: ItemKind[] = ['keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'tableLamp', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'smartButton', 'streamingBox', 'smartDisplay', 'voiceAssistant']
+export const DESK_ONLY: ItemKind[] = ['keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'tableLamp', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'smartButton', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'phone']
 
 /** Appliances that stack (a dryer on a washing machine): only on each other. */
 export const APPLIANCE_STACK: ItemKind[] = ['washer', 'dryer', 'dishwasher']

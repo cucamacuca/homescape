@@ -62,6 +62,7 @@ const DOMAIN_LABEL: Record<string, string> = {
   siren: t('siren'),
   device_tracker: t('location'),
   assist_satellite: t('voice'),
+  update: t('update'),
   event: t('event'),
   button: t('button'),
   weather: t('weather'),

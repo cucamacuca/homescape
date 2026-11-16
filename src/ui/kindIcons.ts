@@ -140,6 +140,8 @@ import {
   TabletSmartphone,
   Vault,
   SquareParking,
+  Smartphone,
+  SunMedium,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -344,4 +346,9 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   fireExtinguisher: FireExtinguisher,
   chime: BellRing,
   parkingSensor: SquareParking,
+  smartHub: Router,
+  serverRack: Server,
+  solarInverter: SunMedium,
+  phone: Smartphone,
+  ups: BatteryCharging,
 }

@@ -262,6 +262,11 @@ export type ItemKind =
   | 'fireExtinguisher'
   | 'chime'
   | 'parkingSensor'
+  | 'smartHub'
+  | 'serverRack'
+  | 'solarInverter'
+  | 'phone'
+  | 'ups'
 
 export interface Item {
   id: string

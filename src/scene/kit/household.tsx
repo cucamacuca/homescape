@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { deviceClass, domainOf, isActive, num } from '@/ha/derive'
 import type { HassEntity } from '@/ha/types'
+import { formatNumber } from '@/i18n'
 import { WALL_H } from '@/model/geometry'
-import { assistRing, clockText, distanceM, parkingBar } from '@/model/household'
+import { assistRing, clockText, distanceM, parkingBar, phoneState } from '@/model/household'
 import { markShadows } from '../frame'
 import { Airflow, Glow, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
 import { C } from './palette'
@@ -160,6 +161,16 @@ function usePulse(active: boolean, speed = 6, amount = 0.12) {
     if (!m) return
     const s = active ? 1 + amount * Math.sin(clock.elapsedTime * speed) : 1
     m.scale.set(s, s, s)
+  })
+  return ref
+}
+
+/** Shows and hides a part at a rate while active (a blinking light); always shown while inactive. */
+function useBlink(active: boolean, hz = 1.5) {
+  const ref = useRef<THREE.Mesh>(null)
+  useAmbient(active, true)
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.visible = !active || Math.sin(clock.elapsedTime * hz * TAU) > 0
   })
   return ref
 }
@@ -608,6 +619,120 @@ export function ParkingSensor({ v }: P) {
         <Box key={i} size={[0.018, 0.05, 0.004]} position={[-0.048 + i * 0.024, 0, 0.016]} material={glowing(bar.color, i < bar.lit, 1.8)} shadow={false} />
       ))}
       {bar.lit > 0 && <Glow position={[0, 0, 0.05]} color={bar.color} opacity={v.night ? 0.6 : 0.3} size={0.3} />}
+    </group>
+  )
+}
+
+/* ---------- smart devices ---------- */
+
+/**
+ * Smart home hub (on a surface): a flat rounded box with a status light, green while connected, amber when a bound update
+ * entity offers an update, red when unavailable or a bound connectivity sensor is off.
+ */
+export function SmartHub({ v }: P) {
+  const ents = entitiesOf(v)
+  const update = ents.some((e) => domainOf(e.entity_id) === 'update' && e.state === 'on')
+  const down = v.unavailable || ents.some((e) => domainOf(e.entity_id) === 'binary_sensor' && deviceClass(e) === 'connectivity' && e.state === 'off')
+  const color = !v.bound ? '#5a5e6b' : down ? C.alarm : update ? C.warn : C.ok
+  return (
+    <group>
+      <Box size={[0.112, 0.03, 0.112]} position={[0, 0.015, 0]} color={v.unavailable ? '#9aa0b8' : (v.opts.body ?? '#e9ebf0')} radius={0.02} />
+      <mesh position={[0, 0.0305, 0.035]} rotation-x={-Math.PI / 2} geometry={disc(0.007, 16)} material={glowing(color, v.bound, 1.8)} />
+      {v.bound && v.night && <Glow position={[0, 0.04, 0.035]} color={color} opacity={0.35} size={0.15} />}
+    </group>
+  )
+}
+
+const RACK_UNITS = [0.25, 0.45, 0.7, 0.95]
+
+/** Server or network rack (on the floor by a wall, 1.2 m): a dark cabinet with a glass door and four devices whose port and disk lights blink while on. */
+export function ServerRack({ v }: P) {
+  const on = v.bound && v.on
+  const leds = useRef<THREE.Group>(null)
+  useAmbient(on, true)
+  useFrame(({ clock }) => {
+    const g = leds.current
+    if (!g || !on) return
+    const t = clock.elapsedTime
+    for (let i = 0; i < g.children.length; i++) g.children[i].visible = Math.sin(t * (3 + (i % 5)) + i * 1.7) > -0.3
+  })
+  return (
+    <group>
+      {/* cabinet behind the equipment, a frame in front of it and a glass door */}
+      <Box size={[0.58, 1.2, 0.5]} position={[0, 0.6, -0.04]} color="#24262c" radius={0.01} />
+      {[-1, 1].map((sx) => (
+        <Box key={sx} size={[0.05, 1.2, 0.08]} position={[sx * 0.265, 0.6, 0.25]} color="#24262c" />
+      ))}
+      <Box size={[0.58, 0.06, 0.08]} position={[0, 1.17, 0.25]} color="#24262c" />
+      <Box size={[0.58, 0.06, 0.08]} position={[0, 0.03, 0.25]} color="#24262c" />
+      {RACK_UNITS.map((y) => (
+        <Box key={y} size={[0.46, 0.12, 0.03]} position={[0, y, 0.225]} color="#3a3d47" shadow={false} />
+      ))}
+      <Box size={[0.48, 1.08, 0.008]} position={[0, 0.6, 0.286]} material={clear('#9aa8c8', 0.2, 0.15)} shadow={false} />
+      <group ref={leds} visible={on}>
+        {RACK_UNITS.flatMap((y, r) => [0, 1, 2, 3, 4, 5].map((i) => <mesh key={`${r}${i}`} position={[-0.18 + i * 0.03, y + 0.02, 0.2415]} geometry={disc(0.005, 8)} material={glowing(i % 3 ? C.ok : '#4fc3ff', true, 2)} />))}
+      </group>
+    </group>
+  )
+}
+
+/**
+ * Solar inverter (on the wall, 1.15 to 1.75 m): a white box with a display that shows the bound power sensor and a light
+ * that is green while it produces.
+ */
+export function SolarInverter({ v }: P) {
+  const live = v.bound && !v.unavailable
+  const n = v.domain === 'sensor' ? num(v.state) : null
+  const unit = typeof v.attrs.unit_of_measurement === 'string' ? v.attrs.unit_of_measurement : ''
+  const screen = useDisplay(live && n != null ? `${formatNumber(Math.abs(n) >= 100 ? Math.round(n) : Math.round(n * 10) / 10, 1)} ${unit}`.trim() : '---', live ? 'lcd' : 'off')
+  const producing = live && (n ?? 0) > 0
+  const Y = 1.45
+  return (
+    <group>
+      <Box size={[0.42, 0.56, 0.16]} position={[0, Y, -0.01]} color={v.unavailable ? '#9aa0b8' : (v.opts.body ?? '#eef0f4')} radius={0.02} />
+      <Box size={[0.16, 0.07, 0.006]} position={[0, Y + 0.12, 0.072]} color="#2a2d38" radius={0.006} shadow={false} />
+      <mesh position={[0, Y + 0.12, 0.0755]} geometry={plane(0.14, 0.052)} material={screen} />
+      <Ball r={0.007} position={[0.14, Y + 0.12, 0.072]} material={glowing(C.ok, producing, 2)} shadow={false} />
+      {[-0.12, 0.12].map((x) => (
+        <Box key={x} size={[0.05, 0.08, 0.04]} position={[x, Y - 0.31, 0.02]} color="#2a2c33" />
+      ))}
+    </group>
+  )
+}
+
+/**
+ * Phone on a wireless charger (on a surface): drawn see-through while its device tracker is away, the charger ring lit
+ * while it charges and the battery level on the screen (model/household.ts > phoneState).
+ */
+export function Phone({ v }: P) {
+  const ph = phoneState(entitiesOf(v))
+  const live = v.bound && !v.unavailable && !ph.away
+  const screen = useDisplay(live && ph.battery != null ? `${ph.battery}%` : '', live && ph.battery != null ? 'screen' : 'off')
+  const body = ph.away ? mat('#1d1f24', { opacity: 0.25 }) : mat('#1d1f24')
+  return (
+    <group>
+      <Cyl r={0.05} h={0.008} position={[0, 0.004, 0]} color="#e9ebf0" segments={28} />
+      <mesh position={[0, 0.0085, 0]} rotation-x={Math.PI / 2} geometry={torus(0.044, 0.002, 28)} material={glowing(C.ok, ph.charging && !ph.away, 2)} />
+      <Box size={[0.072, 0.008, 0.15]} position={[0, 0.013, 0]} material={body} radius={0.004} />
+      {!ph.away && <mesh position={[0, 0.0175, 0]} rotation-x={-Math.PI / 2} geometry={plane(0.064, 0.138)} material={screen} />}
+    </group>
+  )
+}
+
+/**
+ * UPS (on the floor or a shelf): a black tower whose light is green on mains power and blinks amber while it runs on its
+ * battery (a bound power sensor off, or a status sensor saying battery).
+ */
+export function Ups({ v }: P) {
+  const ents = entitiesOf(v)
+  const onBattery = ents.some((e) => (domainOf(e.entity_id) === 'binary_sensor' && ['power', 'plug'].includes(deviceClass(e)) && e.state === 'off') || (domainOf(e.entity_id) === 'sensor' && /\b(on battery|ob)\b/i.test(e.state)))
+  const live = v.bound && !v.unavailable
+  const blink = useBlink(live && onBattery, 1.5)
+  return (
+    <group>
+      <Box size={[0.15, 0.24, 0.36]} position={[0, 0.12, 0]} color="#1d1f24" radius={0.012} />
+      <Box size={[0.09, 0.03, 0.004]} position={[0, 0.2, 0.181]} color="#2a2d38" shadow={false} />
+      <mesh ref={blink} position={[0, 0.2, 0.1835]} geometry={disc(0.008, 12)} material={glowing(onBattery ? C.warn : C.ok, live, 2)} />
     </group>
   )
 }
