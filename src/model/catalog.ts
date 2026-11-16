@@ -287,6 +287,16 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   phone: { label: t('Phone on a charger'), group: 'device', domains: ['device_tracker', 'sensor', 'binary_sensor'], size: [0.1, 0.16], labelY: 0.25 },
   // UPS: green on mains power, blinking amber on battery
   ups: { label: t('UPS'), group: 'device', domains: ['sensor', 'binary_sensor'], size: [0.15, 0.36], labelY: 0.5 },
+  // Toaster: the slots glow while on, the toast pops up when it turns off
+  toaster: { label: t('Toaster'), group: 'appliance', domains: ['switch'], size: [0.28, 0.17], labelY: 0.35 },
+  // Multicooker or rice cooker: steam and a lit display while on
+  multicooker: { label: t('Multicooker'), group: 'appliance', domains: ['switch', 'sensor'], size: [0.3, 0.3], labelY: 0.4 },
+  // Chest freezer: the lid opens with a bound lid sensor, a temperature on its display
+  freezer: { label: t('Chest freezer'), group: 'appliance', domains: ['sensor', 'binary_sensor', 'switch'], size: [1.0, 0.65], labelY: 1.1 },
+  // Wine fridge by a wall; the bottles light up while on
+  wineFridge: { label: t('Wine fridge'), group: 'appliance', domains: ['switch', 'light', 'sensor'], size: [0.5, 0.57], labelY: 1.1, wall: true },
+  // Ironing board with an iron; with a plug bound, the iron glows and steams while on
+  ironingBoard: { label: t('Ironing board'), group: 'appliance', domains: ['switch', 'sensor'], size: [1.3, 0.4], labelY: 1.05 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -813,6 +823,7 @@ export const OPTIONS: Partial<
   petToy: { variantLabel: t('Toy'), variants: [['ball', t('Ball')], ['bone', t('Bone')], ['mouse', t('Plush mouse')]], variantDef: 'ball' },
   // household items (kit/household.tsx)
   neonSign: { variantLabel: t('Shape'), variants: [['heart', t('Heart')], ['wave', t('Wave')], ['bolt', t('Lightning bolt')]], variantDef: 'heart', body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#e2564b' },
+  ironingBoard: { body: t('Cover color'), bodyList: BODY_COLORS, bodyDef: '#8fd8bd' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

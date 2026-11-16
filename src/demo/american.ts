@@ -484,6 +484,12 @@ function groundFloor(): Level {
   wall(garage, 'left', 7.2, 'solarInverter', bind('sensor.us_solar_power'))
   put('ups', 10.6, 3.85, 0, { ...bind('binary_sensor.us_ups_power'), y: 0.9 })
 
+  /* --- kitchen: a toaster and a multicooker on the counters, a wine fridge, a chest freezer in the garage --- */
+  put('toaster', 0.95, 0.33, 0, { ...bind('switch.us_toaster'), y: ON_COUNTER })
+  put('multicooker', 3.75, 0.35, 0, { ...bind('switch.us_multicooker'), y: ON_COUNTER })
+  wall(kitchen, 'front', 3.6, 'wineFridge', bind('light.us_wine_fridge'))
+  put('freezer', 9.8, 8.6, 0, bind('sensor.us_freezer_temperature', 'binary_sensor.us_freezer_lid'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -655,6 +661,9 @@ function upperFloor(): Level {
 
   /* --- security: a safe in the walk-in closet --- */
   put('safe', -2.5, 0.6, 0, bind('lock.us_closet_safe'))
+
+  /* --- appliances: an ironing board in the bonus room --- */
+  put('ironingBoard', 8.6, 4.35, 0, bind('switch.us_iron'))
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -895,6 +904,12 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    sw('us_toaster', t('Toaster'), false),
+    sw('us_multicooker', t('Multicooker'), true),
+    light('us_wine_fridge', t('Wine Fridge Light'), true, warm(160, 4000)),
+    sensor('us_freezer_temperature', t('Freezer Temperature'), -18, 'temperature', '°C'),
+    bin('us_freezer_lid', t('Freezer Lid'), false, 'opening'),
+    sw('us_iron', t('Iron'), false),
     bin('us_hub_online', t('Hub Connected'), true, 'connectivity'),
     ent('update.us_hub_firmware', 'on', t('Hub Firmware'), { installed_version: '2.1', latest_version: '2.2' }),
     ent('device_tracker.us_phone', 'home', t('Phone'), { source_type: 'gps' }),

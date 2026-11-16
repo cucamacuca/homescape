@@ -219,6 +219,11 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   solarInverter: H.SolarInverter,
   phone: H.Phone,
   ups: H.Ups,
+  toaster: H.Toaster,
+  multicooker: H.Multicooker,
+  freezer: H.Freezer,
+  wineFridge: H.WineFridge,
+  ironingBoard: H.IroningBoard,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

@@ -142,6 +142,9 @@ import {
   SquareParking,
   Smartphone,
   SunMedium,
+  Sandwich,
+  Snowflake,
+  Wine,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -351,4 +354,9 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   solarInverter: SunMedium,
   phone: Smartphone,
   ups: BatteryCharging,
+  toaster: Sandwich,
+  multicooker: CookingPot,
+  freezer: Snowflake,
+  wineFridge: Wine,
+  ironingBoard: Shirt,
 }

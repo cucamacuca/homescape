@@ -7,7 +7,7 @@ import { formatNumber } from '@/i18n'
 import { WALL_H } from '@/model/geometry'
 import { assistRing, clockText, distanceM, parkingBar, phoneState } from '@/model/household'
 import { markShadows } from '../frame'
-import { Airflow, Glow, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
+import { Airflow, Glow, Mist, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
 import { C } from './palette'
 import { Ball, Box, Cyl, mat } from './primitives'
 import { Flames } from './smart'
@@ -733,6 +733,140 @@ export function Ups({ v }: P) {
       <Box size={[0.15, 0.24, 0.36]} position={[0, 0.12, 0]} color="#1d1f24" radius={0.012} />
       <Box size={[0.09, 0.03, 0.004]} position={[0, 0.2, 0.181]} color="#2a2d38" shadow={false} />
       <mesh ref={blink} position={[0, 0.2, 0.1835]} geometry={disc(0.008, 12)} material={glowing(onBattery ? C.warn : C.ok, live, 2)} />
+    </group>
+  )
+}
+
+/* ---------- kitchen ---------- */
+
+/**
+ * Toaster (on a counter): two slots with toast. While on the slots glow orange and the toast is down; when it turns off
+ * the toast pops up.
+ */
+export function Toaster({ v }: P) {
+  const body = bodyOf(v, '#e9ebf0')
+  const slot = useLitMaterial('#2a2c33', v.on, '#ff7a3d', 1, 2)
+  const toast = useRef<THREE.Group>(null)
+  useEase(v.on ? 0 : 0.05, (y) => {
+    if (toast.current) toast.current.position.y = y
+  })
+  return (
+    <group>
+      <Box size={[0.27, 0.18, 0.16]} position={[0, 0.09, 0]} color={body} radius={0.03} />
+      {[-0.035, 0.035].map((z) => (
+        <Box key={z} size={[0.17, 0.006, 0.026]} position={[0, 0.181, z]} material={slot} shadow={false} />
+      ))}
+      <group ref={toast}>
+        {[-0.035, 0.035].map((z) => (
+          <Box key={z} size={[0.12, 0.1, 0.016]} position={[0, 0.14, z]} color="#d9a06a" radius={0.008} />
+        ))}
+      </group>
+      <Box size={[0.02, 0.035, 0.03]} position={[0.145, v.on ? 0.05 : 0.13, 0]} color="#2a2c33" radius={0.006} />
+      {v.on && <Glow position={[0, 0.2, 0]} color="#ff7a3d" opacity={v.night ? 0.5 : 0.25} size={0.3} />}
+    </group>
+  )
+}
+
+/** Multicooker or rice cooker (on a counter): a round pot with a lid and a display; while on the display glows and steam rises. */
+export function Multicooker({ v }: P) {
+  const body = bodyOf(v, '#f2f2f4')
+  const disp = useLitMaterial(C.screenOff, v.on, '#ffb35a', 0.9, 1.6)
+  return (
+    <group>
+      <Cyl r={0.14} rTop={0.13} h={0.2} position={[0, 0.1, 0]} color={body} segments={32} />
+      <Cyl r={0.135} h={0.04} position={[0, 0.22, 0]} color="#c9ccd4" segments={32} />
+      <Cyl r={0.02} h={0.02} position={[0.05, 0.25, -0.04]} color="#2a2c33" segments={12} />
+      <Box size={[0.09, 0.04, 0.01]} position={[0, 0.12, 0.13]} material={disp} shadow={false} />
+      <group position={[0.05, 0.2, -0.04]}>
+        <Mist active={v.on} y={0.06} size={0.3} />
+      </group>
+    </group>
+  )
+}
+
+/**
+ * Chest freezer (on the floor): a white chest whose lid opens while a bound lid sensor is open; a frost blue light shines
+ * inside then. A bound temperature sensor shows on its small display.
+ */
+export function Freezer({ v }: P) {
+  const ents = entitiesOf(v)
+  const open = ents.some((e) => domainOf(e.entity_id) === 'binary_sensor' && ['door', 'opening', ''].includes(deviceClass(e)) && isActive(e))
+  const temp = ents.find((e) => domainOf(e.entity_id) === 'sensor' && deviceClass(e) === 'temperature')
+  const n = temp ? num(temp.state) : null
+  const screen = useDisplay(n != null ? `${formatNumber(Math.round(n), 0)}°` : '', n != null && !v.unavailable ? 'lcd' : 'off')
+  const lid = useRef<THREE.Group>(null)
+  useEase(open ? -1.1 : 0, (a) => {
+    if (lid.current) lid.current.rotation.x = a
+  })
+  return (
+    <group>
+      <Box size={[1.0, 0.8, 0.65]} position={[0, 0.4, 0]} color={bodyOf(v, '#f4f5f8')} radius={0.03} />
+      <Box size={[0.92, 0.02, 0.57]} position={[0, 0.79, 0]} material={open ? glowing('#bfe3ff', true, 1.2) : mat('#dfe2ea')} shadow={false} />
+      <group ref={lid} position={[0, 0.8, -0.325]}>
+        <Box size={[1.0, 0.06, 0.65]} position={[0, 0.03, 0.325]} color={bodyOf(v, '#f4f5f8')} radius={0.025} />
+        <Box size={[0.3, 0.025, 0.03]} position={[0, 0.03, 0.65]} color={C.steel} />
+      </group>
+      <Box size={[0.12, 0.05, 0.006]} position={[0.32, 0.68, 0.326]} color="#2a2d38" shadow={false} />
+      <mesh position={[0.32, 0.68, 0.3295]} geometry={plane(0.1, 0.038)} material={screen} />
+      {open && <Glow position={[0, 0.95, 0]} color="#bfe3ff" opacity={v.night ? 0.6 : 0.3} size={0.9} />}
+    </group>
+  )
+}
+
+/** Wine fridge (on the floor by a wall): a dark cabinet with a glass door and racks of bottles that light up while on. */
+export function WineFridge({ v }: P) {
+  const lit = v.on
+  const body = bodyOf(v, '#1d1f24')
+  const inside = useLitMaterial('#2a2c33', lit, v.domain === 'light' ? v.color : '#9fd0ff', 1, 1.2)
+  return (
+    <group>
+      {/* cabinet open at the front behind the glass door: lit back wall, wire shelves with bottles lying on them */}
+      <Box size={[0.5, 0.86, 0.3]} position={[0, 0.43, -0.13]} color={body} radius={0.012} />
+      <Box size={[0.42, 0.74, 0.01]} position={[0, 0.45, 0.025]} material={inside} shadow={false} />
+      {[-1, 1].map((sx) => (
+        <Box key={sx} size={[0.04, 0.86, 0.26]} position={[sx * 0.23, 0.43, 0.15]} color={body} />
+      ))}
+      <Box size={[0.5, 0.06, 0.26]} position={[0, 0.83, 0.15]} color={body} />
+      <Box size={[0.5, 0.08, 0.26]} position={[0, 0.04, 0.15]} color={body} />
+      {[0.2, 0.38, 0.56, 0.74].flatMap((y) => [
+        <Box key={`s${y}`} size={[0.42, 0.006, 0.24]} position={[0, y - 0.026, 0.15]} color={C.steel} shadow={false} />,
+        ...[-0.14, -0.05, 0.04, 0.13].map((x, i) => <Cyl key={`${y}${x}`} r={0.022} h={0.22} position={[x, y, 0.15]} rotation={[Math.PI / 2, 0, 0]} color={i % 2 ? '#5a1e2a' : '#2f4a2a'} segments={10} />),
+      ])}
+      <Box size={[0.44, 0.76, 0.006]} position={[0, 0.45, 0.284]} material={clear('#c9d6e8', 0.22, 0.1)} shadow={false} />
+      <Box size={[0.02, 0.3, 0.03]} position={[0.2, 0.5, 0.3]} color={C.steel} />
+      {lit && <Glow position={[0, 0.45, 0.35]} color={v.domain === 'light' ? v.color : '#9fd0ff'} opacity={v.night ? 0.45 : 0.2} size={0.7} />}
+    </group>
+  )
+}
+
+/**
+ * Ironing board with an iron: a board with a rounded nose on crossed legs, the iron resting at the wide end. With a smart
+ * plug bound, the soleplate glows and the iron puffs steam while the plug is on.
+ */
+export function IroningBoard({ v }: P) {
+  const on = v.on
+  const H = 0.86
+  const metal = mat('#c9ccd4', { metalness: 0.45, roughness: 0.4 })
+  const cover = mat(bodyOf(v, '#8fd8bd'), { roughness: 0.95 })
+  const lean = Math.atan2(0.65, H - 0.02)
+  return (
+    <group>
+      {[-1, 1].map((s) =>
+        [-0.12, 0.12].map((z) => <Box key={`${s}${z}`} size={[0.022, Math.hypot(0.65, H - 0.02), 0.022]} position={[-s * 0.075, (H - 0.02) / 2, z]} rotation={[0, 0, -s * lean]} material={metal} />),
+      )}
+      {[-1, 1].map((s) => (
+        <Box key={s} size={[0.03, 0.03, 0.3]} position={[s * 0.4, 0.015, 0]} color="#2a2c33" />
+      ))}
+      <Box size={[1.0, 0.025, 0.38]} position={[-0.15, H, 0]} material={cover} radius={0.008} />
+      <Cyl r={0.19} h={0.025} position={[0.35, H, 0]} scale={[1.45, 1, 1]} material={cover} segments={28} />
+      <Box size={[0.16, 0.01, 0.26]} position={[-0.58, H + 0.015, 0]} material={metal} />
+      <group position={[-0.56, H + 0.02, 0]} rotation-y={Math.PI / 2}>
+        <Box size={[0.12, 0.02, 0.24]} position={[0, 0.01, 0]} material={glowing('#ff8a3d', on, 0.8)} radius={0.008} />
+        <Box size={[0.1, 0.07, 0.2]} position={[0, 0.055, -0.01]} color="#4f9dff" radius={0.03} />
+        <Box size={[0.03, 0.03, 0.15]} position={[0, 0.12, -0.02]} color={C.white} radius={0.012} />
+        <Box size={[0.025, 0.05, 0.025]} position={[0, 0.1, 0.05]} color={C.white} />
+        <Mist active={on} y={0.06} size={0.25} color="#eef3ff" />
+      </group>
     </group>
   )
 }

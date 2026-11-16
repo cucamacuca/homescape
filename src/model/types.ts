@@ -267,6 +267,11 @@ export type ItemKind =
   | 'solarInverter'
   | 'phone'
   | 'ups'
+  | 'toaster'
+  | 'multicooker'
+  | 'freezer'
+  | 'wineFridge'
+  | 'ironingBoard'
 
 export interface Item {
   id: string
