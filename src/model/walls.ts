@@ -1,6 +1,6 @@
 import { CATALOG } from './catalog'
-import { apertureOf, isAperture, isOutdoor, isStreetSurface, wallKey, wallRuns, type Side, type WallRun } from './geometry'
-import { isWallMounted } from './rules'
+import { apertureOf, HALF_WALL_H, isAperture, isOutdoor, isStreetSurface, wallKey, wallRuns, type Side, type WallRun } from './geometry'
+import { isWallMounted, wallSpan } from './rules'
 import type { Item, Level, Room } from './types'
 
 /*
@@ -9,7 +9,11 @@ import type { Item, Level, Room } from './types'
  * with no wall in between. A wall is named from one room by its key (geometry.ts > wallKey): the neighbor room's id or
  * the side facing open space. Room.open lists the walls left out; the wall between two rooms opens for both when either
  * room lists the other, so it stays open when one of them is moved, resized or rotated next to the other again.
+ * Room.half lists half walls (HALF_WALL_H, a low divider) the same way; a wall in both lists is open.
  */
+
+/** A wall standing (full height), half height or left out */
+export type WallState = 'wall' | 'half' | 'open'
 
 export interface RoomWall {
   key: string
@@ -19,6 +23,8 @@ export interface RoomWall {
   side: Side
   /** Length along the room (m) */
   length: number
+  state: WallState
+  /** state === 'open' */
   open: boolean
 }
 
@@ -35,7 +41,8 @@ export function roomWalls(room: Room, rooms: Room[]): RoomWall[] {
     for (const r of runs) {
       const key = wallKey(r)
       const len = r.a1 - r.a0
-      const w = out.get(key) ?? { key, neighbor: r.neighbor ? rooms.find((o) => o.id === r.neighbor) : undefined, side: r.side, length: 0, open, longest: 0 }
+      const state: WallState = open ? 'open' : r.half ? 'half' : 'wall'
+      const w = out.get(key) ?? { key, neighbor: r.neighbor ? rooms.find((o) => o.id === r.neighbor) : undefined, side: r.side, length: 0, state, open, longest: 0 }
       w.length += len
       if (len > w.longest) {
         w.longest = len
@@ -48,7 +55,7 @@ export function roomWalls(room: Room, rooms: Room[]): RoomWall[] {
   add(wallRuns(room, rooms, 'open', true), true)
   // Rooms first (by name), then the edges facing open space clockwise from the back
   return [...out.values()]
-    .map(({ key, neighbor, side, length, open }) => ({ key, neighbor, side, length, open }))
+    .map(({ key, neighbor, side, length, state, open }) => ({ key, neighbor, side, length, state, open }))
     .sort((a, b) => (a.neighbor && b.neighbor ? a.neighbor.name.localeCompare(b.neighbor.name) : a.neighbor ? -1 : b.neighbor ? 1 : SIDES.indexOf(a.side) - SIDES.indexOf(b.side)))
 }
 
@@ -67,29 +74,44 @@ function onRun(it: Item, r: WallRun) {
   return Math.abs(perp - r.line) < CATALOG[it.kind].size[1] / 2 + 0.15 && along >= r.a0 - 0.05 && along <= r.a1 + 0.05
 }
 
-/** Items that go with a wall when it is left out: doors and windows in it and the items hanging on it. Floor items stay. */
-export function wallItems(level: Level, room: Room, key: string): Item[] {
+/** Whether the item still fits on a half wall: a wall-mounted item whose top is below the wall's top (a plug, a strip). */
+const fitsHalf = (it: Item) => !isAperture(it.kind) && wallSpan(it)[1] <= HALF_WALL_H - 0.02
+
+/**
+ * Items that go when a wall changes to `to`: left out, the doors and windows in it and every item hanging on it; made a
+ * half wall, the doors and windows and the hanging items that do not fit under its top. Floor items always stay.
+ */
+export function wallItems(level: Level, room: Room, key: string, to: WallState = 'open'): Item[] {
+  if (to === 'wall') return []
   const runs = wallRuns(room, level.rooms, 'walls', true).filter((r) => wallKey(r) === key)
-  return runs.length ? level.items.filter((it) => runs.some((r) => onRun(it, r))) : []
+  return runs.length ? level.items.filter((it) => runs.some((r) => onRun(it, r)) && !(to === 'half' && fitsHalf(it))) : []
 }
 
-const withOpen = (room: Room, list: string[]): Room => {
-  const { open: _, ...rest } = room
-  return list.length ? { ...rest, open: list } : rest
+/** The room with these open and half wall lists (empty lists are left out) */
+const withLists = (room: Room, open: string[], half: string[]): Room => {
+  const { open: _o, half: _h, ...rest } = room
+  return { ...rest, ...(open.length ? { open: [...new Set(open)] } : {}), ...(half.length ? { half: [...new Set(half)] } : {}) }
 }
 
 /**
- * The level with walls of the room left out (open) or put back. Leaving a wall out removes the items in it and on it
- * (wallItems); putting the wall between two rooms back clears it from both rooms' lists.
+ * The level with walls of the room set to a state: standing, half or left out. The items that no longer fit go with it
+ * (wallItems). The wall between two rooms is kept in this room's lists only: the neighbor's entry for it is cleared.
  */
-export function withWalls(level: Level, roomId: string, keys: string[], open: boolean): Level {
+export function withWalls(level: Level, roomId: string, keys: string[], state: WallState): Level {
   const room = level.rooms.find((r) => r.id === roomId)
   if (!room || !keys.length) return level
-  const gone = new Set(open ? keys.flatMap((k) => wallItems(level, room, k)).map((it) => it.id) : [])
+  const gone = new Set(keys.flatMap((k) => wallItems(level, room, k, state)).map((it) => it.id))
   const set = new Set(keys)
   const rooms = level.rooms.map((r) => {
-    if (r.id === roomId) return withOpen(r, open ? [...new Set([...(r.open ?? []), ...keys])] : (r.open ?? []).filter((k) => !set.has(k)))
-    if (!open && set.has(r.id) && r.open?.includes(roomId)) return withOpen(r, r.open.filter((k) => k !== roomId))
+    if (r.id === roomId) {
+      const open = (r.open ?? []).filter((k) => !set.has(k))
+      const half = (r.half ?? []).filter((k) => !set.has(k))
+      if (state === 'open') open.push(...keys)
+      if (state === 'half') half.push(...keys)
+      return withLists(r, open, half)
+    }
+    if (set.has(r.id) && (r.open?.includes(roomId) || r.half?.includes(roomId)))
+      return withLists(r, (r.open ?? []).filter((k) => k !== roomId), (r.half ?? []).filter((k) => k !== roomId))
     return r
   })
   return { ...level, rooms, items: gone.size ? level.items.filter((it) => !gone.has(it.id)) : level.items }
@@ -102,9 +124,10 @@ export const turnOpen = (open: string[], dir: 1 | -1) => open.map((k) => (isSide
 /** Whether a Room.open entry is a side facing open space (else it is a neighbor room's id) */
 export const isSide = (k: string): k is Side => k in CW
 
-/** Indoor rooms joined to this one by an open wall: a lamp lights them too (scene/roomLights.ts). */
+/** Indoor rooms joined to this one by an open or a half wall: a lamp lights them too (scene/roomLights.ts). */
 export function openNeighbors(room: Room, rooms: Room[]): Room[] {
   if (isOutdoor(room)) return []
-  const ids = new Set(wallRuns(room, rooms, 'open', true).flatMap((r) => (r.neighbor ? [r.neighbor] : [])))
+  const joins = [...wallRuns(room, rooms, 'open', true), ...wallRuns(room, rooms, 'walls', true).filter((r) => r.half)]
+  const ids = new Set(joins.flatMap((r) => (r.neighbor ? [r.neighbor] : [])))
   return rooms.filter((r) => ids.has(r.id) && !isOutdoor(r))
 }

@@ -419,14 +419,15 @@ export function computeRoomLights(level: Level, entities: Record<string, HassEnt
     return [it.x + at[0] * c + at[2] * s, y + at[1], it.z - at[0] * s + at[2] * c]
   }
   const roomOf = (x: number, z: number) => roomAt(level.rooms, x, z)
-  // Rooms joined by a wall left out (model/walls.ts) are one space: a lamp lights them too, as far as the shader's
+  // Rooms joined by a wall left out or a half wall (model/walls.ts) are one space: a lamp lights them too, as far as the shader's
   // rectangles per light allow (in plan order).
   const spaces = new Map<string, Rect[]>()
   const space = (room: Room) => {
     let rects = spaces.get(room.id)
     if (!rects) {
       rects = rectsOf(room)
-      for (const o of room.open?.length || level.rooms.some((r) => r.open?.includes(room.id)) ? openNeighbors(room, level.rooms) : []) {
+      const joined = room.open?.length || room.half?.length || level.rooms.some((r) => r.open?.includes(room.id) || r.half?.includes(room.id))
+      for (const o of joined ? openNeighbors(room, level.rooms) : []) {
         const more = rectsOf(o)
         if (rects.length + more.length <= HS_RECTS) rects = [...rects, ...more]
       }

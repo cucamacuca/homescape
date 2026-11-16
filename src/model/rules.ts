@@ -1,6 +1,6 @@
 import { t } from '@/i18n'
 import { CATALOG, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
-import { inRoom, rectsOf, roomAt, WALL_H, WALL_IN } from './geometry'
+import { inRoom, isAperture, rectsOf, roomAt, WALL_H, WALL_IN } from './geometry'
 import type { Item, ItemKind, Level, Rect, Room } from './types'
 
 /*
@@ -97,6 +97,15 @@ export function wallSpan(s: { kind: ItemKind; variant?: string; y?: number; len2
   const [a, b] = spanOf(s.kind, s.variant, s.len2)
   const base = s.y ?? DEFAULT_MOUNT_Y[s.kind] ?? 0
   return [a + base, b + base]
+}
+
+/**
+ * Highest point above the floor of an item hanging on a wall or sitting in it (wallSnap > top: a half wall only takes
+ * items below its top); undefined for items standing on the floor, which may lean on a half wall.
+ */
+export function wallTop(s: { kind: ItemKind; variant?: string; mount?: Item['mount']; y?: number; len2?: number }) {
+  if (isAperture(s.kind)) return WALL_H
+  return isWallMounted(s.kind, s.variant, s.mount) ? wallSpan(s)[1] : undefined
 }
 
 /** Height (Item.y) limits: the item stays within the wall, 2 cm from the floor and the ceiling. */

@@ -36,8 +36,8 @@ export function rotateRoom(id: string, dir: 1 | -1 = 1): boolean {
   const items = lv.items.filter((it) => inRoom(room, it.x, it.z))
   s.checkpoint()
   const [main, ...parts] = next
-  // Walls left out toward open space turn with the room (the side keys); walls to neighbor rooms are named by id
-  s.updateRoom(id, { x: main.x, z: main.z, w: main.w, d: main.d, ...(room.parts?.length ? { parts } : {}), ...(room.open?.length ? { open: turnOpen(room.open, dir) } : {}) }, false)
+  // Walls left out or half toward open space turn with the room (the side keys); walls to neighbor rooms are named by id
+  s.updateRoom(id, { x: main.x, z: main.z, w: main.w, d: main.d, ...(room.parts?.length ? { parts } : {}), ...(room.open?.length ? { open: turnOpen(room.open, dir) } : {}), ...(room.half?.length ? { half: turnOpen(room.half, dir) } : {}) }, false)
   for (const it of items) {
     const p = pt(it.x, it.z)
     s.updateItem(it.id, { x: round(p.x), z: round(p.z), rot: it.rot - dir * (Math.PI / 2) }, false)

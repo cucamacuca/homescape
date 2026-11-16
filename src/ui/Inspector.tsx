@@ -11,7 +11,7 @@ import { groupFamily, groupMates, heatingSummary } from '@/model/groups'
 import { activeHomeId, activeLevel, homesOf, useLayout } from '@/model/layoutStore'
 import { usePlacement } from '@/model/placement'
 import { maxWidth, PANEL_DEFAULT, usePanel } from './panelState'
-import { checkItem, isWallMounted, MOUNTABLE, mountRange, overlapsRoom, SURFACE_Y, surfaceAt } from '@/model/rules'
+import { checkItem, isWallMounted, MOUNTABLE, mountRange, overlapsRoom, SURFACE_Y, surfaceAt, wallTop } from '@/model/rules'
 import { containerOf, INTERIOR, moveWithContents, placeInside, toLocal } from '@/model/containers'
 import { counterSink } from '@/model/counter'
 import { mountCenter, mountY, setMountY, setWallMount } from './mount'
@@ -20,7 +20,7 @@ import { currentLang, lower, msg, t, tc, tn } from '@/i18n'
 import { useView } from '@/scene/camera'
 import { BindingEditor, BindingSummary, itemName, itemStateLabel } from './Bindings'
 import { EntityControls } from './Controls'
-import { removeRoom, removeRoomPart, removeWalls, restoreWalls, roomContentsCount, wallContentsCount } from './removal'
+import { halfWall, removeRoom, removeRoomPart, removeWalls, restoreWalls, roomContentsCount, wallContentsCount } from './removal'
 import { roomWalls, type RoomWall } from '@/model/walls'
 import { rotateRoom } from './rotateRoom'
 import { regenerateFromHa } from './regenerate'
@@ -466,7 +466,7 @@ function FurnitureOptions({ item }: { item: Item }) {
     // A wall-mounted power strip or an LED strip snaps to the wall again when it gets longer: at the end of a wall it slides
     // in, never past it
     if ((item.mount === 'wall' || item.kind === 'ledStrip') && 'len' in patch) {
-      const w = wallSnap(level.rooms, item.x, item.z, CATALOG[item.kind].size[1], 0.2, sizeOf(item.kind, patch.len)[0], false, true)
+      const w = wallSnap(level.rooms, item.x, item.z, CATALOG[item.kind].size[1], 0.2, sizeOf(item.kind, patch.len)[0], false, true, wallTop(item))
       if (w) patch = { ...patch, x: w.x, z: w.z }
     }
     const next = { ...item, ...patch }
@@ -825,7 +825,7 @@ function HeatingKind({ item }: { item: Item }) {
     const level = activeLevel(useLayout.getState())
     if (!level || kind === item.kind) return
     const [w, d] = CATALOG[kind].size
-    const at = wallSnap(level.rooms, item.x, item.z, d, 0.6, w, false, true)
+    const at = wallSnap(level.rooms, item.x, item.z, d, 0.6, w, false, true, wallTop({ kind }))
     const patch: Partial<Item> = { kind, ...(at ? { x: at.x, z: at.z, rot: at.rot } : {}), y: undefined, len: undefined, variant: undefined }
     const next = { ...item, ...patch }
     const chk = checkItem(level, { kind, x: next.x, z: next.z, rot: next.rot }, item.id)
@@ -1138,9 +1138,9 @@ const SIDE_LABEL: Record<Side, string> = { back: msg('Outside, back'), front: ms
 const wallName = (w: RoomWall) => (w.neighbor ? w.neighbor.name : t(SIDE_LABEL[w.side]))
 
 /**
- * The room's walls (a balcony's or terrace's railings), each standing or left out. A wall left out between two rooms
- * makes one open space while both stay rooms of their own (name, Home Assistant area, stats). Indoors all walls can be
- * left out or put back at once.
+ * The room's walls (a balcony's or terrace's railings), each standing, half height (indoors) or left out. A wall left out
+ * between two rooms makes one open space while both stay rooms of their own (name, Home Assistant area, stats). Indoors
+ * all walls can be left out or put back at once.
  */
 function RoomWalls({ room }: { room: Room }) {
   const rooms = useLayout((s) => activeLevel(s)?.rooms ?? NO_ROOMS)
@@ -1149,7 +1149,7 @@ function RoomWalls({ room }: { room: Room }) {
   const rail = isOutdoor(room)
   const { select } = useLayout.getState()
   const closed = walls.filter((w) => !w.open).map((w) => w.key)
-  const opened = walls.filter((w) => w.open).map((w) => w.key)
+  const opened = walls.filter((w) => w.state !== 'wall').map((w) => w.key)
   return (
     <div id={`walls-${room.id}`} className="grid gap-2">
       <span className="text-[12px] font-semibold text-ink-2">{rail ? t('Railings') : t('Walls')}</span>
@@ -1164,10 +1164,15 @@ function RoomWalls({ room }: { room: Room }) {
             <span className="truncate text-[12.5px] font-semibold text-ink-2">{wallName(w)}</span>
             <span className="shrink-0 font-mono text-[11px] text-ink-3">{fmt(w.length, 1)} m</span>
           </button>
-          <div className="flex w-[150px] gap-1">
-            <button type="button" data-wall-state="closed" className={seg(!w.open)} onClick={() => w.open && restoreWalls(room.id, [w.key])}>
+          <div className={`flex gap-1 ${rail ? 'w-[150px]' : 'w-[204px]'}`}>
+            <button type="button" data-wall-state="closed" className={seg(w.state === 'wall')} onClick={() => w.state !== 'wall' && restoreWalls(room.id, [w.key])}>
               {rail ? t('Railing') : t('Wall')}
             </button>
+            {!rail && (
+              <button type="button" data-wall-state="half" className={seg(w.state === 'half')} onClick={() => w.state !== 'half' && halfWall(room.id, w.key)}>
+                {tc('wall', 'Half')}
+              </button>
+            )}
             <button type="button" data-wall-state="open" className={seg(w.open)} onClick={() => !w.open && removeWalls(room.id, [w.key])}>
               {tc('wall', 'Open')}
             </button>
@@ -1227,6 +1232,20 @@ function WallEdit({ room, wall }: { room: Room; wall: RoomWall }) {
           <span className="font-semibold text-ink-2">{t('Length')}</span>
           <span className="font-mono tabular-nums text-ink-2">{fmt(wall.length, 2)} m</span>
         </div>
+        {!wall.open && !rail && (
+          <div className="grid gap-1.5">
+            <span className="text-[12px] font-semibold text-ink-2">{t('Height')}</span>
+            <div className="flex gap-1.5">
+              <button type="button" id="wall-full" className={seg(wall.state === 'wall')} onClick={() => wall.state !== 'wall' && restoreWalls(room.id, [wall.key])}>
+                {tc('wall', 'Full')}
+              </button>
+              <button type="button" id="wall-half" className={seg(wall.state === 'half')} onClick={() => wall.state !== 'half' && halfWall(room.id, wall.key)}>
+                {tc('wall', 'Half')}
+              </button>
+            </div>
+            {wall.state === 'half' && <span className="text-[11px] leading-relaxed text-ink-3">{t('A half wall is about 1 m high: furniture can stand against it, only low items hang on it.')}</span>}
+          </div>
+        )}
         {wall.open && (
           <p className="text-[12px] leading-relaxed text-ink-3">
             {wall.neighbor

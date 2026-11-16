@@ -45,6 +45,11 @@ export interface Room extends Rect {
    * space (geometry.ts > wallOpen). A balcony or terrace side here has no railing.
    */
   open?: string[]
+  /**
+   * Half walls (a low divider between a kitchen and a living room): the same keys as `open`; HALF_WALL_H high. A wall
+   * listed in both is open.
+   */
+  half?: string[]
 }
 
 export type ItemKind =

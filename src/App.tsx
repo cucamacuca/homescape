@@ -517,7 +517,7 @@ export default function App() {
             const run = runs.filter((o) => wallKey(o) === w.key).sort((a, c) => c.a1 - c.a0 - (a.a1 - a.a0))[0]
             const mid = run ? (run.a0 + run.a1) / 2 : 0
             const at = run ? (run.horizontal ? { x: mid, z: run.line } : { x: run.line, z: mid }) : null
-            return { key: w.key, neighbor: w.neighbor?.id ?? null, side: w.side, length: w.length, open: w.open, items: m.wallItems(l, r, w.key).map((it) => it.id), at }
+            return { key: w.key, neighbor: w.neighbor?.id ?? null, side: w.side, length: w.length, state: w.state, open: w.open, half: Boolean(run?.half), items: m.wallItems(l, r, w.key).map((it) => it.id), at }
           })
         }),
       roomLights: () => import('@/scene/roomLights').then((m) => m.lastRoomLights()),

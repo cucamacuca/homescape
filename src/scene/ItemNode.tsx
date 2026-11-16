@@ -14,7 +14,7 @@ import { CATALOG, isLightKind, sizeOf } from '@/model/catalog'
 import { backOnWall, doorSides, isAperture, isOutdoor, snap, wallSnap } from '@/model/geometry'
 import { activeLevel, useLayout } from '@/model/layoutStore'
 import { usePlacement } from '@/model/placement'
-import { APPLIANCE_STACK, checkItem, FREE_SNAP, FREESTANDING, isWallMounted, snapsToWall, STACKABLE, surfaceAt } from '@/model/rules'
+import { APPLIANCE_STACK, checkItem, FREE_SNAP, FREESTANDING, isWallMounted, snapsToWall, STACKABLE, surfaceAt, wallTop } from '@/model/rules'
 import { counterSink } from '@/model/counter'
 import { carryPatches, containerOf, contentsOf, DRAWER_SLIDE, INTERIOR, OPENS, shelfAt, toLocal } from '@/model/containers'
 import type { Item } from '@/model/types'
@@ -217,7 +217,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
     const mounted = isWallMounted(item.kind, item.variant, item.mount)
     if (STACKABLE.includes(item.kind) && !mounted) ny = surfaceAt(level.items, x, z, item.id)?.y ?? shelfAt(level.items, x, z, item.kind, item.id)
     if (snapsToWall(item.kind, item.mount) && (ny == null || mounted)) {
-      const w = wallSnap(level.rooms, x, z, meta.size[1], FREESTANDING.includes(item.kind) ? FREE_SNAP : 0.6, sizeOf(item.kind, item.len)[0], isAperture(item.kind), item.mount === 'wall')
+      const w = wallSnap(level.rooms, x, z, meta.size[1], FREESTANDING.includes(item.kind) ? FREE_SNAP : 0.6, sizeOf(item.kind, item.len)[0], isAperture(item.kind), item.mount === 'wall', wallTop(item))
       if (w) ({ x, z, rot } = w)
       else onWall = false
     }

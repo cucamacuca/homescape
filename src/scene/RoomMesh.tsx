@@ -2,7 +2,7 @@ import { useFrame, useThree, type ThreeElements, type ThreeEvent } from '@react-
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { inRoom, isOutdoor, rectBounds, rectsOf, runOpenings, shiftRoom, snap, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, WALL_T, wallKey, wallRuns, type Opening, type Side, type WallRun } from '@/model/geometry'
+import { HALF_WALL_H, inRoom, isOutdoor, rectBounds, rectsOf, runOpenings, shiftRoom, snap, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, WALL_T, wallKey, wallRuns, type Opening, type Side, type WallRun } from '@/model/geometry'
 import { useHa } from '@/ha/store'
 import { t } from '@/i18n'
 import { activeLevel, FLOOR_H, useLayout } from '@/model/layoutStore'
@@ -97,11 +97,13 @@ function Wall({ run, interior, plan, innerFull, still, fps, roomId, picked }: { 
   const parts = useMemo(() => pieces(a0 - WALL_IN, a1 + WALL_IN, openings), [a0, a1, openings])
   const invalidate = useThree((s) => s.invalidate)
   const settled = useRef(false)
-  // Re-layout when the pieces or the interior/exterior state change (on-demand rendering does not draw a frame by itself).
+  // Re-layout when the pieces, the interior/exterior state or the height (half wall) change (on-demand rendering does not
+  // draw a frame by itself).
+  const half = Boolean(run.half)
   useEffect(() => {
     settled.current = false
     invalidate()
-  }, [parts, interior, plan, innerFull, invalidate])
+  }, [parts, interior, half, plan, innerFull, invalidate])
 
   useFrame((state, dt) => {
     const { camera } = state
@@ -117,6 +119,8 @@ function Wall({ run, interior, plan, innerFull, still, fps, roomId, picked }: { 
       const [nx, nz] = NORMAL[side]
       if ((nx * dx + nz * dz) / l > 0.2) target = WALL_CUT_H
     }
+    // A half wall (Room.half) never rises above its own top, in the walk too
+    if (run.half) target = Math.min(target, HALF_WALL_H)
     const d = target - h.current
     if (Math.abs(d) < 0.001 && settled.current) return
     h.current = Math.abs(d) < 0.001 ? target : h.current + d * Math.min(1, dt * 8)
@@ -606,7 +610,7 @@ export function RoomMesh({ room, level: fixed, still: stillProp }: { room: Room;
       {stacked &&
         !outdoor &&
         runs
-          .filter((r) => !r.interior)
+          .filter((r) => !r.interior && !r.half)
           .map((r) => {
             const a0 = r.a0 - WALL_IN
             const a1 = r.a1 + WALL_IN

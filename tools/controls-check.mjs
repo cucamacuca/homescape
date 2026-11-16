@@ -349,6 +349,32 @@ if (spot) {
     ok((await H((id) => window.__homescape.walls(id), home.id)).every((w) => !w.open), 'Put all walls back restores them')
     await p.keyboard.press('Meta+z')
     await p.keyboard.press('Meta+z')
+
+    // Half wall (GitHub issue #6): from the room card; the door in it goes, the wall stays a wall in the walk and the grid
+    const pastHalf = (await level()).past
+    await p.click(`#walls-${home.id} [data-wall="${wall.key}"] [data-wall-state="half"]`)
+    await p.waitForTimeout(400)
+    const halfW = (await H((id) => window.__homescape.walls(id), home.id)).find((w) => w.key === wall.key)
+    const halfL = await level()
+    ok(halfW?.state === 'half' && halfW.half && !halfL.items.some((i) => doors.includes(i.id)) && halfL.past === pastHalf + 1, 'Half makes a half wall in one undo step, without the door that was in it')
+    const blocked = await p.evaluate(async (at) => {
+      const fps = await import('/src/scene/fps.ts')
+      const s = window.__homescape.getState().layout
+      const lv = s.layout.levels.find((l) => l.id === s.levelId) ?? s.layout.levels[0]
+      return fps.buildColliders(lv).segs.some((g) => Math.min(g.x1, g.x2) - 0.01 <= at.x && Math.max(g.x1, g.x2) + 0.01 >= at.x && Math.min(g.z1, g.z2) - 0.01 <= at.z && Math.max(g.z1, g.z2) + 0.01 >= at.z)
+    }, wall.at)
+    ok(blocked, 'A half wall still blocks the walk')
+    await H(({ id, key }) => window.__homescape.select({ type: 'wall', id, wall: key }), { id: home.id, key: wall.key })
+    await p.waitForTimeout(400)
+    ok((await p.isVisible('#wall-half')) && (await p.isVisible('#wall-full')), 'The wall card offers Full / Half height')
+    await p.click('#wall-full')
+    await p.waitForTimeout(400)
+    ok((await H((id) => window.__homescape.walls(id), home.id)).find((w) => w.key === wall.key)?.state === 'wall', 'Full puts the wall back at full height')
+    await p.keyboard.press('Meta+z')
+    await p.keyboard.press('Meta+z')
+    await p.waitForTimeout(300)
+    const undone = await level()
+    ok((await H((id) => window.__homescape.walls(id), home.id)).find((w) => w.key === wall.key)?.state === 'wall' && undone.items.filter((i) => doors.includes(i.id)).length === doors.length, '⌘Z brings the full wall and its door back')
     await H(() => window.__homescape.planView(false))
     await H(() => window.__homescape.select(null))
   }

@@ -20,6 +20,8 @@ export const WALL_IN = WALL_T / 2
 export const WALL_H = 2.6
 /** Interior wall height (floor plan feel) and the cut height of exterior walls facing the camera */
 export const WALL_INNER_H = 0.38
+/** Height of a half wall (Room.half): a low divider, about counter height */
+export const HALF_WALL_H = 1.05
 export const WALL_CUT_H = 0.16
 /** Doors and windows start this far inside the room boundary (their geometry is drawn from the boundary, wall centered) */
 export const APERTURE_INSET = 0.21
@@ -111,6 +113,8 @@ export interface WallRun {
   interior: boolean
   /** The room on the other side (indoor or outdoor); none when the run faces open space */
   neighbor?: string
+  /** Half wall (Room.half): HALF_WALL_H high; floor items lean on it, only low wall items hang on it */
+  half?: boolean
   /** Center of the part the run belongs to (for the facing-the-camera test) */
   cx: number
   cz: number
@@ -125,6 +129,12 @@ const OUT: Record<Side, number> = { back: -1, front: 1, left: -1, right: 1 }
 export function wallOpen(room: Room, side: Side, neighbor?: Room) {
   if (neighbor) return Boolean(room.open?.includes(neighbor.id) || neighbor.open?.includes(room.id))
   return Boolean(room.open?.includes(side))
+}
+
+/** Half walls (Room.half), the same way: either room listing the other, or the room listing the side. Open wins. */
+export function wallHalf(room: Room, side: Side, neighbor?: Room) {
+  if (neighbor) return Boolean(room.half?.includes(neighbor.id) || neighbor.half?.includes(room.id))
+  return Boolean(room.half?.includes(side))
 }
 
 /** Which wall of the room a run belongs to (Room.open entry): the room on the other side, or the side facing open space */
@@ -142,6 +152,7 @@ export const wallKey = (run: Pick<WallRun, 'neighbor' | 'side'>) => run.neighbor
  *
  * Walls left out (Room.open, wallOpen) are skipped; mode 'open' returns only those (the open edges, drawn as a guide in
  * edit mode). mode 'edges': every edge of the union, ignoring neighbors and open walls (outlines, sticking to a wall).
+ * Half walls (Room.half, wallHalf) are runs with half set; a half run never merges with a full one.
  * byWall: a run never spans two neighbors, so each run is one wall (wallKey) that can be selected and left out; otherwise
  * runs of the same kind merge across neighbors (and carry no neighbor when they span several), as items, strips, the walk
  * and the pets expect.
@@ -182,10 +193,11 @@ export function wallRuns(room: Room, rooms: Room[], mode: 'walls' | 'house' | 'o
         } else interior = Boolean(neighbor && !isOutdoor(neighbor))
         const prev = runs[runs.length - 1]
         const next = neighbor?.id
-        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior && (!byWall || prev.neighbor === next)) {
+        const half = mode !== 'edges' && mode !== 'open' && wallHalf(room, side, neighbor)
+        if (prev && prev.side === side && Math.abs(prev.line - line) < 1e-6 && Math.abs(prev.a1 - a0) < 1e-6 && prev.interior === interior && Boolean(prev.half) === half && (!byWall || prev.neighbor === next)) {
           prev.a1 = a1
           if (prev.neighbor !== next) delete prev.neighbor
-        } else runs.push({ side, horizontal, line, a0, a1, interior, ...(next ? { neighbor: next } : {}), cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
+        } else runs.push({ side, horizontal, line, a0, a1, interior, ...(next ? { neighbor: next } : {}), ...(half ? { half: true } : {}), cx: p.x + p.w / 2, cz: p.z + p.d / 2 })
       }
     }
   }
@@ -234,14 +246,20 @@ function cutRuns(runs: WallRun[], cuts: WallRun[]): WallRun[] {
 /**
  * exact: the corner margin is only half the item's length (not at least 0.2 m) and wide items are not pulled into the
  * corner, so a wall-mounted power strip can go anywhere on the wall.
+ * top: the highest point of a wall-mounted item or opening above the floor (rules.ts > wallTop): a half wall only takes
+ * items below its top (a plug yes, a painting or a window no). Floor items (a counter) lean on half walls too.
  */
-export function wallSnap(rooms: Room[], x: number, z: number, depth: number, maxDist = 0.6, width?: number, aperture = false, exact = false) {
+export function wallSnap(rooms: Room[], x: number, z: number, depth: number, maxDist = 0.6, width?: number, aperture = false, exact = false, top?: number) {
   let best: { x: number; z: number; rot: number; dist: number } | null = null
   const inset = aperture ? APERTURE_INSET : WALL_IN + depth / 2 + 0.01
   const ROT = WALL_ROT
+  const tall = top != null && top > HALF_WALL_H - 0.02
   for (const room of rooms) {
     // Outdoors the only wall is the house wall: items do not hang on a garden or balcony edge but on the house's outer face
-    for (const run of isOutdoor(room) ? wallRuns(room, rooms, 'house') : cutRuns(wallRuns(room, [], 'edges'), wallRuns(room, rooms, 'open'))) {
+    const runs = isOutdoor(room)
+      ? wallRuns(room, rooms, 'house').filter((r) => !(tall && r.half))
+      : cutRuns(wallRuns(room, [], 'edges'), [...wallRuns(room, rooms, 'open'), ...(tall ? wallRuns(room, rooms).filter((r) => r.half) : [])])
+    for (const run of runs) {
       const along = run.horizontal ? x : z
       if (along < run.a0 - 0.2 || along > run.a1 + 0.2) continue
       const half = exact ? Math.max((width ?? 0) / 2, 0.02) : Math.max((width ?? 0) / 2, 0.2)
