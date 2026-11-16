@@ -50,8 +50,15 @@ interface Window {
     demo: () => Promise<void>
     /** Ray in the scene: height, distance and item of the first visible hit (dev/sceneProbe.ts) */
     pick: (x: number, y: number, z: number, dx: number, dy: number, dz: number) => Promise<{ y: number; distance: number; itemId: string | null } | null>
-    /** The item's group in the scene: its id (changes when rebuilt), world height, visible or not */
-    itemObject: (id: string) => Promise<{ uuid: string; y: number; visible: boolean; size: [number, number, number] } | null>
+    /** The item's group in the scene: its id (changes when rebuilt), world height, visible or not, size and named parts */
+    itemObject: (id: string) => Promise<{
+      uuid: string
+      y: number
+      visible: boolean
+      size: [number, number, number]
+      /** Named parts (clock hands, voice assistant ring, phone body): rotation, visibility, opacity, model state */
+      parts: Record<string, { rot: [number, number, number]; visible: boolean; opacity?: number; state?: string }>
+    } | null>
     /** Open state of cabinets (scene/bins.ts): cabinet id -> open */
     bins: () => Promise<Record<string, boolean>>
     /** Flight between homes (scene/HomeFlight.tsx): stage, number of finished flights, measurements of the last one */

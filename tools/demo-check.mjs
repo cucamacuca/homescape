@@ -274,6 +274,69 @@ ok(
   `The TV, washer (power ${dev.washerPower} W), garage door, lock and robot vacuum obey commands (${dev.toggled.join(', ')} / ${dev.back.join(', ')})`,
 )
 
+// --- Household items (model/household.ts): the wall clock shows the time, the voice assistant's LED ring follows its
+// assist_satellite state, the phone on its charger fades while its device tracker is away ---
+{
+  const model = await p.evaluate(async () => {
+    const m = await import('/src/model/household.ts')
+    const at = (h, min) => m.clockHands(new Date(2026, 0, 5, h, min))
+    const e = (entity_id, state, attributes = {}) => ({ entity_id, state, attributes })
+    return {
+      three: at(3, 0),
+      half: at(9, 30),
+      text: m.clockText(new Date(2026, 0, 5, 7, 5)),
+      rings: [...['idle', 'listening', 'processing', 'responding', 'unavailable'].map((st) => m.assistRing('assist_satellite', st)), m.assistRing('media_player', 'playing')],
+      home: m.phoneState([e('device_tracker.p', 'home'), e('sensor.p_battery', '64', { device_class: 'battery' }), e('binary_sensor.p_charging', 'on', { device_class: 'battery_charging' })]),
+      away: m.phoneState([e('device_tracker.p', 'not_home'), e('binary_sensor.p_charging', 'off', { device_class: 'battery_charging' })]),
+    }
+  })
+  const same = (a, b) => Math.abs(a - b) < 1e-9
+  ok(
+    same(model.three.hour, Math.PI / 2) && same(model.three.minute, 0) && same(model.half.minute, Math.PI) && same(model.half.hour, (9.5 / 12) * 2 * Math.PI) && model.text === '07:05',
+    `Clock hands and digits follow the time (3:00: hour hand at 90°, 9:30: minute hand at 180°, 7:05 reads ${model.text})`,
+  )
+  ok(model.rings.join() === 'off,listen,spin,pulse,off,pulse', `The voice assistant's ring: idle, listening, processing, responding, unavailable, a playing speaker (${model.rings.join(', ')})`)
+  ok(!model.home.away && model.home.charging && model.home.battery === 64 && model.away.away && !model.away.charging, `The phone's state from its companion app (home: charging ${model.home.charging}, ${model.home.battery}%; away: ${model.away.away})`)
+
+  // In the scene: the gym clock's hands now, the kitchen assistant's ring for each state, the phone's body while away
+  const part = (kind, name) =>
+    p.evaluate(
+      async ({ kind, name }) => {
+        const it = window.__homescape.getState().layout.layout.levels.flatMap((l) => l.items).find((i) => i.kind === kind)
+        const o = it ? await window.__homescape.itemObject(it.id) : null
+        return o?.parts[name] ?? null
+      },
+      { kind, name },
+    )
+  await setLevel(1)
+  await p.waitForTimeout(1200)
+  const hands = { hour: await part('wallClock', 'hour-hand'), minute: await part('wallClock', 'minute-hand') }
+  const want = await p.evaluate(async () => (await import('/src/model/household.ts')).clockHands(new Date()))
+  const off = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)))
+  ok(
+    hands.hour && hands.minute && off(-hands.minute.rot[2], want.minute) < 0.1 && off(-hands.hour.rot[2], want.hour) < 0.02,
+    `The gym's wall clock shows the time now (minute hand ${hands.minute ? ((-hands.minute.rot[2] / Math.PI) * 30).toFixed(1) : '-'} min, expected ${((want.minute / Math.PI) * 30).toFixed(1)})`,
+  )
+  await setLevel(0)
+  await p.waitForTimeout(1000)
+  const set = (id, state) => p.evaluate(({ id, state }) => window.__homescape.setEntity({ ...window.__homescape.entity(id), state }), { id, state })
+  const rings = []
+  for (const st of ['listening', 'processing', 'responding', 'idle']) {
+    await set('assist_satellite.us_kitchen_voice', st)
+    await p.waitForTimeout(500)
+    rings.push((await part('voiceAssistant', 'assist-ring'))?.state)
+  }
+  ok(rings.join() === 'listen,spin,pulse,off', `The kitchen voice assistant's ring in the scene follows its state (${rings.join(', ')})`)
+  const body = { home: (await part('phone', 'phone-body'))?.opacity }
+  await set('device_tracker.us_phone', 'not_home')
+  await p.waitForTimeout(500)
+  body.away = (await part('phone', 'phone-body'))?.opacity
+  await set('device_tracker.us_phone', 'home')
+  await p.waitForTimeout(500)
+  body.back = (await part('phone', 'phone-body'))?.opacity
+  ok(body.home === 1 && body.away < 0.5 && body.back === 1, `The phone on the office desk turns see-through while its tracker is away (opacity ${body.home} / ${body.away} / ${body.back})`)
+}
+
 // --- People: rooms with motion and a computer that is on; the plan uses more than one room ---
 await p.waitForTimeout(1500)
 const ppl = await p.evaluate(async () => {

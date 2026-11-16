@@ -31,7 +31,9 @@ export function pick(x: number, y: number, z: number, dx: number, dy: number, dz
   return hit ? { y: hit.point.y, distance: hit.distance, itemId: itemOf(hit.object) } : null
 }
 
-/** An item's group in the scene: its uuid (changes when rebuilt) and world height */
+type Part = { rot: [number, number, number]; visible: boolean; opacity?: number; state?: string }
+
+/** An item's group in the scene: its uuid (changes when rebuilt), world height and size, and its named parts */
 export function itemObject(id: string) {
   const s = scene()
   if (!s) return null
@@ -44,5 +46,18 @@ export function itemObject(id: string) {
   const p = o.getWorldPosition(new THREE.Vector3())
   // World size of everything drawn for the item (glow and selection aids included): for comparing lengths
   const size = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3())
-  return { uuid: o.uuid, y: p.y, visible: visible(o), size: [size.x, size.y, size.z] as [number, number, number] }
+  // Named parts (a clock's hands, a voice assistant's ring, a phone's body): rotation, visibility, material opacity and the
+  // state the model put on them (userData.state)
+  const parts: Record<string, Part> = {}
+  o.traverse((c) => {
+    if (!c.name) return
+    const m = (c as THREE.Mesh).material
+    parts[c.name] = {
+      rot: [c.rotation.x, c.rotation.y, c.rotation.z],
+      visible: visible(c),
+      ...(m && !Array.isArray(m) ? { opacity: m.opacity } : {}),
+      ...(typeof c.userData.state === 'string' ? { state: c.userData.state } : {}),
+    }
+  })
+  return { uuid: o.uuid, y: p.y, visible: visible(o), size: [size.x, size.y, size.z] as [number, number, number], parts }
 }

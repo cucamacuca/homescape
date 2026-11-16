@@ -533,7 +533,7 @@ export function VoiceAssistant({ v }: P) {
     <group>
       <Cyl r={0.043} h={0.03} position={[0, 0.015, 0]} color={bodyOf(v, '#1d1f24')} segments={32} />
       <group ref={spin} position={[0, 0.031, 0]}>
-        <mesh ref={pulse} rotation-x={Math.PI / 2} geometry={torus(0.036, 0.004, 32)} material={led} />
+        <mesh ref={pulse} name="assist-ring" userData={{ state: ring }} rotation-x={Math.PI / 2} geometry={torus(0.036, 0.004, 32)} material={led} />
         {ring === 'spin' && <Ball r={0.006} position={[0.036, 0.002, 0]} color="#ffffff" shadow={false} />}
       </group>
       {lit && <Glow position={[0, 0.04, 0]} color={color} opacity={v.night ? 0.6 : 0.3} size={0.25} />}
@@ -720,7 +720,7 @@ export function Phone({ v }: P) {
     <group>
       <Cyl r={0.05} h={0.008} position={[0, 0.004, 0]} color="#e9ebf0" segments={28} />
       <mesh position={[0, 0.0085, 0]} rotation-x={Math.PI / 2} geometry={torus(0.044, 0.002, 28)} material={glowing(C.ok, ph.charging && !ph.away, 2)} />
-      <Box size={[0.072, 0.008, 0.15]} position={[0, 0.013, 0]} material={body} radius={0.004} />
+      <Box name="phone-body" size={[0.072, 0.008, 0.15]} position={[0, 0.013, 0]} material={body} radius={0.004} />
       {!ph.away && <mesh position={[0, 0.0175, 0]} rotation-x={-Math.PI / 2} geometry={plane(0.064, 0.138)} material={screen} />}
     </group>
   )
@@ -1175,10 +1175,10 @@ export function WallClock({ v }: P) {
       {Array.from({ length: 12 }, (_, i) => (
         <Box key={i} size={[0.008, i % 3 ? 0.012 : 0.022, 0.002]} position={[Math.sin((i / 12) * TAU) * 0.125, Math.cos((i / 12) * TAU) * 0.125, 0.017]} rotation={[0, 0, -(i / 12) * TAU]} color="#2a2c33" shadow={false} />
       ))}
-      <group position={[0, 0, 0.019]} rotation-z={-hour}>
+      <group name="hour-hand" position={[0, 0, 0.019]} rotation-z={-hour}>
         <Box size={[0.012, 0.075, 0.003]} position={[0, 0.032, 0]} color="#1d1f24" shadow={false} />
       </group>
-      <group position={[0, 0, 0.021]} rotation-z={-minute}>
+      <group name="minute-hand" position={[0, 0, 0.021]} rotation-z={-minute}>
         <Box size={[0.008, 0.11, 0.003]} position={[0, 0.048, 0]} color="#1d1f24" shadow={false} />
       </group>
       <Cyl r={0.008} h={0.006} position={[0, 0, 0.023]} rotation={[Math.PI / 2, 0, 0]} color={C.alarm} segments={12} shadow={false} />
