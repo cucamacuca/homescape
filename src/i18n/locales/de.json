@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "{room} gelöscht. Rückgängig mit ⌘Z.",
  "{value}%": "{value} %",
  "Ø {d} m · can be oval": "Ø {d} m · kann oval sein",
- "⌥ or ⇧ + left drag": "⌥ oder ⇧ + mit links ziehen"
+ "⌥ or ⇧ + left drag": "⌥ oder ⇧ + mit links ziehen",
+ "Stand": "Stand",
+ "In a pot": "Im Topf",
+ "Planted": "Eingepflanzt",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "Binde den smarten Stecker (Schalter) oder das Licht, das den Baum versorgt: Solange er an ist, funkeln die Lichter und der Stern leuchtet. Stelle unten seine Höhe ein; drinnen muss er unter die Decke passen, draußen kann er bis zu 5 m hoch sein.",
+ "Tree height": "Baumhöhe",
+ "Outdoor Christmas tree": "Weihnachtsbaum für draußen",
+ "{h} m · planted": "{h} m · eingepflanzt",
+ "Too tall for the ceiling: make it lower or place it outside": "Zu hoch für die Decke: mach ihn niedriger oder stell ihn nach draußen"
 }

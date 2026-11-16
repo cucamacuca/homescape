@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "Pièce supprimée : {room}. ⌘Z pour annuler.",
  "{value}%": "{value} %",
  "Ø {d} m · can be oval": "Ø {d} m · peut être ovale",
- "⌥ or ⇧ + left drag": "⌥ ou ⇧ + glisser à gauche"
+ "⌥ or ⇧ + left drag": "⌥ ou ⇧ + glisser à gauche",
+ "Stand": "Support",
+ "In a pot": "En pot",
+ "Planted": "Planté",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "Associez la prise connectée (interrupteur) ou la lumière qui alimente le sapin : tant qu'il est allumé, les guirlandes scintillent et l'étoile brille. Réglez sa hauteur ci-dessous ; à l'intérieur il doit tenir sous le plafond, à l'extérieur il peut atteindre 5 m.",
+ "Tree height": "Hauteur du sapin",
+ "Outdoor Christmas tree": "Sapin de Noël extérieur",
+ "{h} m · planted": "{h} m · planté",
+ "Too tall for the ceiling: make it lower or place it outside": "Trop haut pour le plafond : réduisez-le ou placez-le dehors"
 }

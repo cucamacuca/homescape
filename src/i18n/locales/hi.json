@@ -1788,5 +1788,13 @@
  "{room} deleted. ⌘Z undoes it.": "{room} हटा दिया गया। पूर्ववत करने के लिए ⌘Z दबाएँ।",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · अंडाकार भी हो सकता है",
- "⌥ or ⇧ + left drag": "⌥ या ⇧ + बायाँ ड्रैग"
+ "⌥ or ⇧ + left drag": "⌥ या ⇧ + बायाँ ड्रैग",
+ "Stand": "आधार",
+ "In a pot": "गमले में",
+ "Planted": "ज़मीन में लगा",
+ "Bind the smart plug (switch) or light that powers the tree: the lights twinkle and the star glows while it is on. Set its height below; indoors it must fit under the ceiling, outdoors it can grow up to 5 m.": "पेड़ को बिजली देने वाला स्मार्ट प्लग (स्विच) या लाइट जोड़ें: चालू रहने पर लाइटें टिमटिमाती हैं और तारा चमकता है। नीचे इसकी ऊँचाई सेट करें; अंदर इसे छत के नीचे आना चाहिए, बाहर यह 5 मी तक ऊँचा हो सकता है।",
+ "Tree height": "पेड़ की ऊँचाई",
+ "Outdoor Christmas tree": "बाहर का क्रिसमस ट्री",
+ "{h} m · planted": "{h} मी · ज़मीन में लगा",
+ "Too tall for the ceiling: make it lower or place it outside": "छत के लिए बहुत ऊँचा: इसे छोटा करें या बाहर रखें"
 }
