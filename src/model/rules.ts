@@ -145,10 +145,10 @@ export const SURFACE_Y: Partial<Record<ItemKind, number>> = {
 }
 
 /** Small items that can be stacked on a surface. */
-export const STACKABLE: ItemKind[] = ['monitor', 'deskLamp', 'console', 'vibrationSensor', 'diffuser', 'keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'powerStrip', 'homepod', 'deskCamera', 'tableLamp', 'humidifier', 'speaker', 'soundbar', 'computer', 'airQuality', 'smartButton', 'router', 'nas', 'printer', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'turntable', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'smartHub', 'phone', 'ups', 'toaster', 'multicooker']
+export const STACKABLE: ItemKind[] = ['monitor', 'deskLamp', 'console', 'vibrationSensor', 'diffuser', 'keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'powerStrip', 'homepod', 'deskCamera', 'tableLamp', 'humidifier', 'speaker', 'soundbar', 'computer', 'airQuality', 'smartButton', 'router', 'nas', 'printer', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'turntable', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'smartHub', 'phone', 'ups', 'toaster', 'multicooker', 'toothbrush']
 
 /** Items that only go on a surface (desk, coffee table, cabinet, washbasin): pointless on the floor. */
-export const DESK_ONLY: ItemKind[] = ['keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'tableLamp', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'smartButton', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'phone', 'toaster', 'multicooker']
+export const DESK_ONLY: ItemKind[] = ['keyboard', 'mouse', 'mousePad', 'monitorV', 'deskPlant', 'deskPalm', 'fishbowl', 'soapDispenser', 'deskFan', 'tableLamp', 'coffeeMachine', 'kettle', 'microwave', 'airFryer', 'smartButton', 'streamingBox', 'smartDisplay', 'voiceAssistant', 'phone', 'toaster', 'multicooker', 'toothbrush']
 
 /** Appliances that stack (a dryer on a washing machine): only on each other. */
 export const APPLIANCE_STACK: ItemKind[] = ['washer', 'dryer', 'dishwasher']

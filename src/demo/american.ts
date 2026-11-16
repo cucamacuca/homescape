@@ -490,6 +490,9 @@ function groundFloor(): Level {
   wall(kitchen, 'front', 3.6, 'wineFridge', bind('light.us_wine_fridge'))
   put('freezer', 9.8, 8.6, 0, bind('sensor.us_freezer_temperature', 'binary_sensor.us_freezer_lid'))
 
+  /* --- bath: a garden sauna by the pool --- */
+  put('sauna', 5, -11, 0, bind('climate.us_sauna'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -664,6 +667,10 @@ function upperFloor(): Level {
 
   /* --- appliances: an ironing board in the bonus room --- */
   put('ironingBoard', 8.6, 4.35, 0, bind('switch.us_iron'))
+
+  /* --- bath: a scale and an electric toothbrush in the hall bath --- */
+  put('bathScale', 0.4, 1.6, 0, bind('sensor.us_bath_scale'))
+  put('toothbrush', 1.15, 1.0, -PI / 2, { ...bind('sensor.us_toothbrush'), y: 0.8 })
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -904,6 +911,9 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    sensor('us_bath_scale', t('Bathroom Scale'), 72.4, 'weight', 'kg'),
+    ent('sensor.us_toothbrush', 'idle', t('Toothbrush'), {}),
+    ent('climate.us_sauna', 'off', t('Garden Sauna'), { hvac_modes: ['off', 'heat'], current_temperature: 22, temperature: 80, supported_features: 1 }),
     sw('us_toaster', t('Toaster'), false),
     sw('us_multicooker', t('Multicooker'), true),
     light('us_wine_fridge', t('Wine Fridge Light'), true, warm(160, 4000)),

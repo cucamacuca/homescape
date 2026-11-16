@@ -297,6 +297,12 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   wineFridge: { label: t('Wine fridge'), group: 'appliance', domains: ['switch', 'light', 'sensor'], size: [0.5, 0.57], labelY: 1.1, wall: true },
   // Ironing board with an iron; with a plug bound, the iron glows and steams while on
   ironingBoard: { label: t('Ironing board'), group: 'appliance', domains: ['switch', 'sensor'], size: [1.3, 0.4], labelY: 1.05 },
+  // Bathroom scale: the display shows the bound weight
+  bathScale: { label: t('Bathroom scale'), group: 'bath', domains: ['sensor'], size: [0.3, 0.3], labelY: 0.3 },
+  // Electric toothbrush on its base: the ring glows while it runs
+  toothbrush: { label: t('Electric toothbrush'), group: 'bath', domains: ['sensor', 'binary_sensor'], size: [0.06, 0.06], labelY: 0.4 },
+  // Free-standing sauna cabin, indoors or in the garden; the stones glow while it heats
+  sauna: { label: t('Sauna'), group: 'bath', domains: ['climate', 'switch', 'sensor', 'light'], size: [1.8, 1.8], labelY: 2.3 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */

@@ -272,6 +272,9 @@ export type ItemKind =
   | 'freezer'
   | 'wineFridge'
   | 'ironingBoard'
+  | 'bathScale'
+  | 'toothbrush'
+  | 'sauna'
 
 export interface Item {
   id: string

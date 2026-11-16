@@ -145,6 +145,7 @@ import {
   Sandwich,
   Snowflake,
   Wine,
+  Scale,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -359,4 +360,7 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   freezer: Snowflake,
   wineFridge: Wine,
   ironingBoard: Shirt,
+  bathScale: Scale,
+  toothbrush: Sparkles,
+  sauna: Heater,
 }

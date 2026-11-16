@@ -870,3 +870,68 @@ export function IroningBoard({ v }: P) {
     </group>
   )
 }
+
+/* ---------- bathroom ---------- */
+
+/** Bathroom scale (on the floor): a glass plate whose display shows the bound weight sensor. */
+export function BathScale({ v }: P) {
+  const live = v.bound && !v.unavailable
+  const n = v.domain === 'sensor' ? num(v.state) : null
+  const unit = typeof v.attrs.unit_of_measurement === 'string' ? v.attrs.unit_of_measurement : ''
+  const screen = useDisplay(live && n != null ? `${formatNumber(Math.round(n * 10) / 10, 1)} ${unit}`.trim() : '', live && n != null ? 'screen' : 'off')
+  return (
+    <group>
+      <Box size={[0.3, 0.025, 0.3]} position={[0, 0.0125, 0]} color={bodyOf(v, '#f4f5f8')} radius={0.02} />
+      <Box size={[0.29, 0.004, 0.29]} position={[0, 0.027, 0]} material={clear('#e9f2ff', 0.5, 0.05)} shadow={false} />
+      <mesh position={[0, 0.03, -0.09]} rotation-x={-Math.PI / 2} geometry={plane(0.1, 0.04)} material={screen} />
+    </group>
+  )
+}
+
+/**
+ * Electric toothbrush on its charging base (on a surface): the ring on the handle glows while the bound state says it is
+ * running, the base light glows while it charges otherwise.
+ */
+export function Toothbrush({ v }: P) {
+  const running = v.domain === 'sensor' ? /run|brush|on/i.test(v.state) : v.on
+  const live = v.bound && !v.unavailable
+  return (
+    <group>
+      <Cyl r={0.028} rTop={0.025} h={0.03} position={[0, 0.015, 0]} color="#e9ebf0" segments={20} />
+      <mesh position={[0, 0.031, 0.0]} rotation-x={Math.PI / 2} geometry={torus(0.022, 0.0015, 20)} material={glowing(C.ok, live && !running, 1.6)} />
+      <Cyl r={0.013} rTop={0.011} h={0.17} position={[0, 0.115, 0]} color={bodyOf(v, '#ffffff')} segments={16} />
+      <mesh position={[0, 0.1, 0]} rotation-x={Math.PI / 2} geometry={torus(0.0135, 0.002, 16)} material={glowing('#4f9dff', running, 2)} />
+      <Cyl r={0.005} h={0.05} position={[0, 0.22, 0]} color="#d9dce4" segments={8} />
+      <Box size={[0.012, 0.016, 0.01]} position={[0, 0.235, 0.006]} color="#4fc3ff" shadow={false} />
+    </group>
+  )
+}
+
+/**
+ * Sauna cabin (a free-standing 1.8 m cabin, indoors or in the garden): wooden walls, a glass door, benches and a stove
+ * with stones. While it heats the stones glow, the cabin is lit warm inside and heat shimmers above the stove.
+ */
+export function Sauna({ v }: P) {
+  const wood = mat(bodyOf(v, '#c99a63'), { roughness: 0.75 })
+  const heating = v.on && (v.domain !== 'climate' || v.state !== 'off')
+  const stones = useLitMaterial('#5a5e6b', heating, '#ff7a3d', 1, 1.8)
+  const H = 2.0
+  return (
+    <group>
+      <Box size={[1.8, 0.04, 1.8]} position={[0, 0.02, 0]} material={wood} />
+      <Box size={[1.8, H, 0.06]} position={[0, H / 2, -0.87]} material={wood} />
+      <Box size={[0.06, H, 1.8]} position={[-0.87, H / 2, 0]} material={wood} />
+      <Box size={[0.06, H, 1.8]} position={[0.87, H / 2, 0]} material={wood} />
+      <Box size={[1.1, H, 0.06]} position={[-0.35, H / 2, 0.87]} material={wood} />
+      <Box size={[0.6, H - 0.1, 0.02]} position={[0.55, (H - 0.1) / 2 + 0.02, 0.88]} material={clear('#ffd7a8', 0.35, 0.1)} shadow={false} />
+      <Box size={[1.6, 0.06, 0.5]} position={[0, 0.45, -0.55]} material={wood} />
+      <Box size={[1.6, 0.06, 0.45]} position={[0, 0.9, -0.62]} material={wood} />
+      <Box size={[0.4, 0.45, 0.4]} position={[0.55, 0.26, 0.35]} color="#2b2d33" radius={0.02} />
+      {[-0.1, 0, 0.1].flatMap((x) => [-0.08, 0.06].map((z) => <Ball key={`${x}${z}`} r={0.05} position={[0.55 + x, 0.52, 0.35 + z]} material={stones} flat detail={0} />))}
+      {heating && <Glow position={[0, 1.4, 0]} color="#ffb35a" opacity={v.night ? 0.6 : 0.3} size={2.2} />}
+      <group position={[0.55, 0.5, 0.35]}>
+        <Mist active={heating} y={0.1} size={0.4} color="#fff3e4" />
+      </group>
+    </group>
+  )
+}
