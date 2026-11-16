@@ -146,6 +146,9 @@ import {
   Snowflake,
   Wine,
   Scale,
+  Circle,
+  Martini,
+  Piano,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -363,4 +366,13 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   bathScale: Scale,
   toothbrush: Sparkles,
   sauna: Heater,
+  barStool: Martini,
+  crib: Baby,
+  pouf: Circle,
+  coatRack: Shirt,
+  treadmill: Footprints,
+  exerciseBike: Bike,
+  yogaMat: RectangleHorizontal,
+  piano: Piano,
+  officeChair: Armchair,
 }

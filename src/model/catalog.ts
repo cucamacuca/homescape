@@ -303,6 +303,24 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   toothbrush: { label: t('Electric toothbrush'), group: 'bath', domains: ['sensor', 'binary_sensor'], size: [0.06, 0.06], labelY: 0.4 },
   // Free-standing sauna cabin, indoors or in the garden; the stones glow while it heats
   sauna: { label: t('Sauna'), group: 'bath', domains: ['climate', 'switch', 'sensor', 'light'], size: [1.8, 1.8], labelY: 2.3 },
+  // Bar stool; tucks under a counter or a table
+  barStool: { label: t('Bar stool'), group: 'furniture', domains: [], size: [0.4, 0.4], labelY: 0.95 },
+  // Baby crib; the mobile turns while a bound switch or player is on
+  crib: { label: t('Crib'), group: 'furniture', domains: ['switch', 'media_player'], size: [0.72, 1.32], labelY: 1.6 },
+  // Pouf, bean bag or ottoman (Item.variant)
+  pouf: { label: t('Pouf'), group: 'furniture', domains: [], size: [0.5, 0.5], labelY: 0.6 },
+  // Coat rack with coats and a hat
+  coatRack: { label: t('Coat rack'), group: 'furniture', domains: [], size: [0.45, 0.45], labelY: 2.1 },
+  // Treadmill: the belt runs and the console glows while on
+  treadmill: { label: t('Treadmill'), group: 'furniture', domains: ['switch', 'sensor'], size: [0.8, 1.8], labelY: 1.6 },
+  // Exercise bike: the flywheel spins while on
+  exerciseBike: { label: t('Exercise bike'), group: 'furniture', domains: ['switch', 'sensor'], size: [0.55, 1.1], labelY: 1.4 },
+  // Yoga mat, walked on like a rug; rolled out or rolled up
+  yogaMat: { label: t('Yoga mat'), group: 'furniture', domains: [], size: [0.61, 1.83], labelY: 0.2 },
+  // Upright or digital piano against a wall
+  piano: { label: t('Piano'), group: 'furniture', domains: ['media_player'], size: [1.5, 0.6], labelY: 1.5, wall: true },
+  // Office chair on casters; tucks under a desk
+  officeChair: { label: t('Office chair'), group: 'furniture', domains: [], size: [0.62, 0.62], labelY: 1.25 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -494,7 +512,26 @@ export const OPTIONS: Partial<
     body: t('Curtain color'),
     note: t('Bind the curtain motor (Home Assistant cover) to this window: its open percentage (current_position) opens and closes the curtain; the slat angle of a venetian blind and the stripe alignment of a zebra blind follow current_tilt_position. With a window sensor bound, the sash opens.'),
   },
+  // Three seats or a two-seat loveseat: the width (Item.len) changes with it; people.ts and pets.ts count the seats from it
+  sofa: {
+    variantLabel: t('Seats'),
+    variants: [
+      ['3', t('3 seats')],
+      ['2', t('2 seats')],
+    ],
+    variantDef: '3',
+    variantLen: { 3: 2.2, 2: 1.6 },
+  },
   bed: {
+    // Single, double or king size: the width (Item.len); from 1.3 m two people sleep in it (people.ts)
+    variantLabel: t('Size'),
+    variants: [
+      ['single', t('Single bed')],
+      ['double', t('Double bed')],
+      ['king', t('King-size bed')],
+    ],
+    variantDef: 'double',
+    variantLen: { single: 1, double: 1.7, king: 2 },
     ledLabel: t('Headboard light'),
     ledEntityLabel: t('Headboard light entity'),
     led: [
@@ -830,6 +867,12 @@ export const OPTIONS: Partial<
   // household items (kit/household.tsx)
   neonSign: { variantLabel: t('Shape'), variants: [['heart', t('Heart')], ['wave', t('Wave')], ['bolt', t('Lightning bolt')]], variantDef: 'heart', body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#e2564b' },
   ironingBoard: { body: t('Cover color'), bodyList: BODY_COLORS, bodyDef: '#8fd8bd' },
+  barStool: { body: t('Color'), bodyList: BODY_COLORS, bodyDef: '#1f2440' },
+  crib: { body: t('Color'), bodyList: BODY_COLORS, bodyDef: '#ffffff' },
+  pouf: { variantLabel: t('Type'), variants: [['pouf', t('Pouf')], ['beanbag', t('Bean bag')], ['ottoman', t('Ottoman')]], variantDef: 'pouf', body: t('Color'), bodyList: BODY_COLORS, bodyDef: '#8fd8bd' },
+  yogaMat: { variantLabel: t('Type'), variants: [['flat', t('Rolled out')], ['rolled', t('Rolled up')]], variantDef: 'flat', body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#8f6cf0' },
+  piano: { variantLabel: t('Type'), variants: [['upright', t('Upright')], ['digital', t('Digital')]], variantDef: 'upright' },
+  officeChair: { body: t('Seat color'), bodyList: BODY_COLORS, bodyDef: '#c3c8dc' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),
@@ -985,6 +1028,10 @@ export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'rugRound', kind: 'rug', label: t('Round rug'), sub: t('Ø {d} m · can be oval', { d: 1.6 }), extra: { variant: 'round', len: 1.6, len2: 1.6 } },
   { id: 'rugCowhide', kind: 'rug', label: t('Cowhide'), sub: `${formatNumber(1.6)} × ${formatNumber(2)} m`, extra: { variant: 'cowhide', len: 1.6, len2: 2 } },
   { id: 'rugSheep', kind: 'rug', label: t('Sheepskin'), sub: `${formatNumber(0.7)} × ${formatNumber(1)} m`, extra: { variant: 'sheep', len: 0.7, len2: 1 } },
+  // Bed sizes and the loveseat: the same kinds, the card switches the size
+  { id: 'bedSingle', kind: 'bed', label: t('Single bed'), sub: `${formatNumber(1)} × ${formatNumber(2.1)} m`, extra: { variant: 'single', len: 1 } },
+  { id: 'bedKing', kind: 'bed', label: t('King-size bed'), sub: `${formatNumber(2)} × ${formatNumber(2.1)} m`, extra: { variant: 'king', len: 2 } },
+  { id: 'loveseat', kind: 'sofa', label: t('Loveseat'), sub: t('2 seats'), extra: { variant: '2', len: 1.6 } },
 ]
 
 /** Window size: width (Item.len), height (Item.len2), bottom edge 0.9 m above the floor (moves with Item.y). */

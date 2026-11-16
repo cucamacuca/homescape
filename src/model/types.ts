@@ -275,6 +275,15 @@ export type ItemKind =
   | 'bathScale'
   | 'toothbrush'
   | 'sauna'
+  | 'barStool'
+  | 'crib'
+  | 'pouf'
+  | 'coatRack'
+  | 'treadmill'
+  | 'exerciseBike'
+  | 'yogaMat'
+  | 'piano'
+  | 'officeChair'
 
 export interface Item {
   id: string

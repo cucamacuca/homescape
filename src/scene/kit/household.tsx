@@ -935,3 +935,221 @@ export function Sauna({ v }: P) {
     </group>
   )
 }
+
+/* ---------- furniture ---------- */
+
+/** Bar stool: a round seat at counter height on a chrome post with a foot ring; tucks under a counter or a table. */
+export function BarStool({ v }: P) {
+  const chrome = mat('#cfd4dc', { metalness: 0.6, roughness: 0.25 })
+  return (
+    <group>
+      <Cyl r={0.2} h={0.02} position={[0, 0.01, 0]} material={chrome} segments={28} />
+      <Cyl r={0.025} h={0.62} position={[0, 0.33, 0]} material={chrome} segments={14} />
+      <mesh position={[0, 0.3, 0]} rotation-x={Math.PI / 2} geometry={torus(0.15, 0.01, 24)} material={chrome} />
+      <Cyl r={0.19} h={0.06} position={[0, 0.66, 0]} color={v.opts.body ?? '#1f2440'} segments={28} />
+    </group>
+  )
+}
+
+/** Baby crib: a slatted cot with a mattress; a mobile hangs above it and turns while a bound switch or player is on. */
+export function Crib({ v }: P) {
+  const wood = mat(v.opts.body ?? '#ffffff', { roughness: 0.7 })
+  const W = 0.72
+  const L = 1.32
+  return (
+    <group>
+      {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Box key={`${sx}${sz}`} size={[0.05, 0.95, 0.05]} position={[(sx * (W - 0.05)) / 2, 0.475, (sz * (L - 0.05)) / 2]} material={wood} />))}
+      <Box size={[W - 0.06, 0.12, L - 0.06]} position={[0, 0.3, 0]} color="#e8edf6" radius={0.03} />
+      {[-1, 1].map((sx) => (
+        <group key={sx}>
+          <Box size={[0.03, 0.04, L]} position={[(sx * (W - 0.03)) / 2, 0.9, 0]} material={wood} />
+          {Array.from({ length: 11 }, (_, i) => (
+            <Box key={i} size={[0.018, 0.52, 0.018]} position={[(sx * (W - 0.03)) / 2, 0.62, -L / 2 + 0.1 + i * ((L - 0.2) / 10)]} material={wood} />
+          ))}
+        </group>
+      ))}
+      {[-1, 1].map((sz) => (
+        <Box key={sz} size={[W, 0.6, 0.03]} position={[0, 0.65, (sz * (L - 0.03)) / 2]} material={wood} />
+      ))}
+      <Cyl r={0.008} h={0.5} position={[(W - 0.05) / 2, 1.2, -L / 2 + 0.2]} color={C.steel} segments={8} />
+      <group position={[(W - 0.05) / 2 - 0.15, 1.42, -L / 2 + 0.2]}>
+        <Spin speed={v.on ? 0.8 : 0} axis="y">
+          {[0, 1, 2, 3].map((i) => (
+            <Ball key={i} r={0.03} position={[Math.sin((i / 4) * TAU) * 0.13, -0.12, Math.cos((i / 4) * TAU) * 0.13]} color={['#f2b8c6', '#8fd8bd', '#f5c04a', '#8f9ef0'][i]} />
+          ))}
+          <Box size={[0.3, 0.008, 0.008]} position={[0, 0, 0]} color={C.white} shadow={false} />
+          <Box size={[0.008, 0.008, 0.3]} position={[0, 0, 0]} color={C.white} shadow={false} />
+        </Spin>
+      </group>
+    </group>
+  )
+}
+
+/** Pouf, bean bag or ottoman (Item.variant) in the fabric color (Item.body). */
+export function Pouf({ v }: P) {
+  const fabric = mat(v.opts.body ?? '#8fd8bd', { roughness: 0.95 })
+  if (v.opts.variant === 'beanbag')
+    return (
+      <group>
+        <Ball r={0.36} position={[0, 0.25, 0]} scale={[1, 0.62, 1]} material={fabric} detail={3} />
+        <Ball r={0.22} position={[0, 0.42, -0.14]} scale={[1.3, 0.8, 0.7]} material={fabric} detail={2} />
+      </group>
+    )
+  if (v.opts.variant === 'ottoman')
+    return (
+      <group>
+        {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Cyl key={`${sx}${sz}`} r={0.02} h={0.1} position={[sx * 0.2, 0.05, sz * 0.2]} color="#5a3a28" segments={10} />))}
+        <Box size={[0.5, 0.3, 0.5]} position={[0, 0.25, 0]} material={fabric} radius={0.05} />
+      </group>
+    )
+  return <Cyl r={0.24} rTop={0.22} h={0.42} position={[0, 0.21, 0]} material={fabric} segments={28} />
+}
+
+const COAT_COLORS = ['#34416c', '#a87a45', '#8a3b3b', '#5a6e5a']
+
+/** Coat rack: a dark pole on a round base with hooks, coats, a scarf and a hat. */
+export function CoatRack({ v }: P) {
+  const pole = mat(v.opts.body ?? '#3a2a20', { roughness: 0.6 })
+  return (
+    <group>
+      <Cyl r={0.2} h={0.03} position={[0, 0.015, 0]} material={pole} segments={24} />
+      <Cyl r={0.02} h={1.75} position={[0, 0.9, 0]} material={pole} segments={12} />
+      <Ball r={0.035} position={[0, 1.8, 0]} material={pole} />
+      {[0, 1, 2, 3].map((i) => {
+        const a = (i / 4) * TAU + 0.4
+        return (
+          <group key={i} rotation-y={a}>
+            <Box size={[0.012, 0.012, 0.14]} position={[0, 1.66, 0.07]} rotation={[-0.5, 0, 0]} material={pole} />
+            {i < 3 && <Box size={[0.3, 0.8, 0.1]} position={[0, 1.22, 0.13]} color={COAT_COLORS[i]} radius={0.04} />}
+          </group>
+        )
+      })}
+      <Cyl r={0.15} rTop={0.1} h={0.12} position={[0, 1.88, 0]} color="#2a2c33" segments={24} />
+    </group>
+  )
+}
+
+/** Treadmill: a running deck with a belt and a console. While on, the console glows and stripes run along the belt. */
+export function Treadmill({ v }: P) {
+  const belt = useRef<THREE.Group>(null)
+  const disp = useLitMaterial(C.screenOff, v.on, '#7dffb2', 0.9, 1.6)
+  useAmbient(v.on)
+  useFrame((_, dt) => {
+    const g = belt.current
+    if (!g || !v.on) return
+    for (const c of g.children) {
+      c.position.z += Math.min(dt, 0.1) * 1.4
+      if (c.position.z > 0.7) c.position.z -= 1.4
+    }
+  })
+  return (
+    <group>
+      <Box size={[0.8, 0.14, 1.75]} position={[0, 0.07, 0.02]} color="#2a2c33" radius={0.03} />
+      <Box size={[0.52, 0.01, 1.45]} position={[0, 0.145, 0.06]} color="#15161a" shadow={false} />
+      <group ref={belt}>
+        {Array.from({ length: 7 }, (_, i) => (
+          <Box key={i} size={[0.5, 0.004, 0.02]} position={[0, 0.152, -0.7 + i * 0.2]} color="#3a3d47" shadow={false} />
+        ))}
+      </group>
+      {[-0.36, 0.36].map((x) => (
+        <Box key={x} size={[0.04, 1.2, 0.05]} position={[x, 0.7, -0.78]} rotation={[0.15, 0, 0]} color="#3a3d47" />
+      ))}
+      <Box size={[0.76, 0.2, 0.12]} position={[0, 1.28, -0.86]} rotation={[0.4, 0, 0]} color="#2a2c33" radius={0.02} />
+      <Box size={[0.3, 0.1, 0.006]} position={[0, 1.3, -0.8]} rotation={[0.4, 0, 0]} material={disp} shadow={false} />
+    </group>
+  )
+}
+
+/** Exercise bike: a frame with a saddle, handlebar, screen and front flywheel that spins while on. */
+export function ExerciseBike({ v }: P) {
+  const disp = useLitMaterial(C.screenOff, v.on, '#4fc3ff', 0.9, 1.6)
+  const frame = mat(bodyOf(v, '#2a2c33'))
+  return (
+    <group>
+      <Box size={[0.5, 0.05, 0.08]} position={[0, 0.025, 0.45]} material={frame} />
+      <Box size={[0.5, 0.05, 0.08]} position={[0, 0.025, -0.45]} material={frame} />
+      {/* base beam joining the feet and both posts, and the flywheel guard */}
+      <Box size={[0.07, 0.06, 0.95]} position={[0, 0.06, 0]} material={frame} />
+      <Box size={[0.06, 0.06, 0.4]} position={[0, 0.3, 0.12]} rotation={[0.55, 0, 0]} material={frame} />
+      <Box size={[0.08, 0.8, 0.08]} position={[0, 0.45, -0.25]} rotation={[-0.35, 0, 0]} material={frame} />
+      <Box size={[0.08, 0.9, 0.08]} position={[0, 0.5, 0.3]} rotation={[0.25, 0, 0]} material={frame} />
+      <Box size={[0.24, 0.06, 0.28]} position={[0, 0.93, -0.38]} color="#15161a" radius={0.03} />
+      <Box size={[0.44, 0.03, 0.03]} position={[0, 1.02, 0.42]} color={C.steel} />
+      <Box size={[0.2, 0.13, 0.03]} position={[0, 1.1, 0.4]} rotation={[-0.5, 0, 0]} material={disp} radius={0.01} />
+      <group position={[0, 0.32, 0.36]} rotation-y={Math.PI / 2}>
+        <Spin speed={v.on ? 7 : 0} axis="z">
+          <Cyl r={0.2} h={0.05} rotation={[Math.PI / 2, 0, 0]} color="#c9ccd4" segments={28} />
+          <Box size={[0.36, 0.02, 0.055]} color="#7a7f8f" shadow={false} />
+        </Spin>
+      </group>
+    </group>
+  )
+}
+
+/** Yoga mat: flat on the floor (walked on like a rug) or rolled up (Item.variant 'rolled'), in its color (Item.body). */
+export function YogaMat({ v }: P) {
+  const color = v.opts.body ?? '#8f6cf0'
+  if (v.opts.variant === 'rolled') return <Cyl r={0.07} h={0.61} position={[0, 0.07, 0]} rotation={[0, 0, Math.PI / 2]} color={color} segments={20} />
+  return <Box size={[0.61, 0.006, 1.83]} position={[0, 0.003, 0]} color={color} radius={0.002} shadow={false} />
+}
+
+/**
+ * Piano against the wall: an upright piano (Item.variant 'upright', the default) or a slim digital piano ('digital'). A
+ * digital piano bound to a player lights its music stand while it is on.
+ */
+export function Piano({ v }: P) {
+  const wood = mat(v.opts.body ?? '#1d1f24', { roughness: 0.35 })
+  const keys = mat('#f6f5f0')
+  if (v.opts.variant === 'digital')
+    return (
+      <group>
+        {[-0.68, 0.68].map((x) => (
+          <Box key={x} size={[0.04, 0.72, 0.3]} position={[x, 0.36, -0.1]} material={wood} />
+        ))}
+        <Box size={[1.4, 0.12, 0.34]} position={[0, 0.78, -0.08]} material={wood} radius={0.01} />
+        <Box size={[1.3, 0.02, 0.15]} position={[0, 0.85, 0.02]} material={keys} shadow={false} />
+        <Box size={[0.6, 0.18, 0.02]} position={[0, 0.98, -0.2]} rotation={[-0.2, 0, 0]} material={v.on ? glowing('#fff3dc', true, 0.8) : wood} />
+      </group>
+    )
+  return (
+    <group>
+      <Box size={[1.5, 1.25, 0.3]} position={[0, 0.625, -0.15]} material={wood} radius={0.01} />
+      <Box size={[1.42, 0.1, 0.3]} position={[0, 0.74, 0.12]} material={wood} />
+      <Box size={[1.32, 0.02, 0.14]} position={[0, 0.8, 0.12]} material={keys} shadow={false} />
+      {Array.from({ length: 18 }, (_, i) => (
+        <Box key={i} size={[0.02, 0.012, 0.08]} position={[-0.62 + i * 0.073, 0.815, 0.09]} color="#15161a" shadow={false} />
+      ))}
+      {[-0.68, 0.68].map((x) => (
+        <Box key={x} size={[0.05, 0.7, 0.06]} position={[x, 0.35, 0.22]} material={wood} />
+      ))}
+    </group>
+  )
+}
+
+/** Office chair: a five-star base on casters, gas lift, padded seat, a tall back and armrests (seat and back in Item.body). */
+export function OfficeChair({ v }: P) {
+  const fabric = mat(v.opts.body ?? '#c3c8dc', { roughness: 0.9 })
+  const frame = mat('#2a2c33', { roughness: 0.5, metalness: 0.2 })
+  const chrome = mat('#c9ccd4', { roughness: 0.3, metalness: 0.5 })
+  return (
+    <group>
+      {Array.from({ length: 5 }, (_, i) => (
+        <group key={i} rotation-y={(i / 5) * TAU}>
+          <Box size={[0.045, 0.035, 0.27]} position={[0, 0.075, 0.135]} material={frame} />
+          <Ball r={0.03} position={[0, 0.03, 0.26]} material={frame} />
+        </group>
+      ))}
+      <Cyl r={0.025} h={0.34} position={[0, 0.26, 0]} material={chrome} segments={12} />
+      <Box size={[0.2, 0.04, 0.2]} position={[0, 0.42, 0]} material={frame} />
+      <Box size={[0.5, 0.07, 0.48]} position={[0, 0.465, 0.02]} material={fabric} radius={0.03} />
+      <Box size={[0.06, 0.26, 0.035]} position={[0, 0.58, -0.235]} material={frame} />
+      <Box size={[0.46, 0.5, 0.06]} position={[0, 0.88, -0.25]} rotation={[-0.1, 0, 0]} material={fabric} radius={0.04} />
+      {[-1, 1].map((s) => (
+        <group key={s} position={[s * 0.265, 0, 0]}>
+          <Box size={[0.025, 0.2, 0.025]} position={[0, 0.58, -0.02]} material={frame} />
+          <Box size={[0.06, 0.03, 0.24]} position={[0, 0.69, 0]} material={frame} radius={0.012} />
+        </group>
+      ))}
+    </group>
+  )
+}

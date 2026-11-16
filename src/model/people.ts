@@ -189,9 +189,10 @@ const SEAT = {
   armchair: { z: 0.12, y: 0.44, lean: 0.12 },
   chair: { z: 0.02, y: 0.495, lean: 0 },
   gamingChair: { z: 0.02, y: 0.505, lean: 0.12 },
+  officeChair: { z: 0.02, y: 0.5, lean: 0.1 },
 }
 
-/** Seats: sofa (2-3), armchair, chair, gaming chair. The person faces the item's local +z. */
+/** Seats: sofa (2-3), armchair, chair, gaming chair, office chair. The person faces the item's local +z. */
 function seats(level: Level, room: Room): Spot[] {
   const out: Spot[] = []
   for (const it of itemsIn(level, room)) {
@@ -200,7 +201,7 @@ function seats(level: Level, room: Room): Spot[] {
       // Cushion top 0.49 m, the middle of the cushions (0.595 apart); the person sits on the cushion, leaning back slightly
       const n = (it.len ?? CATALOG.sofa.size[0]) >= 2 ? 3 : 2
       for (let k = 0; k < n; k++) out.push({ ...local(it, (k - (n - 1) / 2) * 0.595, 0.15), y: base + 0.48, lean: 0.12, rot: it.rot, pose: 'sit', roomId: room.id, use: 'sofa' })
-    } else if (it.kind === 'armchair' || it.kind === 'chair' || it.kind === 'gamingChair') {
+    } else if (it.kind === 'armchair' || it.kind === 'chair' || it.kind === 'gamingChair' || it.kind === 'officeChair') {
       const s = SEAT[it.kind]
       out.push({ ...local(it, 0, s.z), y: base + s.y, lean: s.lean, rot: it.rot, pose: 'sit', roomId: room.id, use: it.kind })
     }

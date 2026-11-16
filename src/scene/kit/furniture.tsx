@@ -150,23 +150,30 @@ const partOpen = (v: Visual, i: number) => (v.open ? (!v.openParts?.length || v.
 const legs4 = (w: number, d: number, h: number, color: string = C.ink, r = 0.03) =>
   [-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Cyl key={`${sx}${sz}`} r={r} h={h} position={[sx * (w / 2 - 0.06), h / 2, sz * (d / 2 - 0.06)]} color={color} />))
 
-export function Sofa() {
+/**
+ * Sofa: three seats (2.2 m) or a two-seat loveseat (Item.variant '2', 1.6 m). The width is Item.len and the cushions
+ * follow it: three from 2 m, else two (people.ts and pets.ts count the seats the same way).
+ */
+export function Sofa({ v }: { v: Visual }) {
+  const W = v.opts.len ?? CATALOG.sofa.size[0]
+  const n = W >= 2 ? 3 : 2
+  const step = (W - 0.43) / n
   // Seat top at 0.49 m (a real sofa): a seated person's feet reach the floor; the back cushions keep them forward
   // (seats in model/people.ts, pose in scene/Human.tsx)
   return (
     <group>
-      {legs4(2.1, 0.8, 0.08)}
-      <Box size={[2.2, 0.28, 0.9]} position={[0, 0.22, 0]} color={C.brand} radius={0.08} />
-      <Box size={[2.2, 0.62, 0.24]} position={[0, 0.62, -0.33]} color={C.brand} radius={0.08} />
-      <Box size={[0.22, 0.5, 0.9]} position={[-1, 0.39, 0]} color={C.brand} radius={0.08} />
-      <Box size={[0.22, 0.5, 0.9]} position={[1, 0.39, 0]} color={C.brand} radius={0.08} />
-      {[-0.595, 0, 0.595].map((x) => (
+      {legs4(W - 0.1, 0.8, 0.08)}
+      <Box size={[W, 0.28, 0.9]} position={[0, 0.22, 0]} color={C.brand} radius={0.08} />
+      <Box size={[W, 0.62, 0.24]} position={[0, 0.62, -0.33]} color={C.brand} radius={0.08} />
+      <Box size={[0.22, 0.5, 0.9]} position={[-(W / 2 - 0.1), 0.39, 0]} color={C.brand} radius={0.08} />
+      <Box size={[0.22, 0.5, 0.9]} position={[W / 2 - 0.1, 0.39, 0]} color={C.brand} radius={0.08} />
+      {Array.from({ length: n }, (_, k) => (k - (n - 1) / 2) * step).map((x) => (
         <group key={x}>
-          <Box size={[0.58, 0.14, 0.66]} position={[x, 0.42, 0.11]} color={C.brandLight} radius={0.06} />
-          <Box size={[0.58, 0.4, 0.16]} position={[x, 0.68, -0.14]} rotation={[-0.12, 0, 0]} color={C.brandLight} radius={0.07} />
+          <Box size={[step - 0.015, 0.14, 0.66]} position={[x, 0.42, 0.11]} color={C.brandLight} radius={0.06} />
+          <Box size={[step - 0.015, 0.4, 0.16]} position={[x, 0.68, -0.14]} rotation={[-0.12, 0, 0]} color={C.brandLight} radius={0.07} />
         </group>
       ))}
-      <Box size={[0.28, 0.26, 0.1]} position={[0.75, 0.62, 0]} rotation={[-0.15, -0.65, 0.08]} color={C.sun} radius={0.045} />
+      <Box size={[0.28, 0.26, 0.1]} position={[W / 2 - 0.35, 0.62, 0]} rotation={[-0.15, -0.65, 0.08]} color={C.sun} radius={0.045} />
     </group>
   )
 }
@@ -377,7 +384,8 @@ function headboardLight(v: Visual) {
 }
 
 /**
- * Bed. Headboard light Item.led: 'strip' is a horizontal LED strip on the front of the headboard below its top edge with a
+ * Bed: single, double or king size (Item.variant), its width Item.len (1, 1.7 or 2 m), 2.1 m long; one pillow in a single
+ * bed, two from 1.3 m. Headboard light Item.led: 'strip' is a horizontal LED strip on the front of the headboard below its top edge with a
  * soft halo in front; 'back' is a hidden LED behind the headboard casting a rectangular halo on the wall. It glows while
  * the bound light or plug is on, takes the light's color and also lights the room slightly (roomLights.ts).
  */
@@ -389,38 +397,42 @@ export function Bed({ v }: { v: Visual }) {
   const color = src?.color ?? '#ffd29a'
   const level = src?.level ?? 1
   const strip = useLitMaterial('#d9dbe6', on, color, level, 2.6)
+  const W = v.opts.len ?? CATALOG.bed.size[0]
+  const pillow = W >= 1.9 ? 0.7 : 0.6
+  const pillows = W >= 1.3 ? [-(W / 4 - 0.025), W / 4 - 0.025] : [0]
   return (
     <group>
-      <Box size={[1.7, 0.3, 2.05]} position={[0, 0.2, 0]} color={C.kraft} radius={0.04} />
-      <Box size={[1.62, 0.2, 1.95]} position={[0, 0.44, 0.02]} color={C.white} radius={0.06} />
-      <Box size={[1.7, 0.85, 0.08]} position={[0, 0.55, -1.0]} color={C.kraftDark} radius={0.03} />
+      <Box size={[W, 0.3, 2.05]} position={[0, 0.2, 0]} color={C.kraft} radius={0.04} />
+      <Box size={[W - 0.08, 0.2, 1.95]} position={[0, 0.44, 0.02]} color={C.white} radius={0.06} />
+      <Box size={[W, 0.85, 0.08]} position={[0, 0.55, -1.0]} color={C.kraftDark} radius={0.03} />
       {mode === 'strip' && (
         <>
-          <Box size={[1.56, 0.022, 0.016]} position={[0, 0.905, -0.952]} material={strip} shadow={false} />
+          <Box size={[W - 0.14, 0.022, 0.016]} position={[0, 0.905, -0.952]} material={strip} shadow={false} />
           {on && (
             <>
-              <StripGlow length={1.56} width={0.07} position={[0, 0.905, -0.944]} color={color} opacity={level * (v.night ? 1 : 0.6)} />
+              <StripGlow length={W - 0.14} width={0.07} position={[0, 0.905, -0.944]} color={color} opacity={level * (v.night ? 1 : 0.6)} />
               {/* light spreading down the headboard face */}
-              <Wash length={1.64} depth={0.62} position={[0, 0.895 - 0.31, -0.955]} color={color} opacity={level * (v.night ? 0.75 : 0.36)} />
+              <Wash length={W - 0.06} depth={0.62} position={[0, 0.895 - 0.31, -0.955]} color={color} opacity={level * (v.night ? 0.75 : 0.36)} />
             </>
           )}
         </>
       )}
       {mode === 'back' && (
         <>
-          <Box size={[1.5, 0.02, 0.02]} position={[0, 0.94, -1.05]} material={strip} shadow={false} />
+          <Box size={[W - 0.2, 0.02, 0.02]} position={[0, 0.94, -1.05]} material={strip} shadow={false} />
           {on && (
             <>
-              <StripGlow length={1.5} width={0.06} position={[0, 0.96, -1.05]} color={color} opacity={level * (v.night ? 0.9 : 0.48)} />
+              <StripGlow length={W - 0.2} width={0.06} position={[0, 0.96, -1.05]} color={color} opacity={level * (v.night ? 0.9 : 0.48)} />
               {/* light spreading up the wall from behind the headboard */}
-              <Wash length={2.1} depth={0.95} position={[0, 0.975 + 0.475, -1.064]} rotation={[0, 0, Math.PI]} color={color} opacity={level * (v.night ? 0.8 : 0.4)} />
+              <Wash length={W + 0.4} depth={0.95} position={[0, 0.975 + 0.475, -1.064]} rotation={[0, 0, Math.PI]} color={color} opacity={level * (v.night ? 0.8 : 0.4)} />
             </>
           )}
         </>
       )}
-      <Box size={[0.6, 0.12, 0.38]} position={[-0.4, 0.6, -0.72]} color={C.offWhite} radius={0.05} />
-      <Box size={[0.6, 0.12, 0.38]} position={[0.4, 0.6, -0.72]} color={C.offWhite} radius={0.05} />
-      <Box size={[1.66, 0.06, 1.15]} position={[0, 0.56, 0.38]} color={C.brandLight} radius={0.03} />
+      {pillows.map((x) => (
+        <Box key={x} size={[pillow, 0.12, 0.38]} position={[x, 0.6, -0.72]} color={C.offWhite} radius={0.05} />
+      ))}
+      <Box size={[W - 0.04, 0.06, 1.15]} position={[0, 0.56, 0.38]} color={C.brandLight} radius={0.03} />
     </group>
   )
 }

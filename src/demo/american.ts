@@ -493,6 +493,12 @@ function groundFloor(): Level {
   /* --- bath: a garden sauna by the pool --- */
   put('sauna', 5, -11, 0, bind('climate.us_sauna'))
 
+  /* --- furniture: bar stools at the kitchen counter, a pouf in the family room, a coat rack in the foyer --- */
+  put('barStool', 3.45, 1.2, PI / 2)
+  put('barStool', 3.45, 1.95, PI / 2)
+  put('pouf', -3.4, 3.2, 0, { variant: 'pouf', body: '#8fd8bd' })
+  put('coatRack', -0.85, 9.45, 0)
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -531,7 +537,7 @@ function upperFloor(): Level {
   wall(hall, 'back', -1.15, 'wardrobeSingle', { top: '#ffffff', body: '#ffffff' })
 
   /* --- master bedroom --- */
-  put('bed', -7 + WALL_IN + 1.05 + 0.02, 7, PI / 2, { ...bind('light.us_master_headboard'), led: 'back' })
+  put('bed', -7 + WALL_IN + 1.05 + 0.02, 7, PI / 2, { ...bind('light.us_master_headboard'), led: 'back', variant: 'king', len: 2 })
   put('nightstand', -6.74, 5.65, PI / 2)
   put('nightstand', -6.74, 8.35, PI / 2)
   put('tableLamp', -6.74, 5.65, PI / 2, { ...bind('light.us_master_bedside_left'), y: 0.48, variant: 'classic' })
@@ -671,6 +677,16 @@ function upperFloor(): Level {
   /* --- bath: a scale and an electric toothbrush in the hall bath --- */
   put('bathScale', 0.4, 1.6, 0, bind('sensor.us_bath_scale'))
   put('toothbrush', 1.15, 1.0, -PI / 2, { ...bind('sensor.us_toothbrush'), y: 0.8 })
+
+  /* --- furniture: a treadmill, an exercise bike and a yoga mat in the gym; a crib in the master bedroom --- */
+  put('treadmill', 9.5 - WALL_IN - 0.4 - 0.02, 1.6, 0, bind('switch.us_treadmill'))
+  put('exerciseBike', 7.9, 1.0, 0)
+  put('yogaMat', 6.7, 1.6, 0, { body: '#8f6cf0' })
+  put('crib', -2.9, 6.6, 0)
+  wall(bonus, 'right', 8.3, 'piano')
+  /* --- furniture: a loveseat facing the bonus room sideboard, an office chair at its desk, a piano --- */
+  put('sofa', 8, 7, -PI / 2, { variant: '2', len: 1.6 })
+  put('officeChair', 9.9, 4.6, PI / 2, { body: '#3f56e0' })
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -911,6 +927,7 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    sw('us_treadmill', t('Treadmill'), false),
     sensor('us_bath_scale', t('Bathroom Scale'), 72.4, 'weight', 'kg'),
     ent('sensor.us_toothbrush', 'idle', t('Toothbrush'), {}),
     ent('climate.us_sauna', 'off', t('Garden Sauna'), { hvac_modes: ['off', 'heat'], current_temperature: 22, temperature: 80, supported_features: 1 }),

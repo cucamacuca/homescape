@@ -157,7 +157,7 @@ export const APPLIANCE_STACK: ItemKind[] = ['washer', 'dryer', 'dishwasher']
  * Chairs can tuck under tables and desks, a drawer unit under a desk. A power strip on the floor can go under a table or a
  * coffee table (partly under it is no collision).
  */
-const TUCKS: Partial<Record<ItemKind, ItemKind[]>> = { chair: ['diningTable', 'desk'], gamingChair: ['desk', 'diningTable'], drawerUnit: ['desk'], powerStrip: ['desk', 'diningTable', 'coffeeTable', 'roundTable'] }
+const TUCKS: Partial<Record<ItemKind, ItemKind[]>> = { barStool: ['kitchenCounter', 'diningTable'], officeChair: ['desk', 'diningTable'], chair: ['diningTable', 'desk'], gamingChair: ['desk', 'diningTable'], drawerUnit: ['desk'], powerStrip: ['desk', 'diningTable', 'coffeeTable', 'roundTable'] }
 
 /**
  * Ceiling items (ceiling layer: no collision with floor and wall items). The pergola / gazebo is in this layer too, like a
@@ -166,7 +166,7 @@ const TUCKS: Partial<Record<ItemKind, ItemKind[]>> = { chair: ['diningTable', 'd
 export const CEILING: ItemKind[] = ['pendant', 'downlight', 'ceilingStrip', 'ceilingFan', 'ceilingLight', 'trackLight', 'projector', 'smokeDetector', 'pergola']
 
 export function layerOf(kind: ItemKind, y?: number, variant?: string, mount?: Item['mount']): Layer {
-  if (kind === 'rug' || kind === 'doormat') return 'rug'
+  if (kind === 'rug' || kind === 'doormat' || kind === 'yogaMat') return 'rug'
   if (mount === 'wall' && MOUNTABLE.includes(kind)) return 'wall'
   // A wall TV is in the wall layer: no collision with the unit below or the console/lamp on it.
   if (kind === 'tv' && variant === 'wall') return 'wall'

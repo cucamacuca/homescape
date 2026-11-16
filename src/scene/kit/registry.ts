@@ -227,6 +227,15 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   bathScale: H.BathScale,
   toothbrush: H.Toothbrush,
   sauna: H.Sauna,
+  barStool: H.BarStool,
+  crib: H.Crib,
+  pouf: H.Pouf,
+  coatRack: H.CoatRack,
+  treadmill: H.Treadmill,
+  exerciseBike: H.ExerciseBike,
+  yogaMat: H.YogaMat,
+  piano: H.Piano,
+  officeChair: H.OfficeChair,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */
