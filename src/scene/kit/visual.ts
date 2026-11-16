@@ -28,6 +28,8 @@ export interface Visual {
   swingOut: boolean
   /** Window that does not open (Item.fixed): no sash, no swing arc */
   fixed?: boolean
+  /** Double window (Item.double): two sashes opening from the middle, each with its own sensor */
+  double?: boolean
   /** Kitchen cabinet or appliance standing away from a wall (an island): a counter has no wall cabinets */
   free?: boolean
   /** Edit mode: swing direction marks (arcs) show on every door and window */

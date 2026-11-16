@@ -15,11 +15,13 @@ import { fmt, type RoomStats } from './useHome'
 
 /**
  * Cycles the opening direction: left-in -> right-in -> right-out -> left-out -> back to the start. A sliding glass door
- * only switches the side that opens.
+ * only switches the side that opens, a double window only in and out.
  */
 function nextOpening(item: Item): Pick<Item, 'hinge' | 'swing'> {
   const hinge = item.hinge ?? 'left'
   if (item.kind === 'door' && item.variant === 'sliding') return { hinge: hinge === 'left' ? 'right' : 'left', swing: item.swing ?? 'in' }
+  // A double window has no hinge side: only in and out
+  if (item.kind === 'window' && item.double) return { hinge, swing: (item.swing ?? 'in') === 'in' ? 'out' : 'in' }
   const swing = item.swing ?? 'in'
   if (swing === 'in') return hinge === 'left' ? { hinge: 'right', swing: 'in' } : { hinge: 'right', swing: 'out' }
   return hinge === 'right' ? { hinge: 'left', swing: 'out' } : { hinge: 'left', swing: 'in' }

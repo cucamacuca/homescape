@@ -134,7 +134,7 @@ function Capture() {
   const kind = (preset?.kind ?? key) as ItemKind
   const ground = key.startsWith('floor:') ? (key.slice(6) as FloorMaterial) : null
   const Comp = key === 'room' || key === 'roomL' || ground ? null : KIT[kind]
-  const v = !Comp ? null : preset ? { ...thumbVisual(kind), opts: { ...preset.extra }, at: { x: 0, z: 0, rot: 0, y: preset.extra.y }, fixed: Boolean(preset.extra.fixed) } : thumbVisual(kind)
+  const v = !Comp ? null : preset ? { ...thumbVisual(kind), opts: { ...preset.extra }, at: { x: 0, z: 0, rot: 0, y: preset.extra.y }, fixed: Boolean(preset.extra.fixed), double: Boolean(preset.extra.double) } : thumbVisual(kind)
   return (
     <group ref={group}>
       {Comp && v ? (

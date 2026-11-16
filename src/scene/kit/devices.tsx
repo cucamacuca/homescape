@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { deviceClass, domainOf, friendlyName, isActive, lightColor, lightLevel, num } from '@/ha/derive'
 import { isSocketEntity, SOCKET_DOMAINS, socketCount } from '@/model/bindings'
+import { isSashSensor, sashesOpen } from '@/model/sashes'
 import { BEAM, consoleModel, STRIP_PITCH, STRIP_WALL_Y, stripWidth, WINDOW_BOTTOM, windowSize } from '@/model/catalog'
 import { APERTURE_INSET, inRoom, roomAt, WALL_CUT_H, WALL_H, WALL_IN, WALL_INNER_H, wallRuns, type Side } from '@/model/geometry'
 import { roofView } from '../camera'
@@ -1419,6 +1420,13 @@ function sashOpen(v: Visual) {
   return v.related.some((e) => domainOf(e.entity_id) === 'binary_sensor' && contact(deviceClass(e)) && isActive(e))
 }
 
+/** Open states of a window's sash sensors in binding order (main entity first), for a double window's two sashes */
+function sashStates(v: Visual) {
+  const contact = (dc: string) => dc === '' || ['window', 'opening', 'door'].includes(dc)
+  const main = v.domain === 'binary_sensor' && contact(String(v.attrs.device_class ?? '')) ? [v.on] : []
+  return [...main, ...v.related.filter(isSashSensor).map((e) => isActive(e))]
+}
+
 /** Eases toward a value and calls apply on each step (while a cover opens or closes); requests frames until done. */
 function useFollow(target: number, apply: (v: number) => void, reset: unknown) {
   const cur = useRef<number | null>(null)
@@ -1649,7 +1657,14 @@ export function Window({ v }: P) {
   const gh = H - 0.06
   // The sash opens into the room by default (negative rotation toward local +z, into the room); only with a window sensor.
   // A fixed window (Item.fixed) never opens: one pane in the frame, no sash bar, no swing arc.
-  const sash = useEased(!v.fixed && sashOpen(v) ? -0.5 : 0)
+  // A double window (Item.double) has two sashes hinged at the outer edges, each following its own sensor (model/sashes.ts).
+  const dbl = !v.fixed && Boolean(v.double)
+  const [openL, openR] = dbl ? sashesOpen(sashStates(v)) : [false, false]
+  const sash = useEased(!v.fixed && !dbl && sashOpen(v) ? -0.5 : 0)
+  const sashL = useEased(openL ? -0.5 : 0)
+  const sashR = useEased(openR ? -0.5 : 0)
+  // Each sash of a double window: half the glass, less the post in the middle
+  const hw = gw / 2 - 0.015
   // With a low wall the window is hidden; a thin glass line on top of the low wall stands in for it (floor plan mark).
   useWallHeight(root, v.interior, (h) => {
     const low = h < 1.2
@@ -1672,6 +1687,19 @@ export function Window({ v }: P) {
         <Box size={[0.06, H, 0.22]} position={[W / 2, B + H / 2, EDGE_Z]} color={C.white} />
         {v.fixed ? (
           <Box size={[gw, gh, 0.025]} position={[0, B + H / 2, EDGE_Z + 0.04]} material={glass} shadow={false} />
+        ) : dbl ? (
+          <>
+            {/* left sash (local -x) and its mirror image on the right, both hinged at the frame and meeting at the post */}
+            {[false, true].map((right) => (
+              <Mirror key={String(right)} x={right} z={v.swingOut}>
+                <group ref={right ? sashR : sashL} position={[-gw / 2, 0, EDGE_Z + 0.04]}>
+                  <Box size={[hw, gh, 0.025]} position={[hw / 2, B + H / 2, 0]} material={glass} shadow={false} />
+                  <Box size={[0.025, gh, 0.035]} position={[hw - 0.0125, B + H / 2, 0]} color={C.white} shadow={false} />
+                </group>
+              </Mirror>
+            ))}
+            <Box size={[0.03, H, 0.22]} position={[0, B + H / 2, EDGE_Z]} color={C.white} />
+          </>
         ) : (
           <Mirror x={v.hingeRight} z={v.swingOut}>
             <group ref={sash} position={[-gw / 2, 0, EDGE_Z + 0.04]}>
@@ -1683,12 +1711,20 @@ export function Window({ v }: P) {
         {B + yoff > 0.3 && <Box size={[W + 0.3, 0.04, 0.2]} position={[0, B - 0.03, EDGE_Z + WALL_IN + 0.1]} color={C.white} />}
         <Shade v={v} W={W} B={B} T={T} yoff={yoff} />
       </group>
-      {/* Sash swing direction in edit mode: outline arc on the floor (visible when the wall is low too); none on a fixed window */}
-      {v.edit && !v.fixed && (
+      {/* Sash swing direction in edit mode: outline arc on the floor (visible when the wall is low too); none on a fixed
+          window, two on a double window */}
+      {v.edit && !v.fixed && !dbl && (
         <Mirror x={v.hingeRight} z={v.swingOut}>
           <SwingArc at={[-gw / 2, 0.014 - yoff, EDGE_Z + 0.04]} r={gw - 0.04} strong outline />
         </Mirror>
       )}
+      {v.edit &&
+        dbl &&
+        [false, true].map((right) => (
+          <Mirror key={String(right)} x={right} z={v.swingOut}>
+            <SwingArc at={[-gw / 2, 0.014 - yoff, EDGE_Z + 0.04]} r={hw - 0.02} strong outline />
+          </Mirror>
+        ))}
       <mesh ref={glyph} position={[0, WALL_INNER_H + 0.012 - yoff, EDGE_Z]} visible={false} material={glass}>
         <boxGeometry args={[W - 0.04, 0.024, 0.12]} />
       </mesh>

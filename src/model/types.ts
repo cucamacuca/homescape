@@ -270,6 +270,11 @@ export interface Item {
   swing?: 'in' | 'out'
   /** Window that does not open (fixed glazing): one pane, no swing arc, no opening direction; a window sensor leaves it shut */
   fixed?: boolean
+  /**
+   * Double window (two casement sashes hinged at the outer edges, meeting at a middle post; GitHub issue #7): the left
+   * sash follows the first window sensor bound to it, the right sash the second (model/sashes.ts). Ignored when fixed.
+   */
+  double?: boolean
   /** Length of items with adjustable length (local x, m): desk */
   len?: number
   /** Drawer unit of the desk */

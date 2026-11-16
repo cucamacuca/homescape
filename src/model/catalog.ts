@@ -907,12 +907,14 @@ export interface ItemPreset {
   kind: ItemKind
   label: string
   sub: string
-  extra: Partial<Pick<Item, 'len' | 'len2' | 'y' | 'variant' | 'mount' | 'fixed'>>
+  extra: Partial<Pick<Item, 'len' | 'len2' | 'y' | 'variant' | 'mount' | 'fixed' | 'double'>>
 }
 export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'windowFull', kind: 'window', label: t('Full-height window'), sub: `${formatNumber(1.2)} × ${formatNumber(2.1)} m`, extra: { len2: 2.1, y: -0.82 } },
   // A window that does not open (fixed glazing): no sash and no swing arc; Opens / Fixed in its card switches it
   { id: 'windowFixed', kind: 'window', label: t('Fixed window'), sub: t('does not open'), extra: { fixed: true } },
+  // Two sashes opening from the middle, each with its own sensor; Opens / Double / Fixed in its card switches it
+  { id: 'windowDouble', kind: 'window', label: t('Double window'), sub: t('opens on both sides'), extra: { double: true, len: 1.6 } },
   // A sliding glass door (patio door): two glass panels, the width is set in its card
   { id: 'doorSliding', kind: 'door', label: t('Sliding glass door'), sub: t('slides open'), extra: { variant: 'sliding', len: SLIDING_DOOR.def } },
   // The power strip can hang on the wall too

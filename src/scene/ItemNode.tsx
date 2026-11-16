@@ -92,6 +92,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
   const hingeRight = item.hinge === 'right'
   const swingOut = item.swing === 'out'
   const fixed = item.kind === 'window' && Boolean(item.fixed)
+  const double = item.kind === 'window' && !fixed && Boolean(item.double)
   const { len, drawers, top, body, fedAt, shape, variant, len2, led, ledEntity, intensity, mount, beam } = item
   // Built-in sink of the kitchen counter (model/counter.ts): in the middle unless there is a separate sink next to it
   const sinkAt = useLayout((s) => (item.kind === 'kitchenCounter' ? (counterSink(lvOf(s)?.items ?? [], item) ?? undefined) : undefined))
@@ -158,7 +159,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
   })
 
   const v: Visual = useMemo(() => {
-    const opening = { related, interior, hingeRight, swingOut, fixed, free, edit, opts, at: { x: item.x, z: item.z, rot: item.rot, y: item.y } }
+    const opening = { related, interior, hingeRight, swingOut, fixed, double, free, edit, opts, at: { x: item.x, z: item.z, rot: item.rot, y: item.y } }
     if (!entity) return { ...OFF_VISUAL, bound: Boolean(item.entityId), night, unavailable: Boolean(item.entityId), ...opening, open: open ? 1 : 0, openParts }
     const on = isActive(entity)
     return {
@@ -176,7 +177,7 @@ function ItemNodeImpl({ item, entity, related, night, levelId, still = false }: 
       open: open ? 1 : 0,
       openParts,
     }
-  }, [entity, item.entityId, item.kind, item.x, item.z, item.rot, item.y, night, related, interior, hingeRight, swingOut, fixed, free, edit, opts, intensity, open, openParts])
+  }, [entity, item.entityId, item.kind, item.x, item.z, item.rot, item.y, night, related, interior, hingeRight, swingOut, fixed, double, free, edit, opts, intensity, open, openParts])
 
   const y = item.y ?? DEFAULT_Y[item.kind] ?? 0
   // The model is not re-rendered unless its look changes (selection, hover and floor change only update this node)

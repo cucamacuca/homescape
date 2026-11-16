@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronUp, PanelBottomOpen, Compass, Copy, PersonStanding, Power, Fish, Group, History, Lightbulb, Link, Pencil, RotateCcw, RotateCw, Search, SquarePlus, Trash2, TriangleAlert, WandSparkles, X } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronUp, PanelBottomOpen, Compass, Copy, PersonStanding, Power, Fish, Group, History, Lightbulb, Link, Pencil, RotateCcw, RotateCw, Search, SquarePlus, Trash2, TriangleAlert, WandSparkles, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { canToggle, toggle, turnOffAll } from '@/ha/actions'
 import { friendlyName, isActive, relativeTime, stateLabel } from '@/ha/derive'
@@ -22,6 +22,7 @@ import { BindingEditor, BindingSummary, itemName, itemStateLabel } from './Bindi
 import { EntityControls } from './Controls'
 import { halfWall, removeRoom, removeRoomPart, removeWalls, restoreWalls, roomContentsCount, wallContentsCount } from './removal'
 import { roomWalls, type RoomWall } from '@/model/walls'
+import { sashSensorIds, swapSashes } from '@/model/sashes'
 import { rotateRoom } from './rotateRoom'
 import { regenerateFromHa } from './regenerate'
 import { KIND_ICON } from './kindIcons'
@@ -745,6 +746,47 @@ function AquariumFeed({ item }: { item: Item }) {
   )
 }
 
+/**
+ * The two sashes of a double window and the sensor each follows (model/sashes.ts): the first window sensor bound opens
+ * the left sash, the second the right one; with one both follow it. Swap exchanges the two in the binding order.
+ */
+function SashSensors({ item }: { item: Item }) {
+  const entities = useHa((s) => s.entities)
+  const ids = sashSensorIds(item, entities)
+  const name = (id?: string) => (id && entities[id] ? friendlyName(entities[id]) : '-')
+  const rows: [string, string | undefined][] = [
+    [t('Left sash'), ids[0]],
+    [t('Right sash'), ids[1] ?? ids[0]],
+  ]
+  return (
+    <div className="grid gap-1.5" id={`sashes-${item.id}`}>
+      {rows.map(([label, id]) => (
+        <div key={label} className="flex items-center justify-between gap-2 text-[12px]">
+          <span className="text-ink-3">{label}</span>
+          <span className="truncate font-semibold text-ink-2" data-sash-sensor={id ?? ''}>
+            {name(id)}
+          </span>
+        </div>
+      ))}
+      {ids.length > 1 && (
+        <button
+          type="button"
+          id="window-swap-sashes"
+          onClick={() => {
+            const patch = swapSashes(item, entities)
+            if (patch) useLayout.getState().updateItem(item.id, patch)
+          }}
+          className="flex items-center justify-center gap-2 rounded-xl border border-line py-2 text-[12.5px] font-semibold text-ink-2 hover:border-brand hover:text-brand"
+        >
+          <ArrowLeftRight size={14} />
+          {t('Swap sashes')}
+        </button>
+      )}
+      <p className="text-[11px] leading-relaxed text-ink-3">{t('Each sash follows its own window sensor: the first one bound opens the left sash, the second the right one. With one sensor both open together.')}</p>
+    </div>
+  )
+}
+
 /** Opening direction of a door or window: hinge side and the side it opens to (room names on an inner door). */
 function OpeningEdit({ item }: { item: Item }) {
   const rooms = useLayout((s) => activeLevel(s)?.rooms)
@@ -801,19 +843,43 @@ function OpeningEdit({ item }: { item: Item }) {
         <p className="text-[11px] text-ink-3">{t('The side that slides open, as seen from inside the room. A door sensor bound to it slides the glass open.')}</p>
       </div>
     )
+  // A window can be double (two sashes opening from the middle, GitHub issue #7): no hinge, each sash its own sensor
+  const double = !door && !fixed && Boolean(item.double)
   const kindRow = !door && (
     <div className="grid grid-cols-[64px_1fr] items-center gap-2">
       <span className="text-[11px] text-ink-3">{t('Type')}</span>
       <div className="flex min-w-0 gap-1.5">
-        <button type="button" id="window-opens" className={seg(!fixed)} onClick={() => updateItem(item.id, { fixed: undefined })}>
+        <button type="button" id="window-opens" className={seg(!fixed && !double)} onClick={() => updateItem(item.id, { fixed: undefined, double: undefined })}>
           {t('Opens')}
         </button>
-        <button type="button" id="window-fixed" className={seg(fixed)} onClick={() => updateItem(item.id, { fixed: true })}>
+        <button type="button" id="window-double" className={seg(double)} onClick={() => updateItem(item.id, { double: true, fixed: undefined })}>
+          {t('Double')}
+        </button>
+        <button type="button" id="window-fixed" className={seg(fixed)} onClick={() => updateItem(item.id, { fixed: true, double: undefined })}>
           {t('Fixed')}
         </button>
       </div>
     </div>
   )
+  if (double)
+    return (
+      <div className="grid gap-2">
+        <span className="text-[12px] font-semibold text-ink-2">{t('Window')}</span>
+        {kindRow}
+        <div className="grid grid-cols-[64px_1fr] items-center gap-2">
+          <span className="text-[11px] text-ink-3">{t('Opens')}</span>
+          <div className="flex min-w-0 gap-1.5">
+            <button type="button" className={seg(swing === 'in')} onClick={() => updateItem(item.id, { swing: 'in' })} title={t('Opens into the room')}>
+              {t('Inward')}
+            </button>
+            <button type="button" className={seg(swing === 'out')} onClick={() => updateItem(item.id, { swing: 'out' })} title={t('Opens outward')}>
+              {t('Outward')}
+            </button>
+          </div>
+        </div>
+        <SashSensors item={item} />
+      </div>
+    )
   if (fixed)
     return (
       <div className="grid gap-2">

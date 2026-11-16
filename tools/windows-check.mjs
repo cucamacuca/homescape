@@ -1,6 +1,6 @@
 // Fixed windows regression test: the window card's Opens / Fixed switch, no hinge and direction controls and no flip
 // bubble on a fixed window, the "Fixed window" card in the item bar, back to an opening window. Also the sliding glass
-// door: width, the side that opens, no swing area. `npm run dev` must be
+// door (width, the side that opens, no swing area) and the double window (a sensor per sash). `npm run dev` must be
 // running first. Run: npm run check:windows   Screenshots: shots/windows-*.png
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
@@ -117,6 +117,7 @@ const bar = await p.textContent('body')
 await p.screenshot({ path: 'shots/windows-bar.png' })
 ok(/Fixed window/.test(bar) && /does not open/.test(bar), 'The item bar offers a "Fixed window"')
 ok(/Sliding glass door/.test(bar), 'The item bar offers a "Sliding glass door"')
+ok(/Double window/.test(bar) && /opens on both sides/.test(bar), 'The item bar offers a "Double window"')
 
 // --- Sliding glass door (GitHub issue #6): a door in the front wall becomes sliding, wider, without a swing area ---
 await p.evaluate(() => {
@@ -156,6 +157,74 @@ await p.click('#door-hinged')
 await settle()
 const back = await item('d-slide')
 ok(!back.variant && back.len == null, 'Hinged makes it a 1 m hinged door again')
+
+// --- Double window (GitHub issue #7): two sashes from the middle, each following its own sensor ---
+// In the wall to a second room (an interior wall stays full height in View, so the window is not cut away)
+await p.evaluate(() => {
+  const h = window.__homescape
+  const L = h.getState().layout
+  L.addRoom({ name: 'Study', floor: 'wood', x: 5, z: 0, w: 3, d: 4 })
+  L.addItems([{ id: 'w-double', kind: 'window', x: 4.79, z: 2, rot: -Math.PI / 2, len: 1.6 }])
+  h.setMode('edit')
+  h.select({ type: 'item', id: 'w-double' })
+})
+await p.waitForSelector('#window-double')
+await p.click('#window-double')
+await settle()
+const dw = await item('w-double')
+const dcard = await p.textContent('#side-panel')
+ok(dw.double === true && !dw.fixed && /Left sash/.test(dcard) && /Right sash/.test(dcard) && !/\bHinge\b/.test(dcard), 'Double makes a two-sash window: the card shows both sashes and no hinge')
+const win = (id, state) => p.evaluate(({ id, state }) => window.__homescape.setEntity({ entity_id: id, state, attributes: { friendly_name: id === 'binary_sensor.test_left' ? 'Left window' : 'Right window', device_class: 'window' } }), { id, state })
+await win('binary_sensor.test_left', 'off')
+await win('binary_sensor.test_right', 'off')
+await p.evaluate(() => window.__homescape.getState().layout.updateItem('w-double', { entityId: 'binary_sensor.test_left', extras: ['binary_sensor.test_right'] }))
+await settle()
+const shown = await p.evaluate(() => [...document.querySelectorAll('#side-panel [data-sash-sensor]')].map((e) => e.getAttribute('data-sash-sensor')))
+ok(shown[0] === 'binary_sensor.test_left' && shown[1] === 'binary_sensor.test_right' && (await p.isVisible('#window-swap-sashes')), 'The card shows the sensor of each sash and offers a swap')
+await p.click('#window-swap-sashes')
+await settle()
+ok((await item('w-double')).entityId === 'binary_sensor.test_right', 'Swap sashes swaps the two sensors')
+await p.evaluate(() => window.__homescape.getState().layout.updateItem('w-double', { entityId: 'binary_sensor.test_left', extras: ['binary_sensor.test_right'] }))
+// A ray from 45 cm inside the room toward the wall, 40 cm to the left or right of the middle: an open sash is hit sooner
+const probe = (side) =>
+  p.evaluate(async (side) => {
+    const h = window.__homescape
+    const it = h.getState().layout.layout.levels[0].items.find((i) => i.id === 'w-double')
+    const [nx, nz] = [Math.sin(it.rot), Math.cos(it.rot)]
+    const [ax, az] = [Math.cos(it.rot), -Math.sin(it.rot)]
+    const [lx, lz] = [it.x - nx * 0.21, it.z - nz * 0.21]
+    const hit = await h.pick(lx + nx * 0.45 + ax * side * 0.4, 1.5, lz + nz * 0.45 + az * side * 0.4, -nx, 0, -nz)
+    return hit?.itemId === 'w-double' ? +hit.distance.toFixed(3) : null
+  }, side)
+await p.evaluate(() => {
+  window.__homescape.select(null)
+  window.__homescape.setMode('view')
+})
+await settle()
+const shutD = [await probe(-1), await probe(1)]
+await win('binary_sensor.test_left', 'on')
+await p.waitForTimeout(1500)
+const leftD = [await probe(-1), await probe(1)]
+await win('binary_sensor.test_left', 'off')
+await win('binary_sensor.test_right', 'on')
+await p.waitForTimeout(1500)
+const rightD = [await probe(-1), await probe(1)]
+const sooner = (a, b) => a != null && b != null && a < b - 0.08
+const same = (a, b) => a != null && b != null && Math.abs(a - b) < 0.02
+ok(sooner(leftD[0], shutD[0]) && same(leftD[1], shutD[1]) && sooner(rightD[1], shutD[1]) && same(rightD[0], shutD[0]), `Each sensor opens its own sash (shut ${shutD}, left open ${leftD}, right open ${rightD})`)
+await win('binary_sensor.test_left', 'on')
+await p.waitForTimeout(400)
+const both = await p.evaluate(() => document.querySelector('#kpi-tiles')?.textContent ?? '')
+ok(/1 open/.test(both), 'The Doors / windows tile counts a double window once with both sashes open')
+// With one sensor both sashes follow it
+await win('binary_sensor.test_right', 'off')
+await p.evaluate(() => window.__homescape.getState().layout.updateItem('w-double', { extras: [] }))
+await p.waitForTimeout(1500)
+const oneD = [await probe(-1), await probe(1)]
+ok(sooner(oneD[0], shutD[0]) && sooner(oneD[1], shutD[1]), `One sensor opens both sashes (${oneD})`)
+await p.screenshot({ path: 'shots/windows-double.png' })
+await win('binary_sensor.test_left', 'off')
+await p.evaluate(() => window.__homescape.setMode('edit'))
 
 ok(errors.length === 0, `No page errors (${errors.slice(0, 3).join(' / ')})`)
 await b.close()
