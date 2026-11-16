@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { deviceClass, isActive, lightColor, lightLevel } from '@/ha/derive'
 import type { HassEntity } from '@/ha/types'
 import { bindingsOf, ledOf, ledSource } from '@/model/bindings'
-import { BEAM } from '@/model/catalog'
+import { BEAM, isSlidingDoor } from '@/model/catalog'
 import { apertureOf, doorSides, isOutdoor, rectsOf, roomAt, WALL_H, WALL_T } from '@/model/geometry'
 import type { Item, ItemKind, Level, Rect, Room } from '@/model/types'
 import { openNeighbors } from '@/model/walls'
@@ -333,7 +333,7 @@ function roomReach(rects: Rect[]) {
 }
 
 /**
- * Daylight (kind 4, walk mode): windows facing outside (no room or an outdoor area) and open exterior doors, into the
+ * Daylight (kind 4, walk mode): windows facing outside (no room or an outdoor area), sliding glass doors and open exterior doors, into the
  * indoor room. Power: sky level x opening area x what passes the covering; when the sun hits that side, the bounce of the
  * patch falling inside is added.
  */
@@ -344,7 +344,8 @@ function daylightLights(level: Level, entities: Record<string, HassEntity>, sky:
     const a = apertureOf(it)
     const { front, back } = doorSides(it, level.rooms)
     if (!a || !front || isOutdoor(front) || (back && !isOutdoor(back))) continue
-    const pass = it.kind === 'window' ? shadePass(it, entities) : outerOpen(it, entities) ? 1 : 0
+    // A sliding glass door lets daylight in like a window, a little less while it is shut
+    const pass = it.kind === 'window' ? shadePass(it, entities) : outerOpen(it, entities) ? 1 : isSlidingDoor(it) ? 0.85 : 0
     if (pass <= 0) continue
     // Towards the room: the item's front (local +z)
     const inX = a.horizontal ? 0 : Math.sign(Math.sin(it.rot))
@@ -546,7 +547,8 @@ export function computeRoomLights(level: Level, entities: Record<string, HassEnt
         range: fill ? 7 : Math.max(l.range, 4),
         color: fill ? l.color.clone().multiplyScalar(1.4) : l.color,
         rects: rectsOf(other),
-        portal: { horizontal: a.horizontal, line: a.line, a0: a.along - 0.46, a1: a.along + 0.46 },
+        // the opening's width: 0.92 m for a hinged door, the whole width of a sliding glass door
+        portal: { horizontal: a.horizontal, line: a.line, a0: a.along - (a.half - 0.04), a1: a.along + (a.half - 0.04) },
         power: l.power * 0.5,
       }
       const key = `${d.id}>${other.id}`

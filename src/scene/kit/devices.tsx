@@ -1290,7 +1290,82 @@ function doorState(v: Visual) {
   return { open, sensedOpen, lock }
 }
 
+/** Door: hinged (a leaf with a swing arc) or a sliding glass door (Item.variant 'sliding'). */
 export function Door({ v }: P) {
+  return v.opts.variant === 'sliding' ? <SlidingDoor v={v} /> : <HingedDoor v={v} />
+}
+
+/** Aluminium of a sliding glass door's frame and panels */
+const ALU = '#3a4150'
+
+/** One panel of a sliding glass door: glass in a thin aluminium frame, w wide and h high, standing on the floor. */
+function SlidePane({ w, h, glass, alu }: { w: number; h: number; glass: THREE.Material; alu: THREE.Material }) {
+  return (
+    <group>
+      <Box size={[w - 0.06, h - 0.06, 0.012]} position={[0, h / 2, 0]} material={glass} shadow={false} />
+      <Box size={[w, 0.05, 0.03]} position={[0, 0.025, 0]} material={alu} />
+      <Box size={[w, 0.05, 0.03]} position={[0, h - 0.025, 0]} material={alu} />
+      <Box size={[0.05, h, 0.03]} position={[-w / 2 + 0.025, h / 2, 0]} material={alu} />
+      <Box size={[0.05, h, 0.03]} position={[w / 2 - 0.025, h / 2, 0]} material={alu} />
+    </group>
+  )
+}
+
+/**
+ * Sliding glass door (patio door, GitHub issue #6): a thin dark aluminium frame as wide as the door (Item.len) and two
+ * glass panels on two tracks in the wall. The panel on the opening side (Item.hinge, seen from inside the room) slides
+ * over the fixed one when the door is open: its door sensor or cover, or someone passing (same rule as a hinged door).
+ * No swing arc. Cut with its wall like any door (useWallHeight).
+ */
+function SlidingDoor({ v }: P) {
+  const fps = useView((s) => s.fps)
+  const root = useRef<THREE.Group>(null)
+  const tall = useRef<THREE.Group>(null)
+  const moving = useRef<THREE.Group>(null)
+  const { open, sensedOpen } = doorState(v)
+  const passing = useDoorTraffic((s) => (v.at ? Boolean(s.open[doorKey(v.at.x, v.at.z)]) : false))
+  const W = v.opts.len ?? 1.8
+  const H = 2.16
+  // Each panel covers half the opening plus a 4 cm overlap; open, the moving one lies over the fixed one
+  const pw = W / 2 + 0.02
+  useFollow(
+    open || passing ? 1 : 0,
+    (f) => {
+      if (moving.current) moving.current.position.x = -W / 4 + f * (W / 2 - 0.06)
+    },
+    W,
+  )
+  useWallHeight(root, v.interior, (h) => {
+    if (tall.current) tall.current.scale.y = Math.max(0.02, h / FULL_H)
+  })
+  // Glass is see-through in walk mode (the garden shows), light blue from above (same as Window)
+  const glass = fps ? mat(C.glass, { opacity: 0.12, roughness: 0.05 }) : mat(C.glass, { emissive: '#9fc8ff', emissiveIntensity: 0.25, roughness: 0.2 })
+  const alu = mat(ALU, { roughness: 0.4, metalness: 0.2 })
+  return (
+    <group ref={root}>
+      <group ref={tall}>
+        <Box size={[0.06, H + 0.06, 0.2]} position={[-W / 2, (H + 0.06) / 2, EDGE_Z]} material={alu} />
+        <Box size={[0.06, H + 0.06, 0.2]} position={[W / 2, (H + 0.06) / 2, EDGE_Z]} material={alu} />
+        <Box size={[W + 0.06, 0.06, 0.2]} position={[0, H + 0.03, EDGE_Z]} material={alu} />
+        <Mirror x={v.hingeRight} z={false}>
+          {/* fixed panel on the far side (outer track), the moving one on the opening side (inner track, toward the room) */}
+          <group position={[W / 4, 0, EDGE_Z - 0.035]}>
+            <SlidePane w={pw} h={H} glass={glass} alu={alu} />
+          </group>
+          <group ref={moving} position={[-W / 4, 0, EDGE_Z + 0.035]}>
+            <SlidePane w={pw} h={H} glass={glass} alu={alu} />
+            <Box size={[0.025, 0.3, 0.03]} position={[-pw / 2 + 0.09, 1.05, 0.03]} material={alu} />
+          </group>
+        </Mirror>
+      </group>
+      {/* track in the floor between the two rooms (or in front of the house) */}
+      <Box size={[W, 0.012, v.interior ? 0.42 : 0.22]} position={[0, 0.006, EDGE_Z]} material={alu} shadow={false} />
+      {sensedOpen && <Box size={[W - 0.1, 0.01, 0.9]} position={[0, 0.008, 0.4]} material={mat(C.sun, { opacity: 0.25 })} shadow={false} />}
+    </group>
+  )
+}
+
+function HingedDoor({ v }: P) {
   // No swing arc (floor plan mark) in walk mode
   const fps = useView((s) => s.fps)
   const root = useRef<THREE.Group>(null)

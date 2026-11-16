@@ -882,6 +882,13 @@ export const RESIZABLE: Partial<Record<ItemKind, { min: number; max: number; lab
   speedBump: { min: 1, max: 10, label: t('Speed bump length') },
   ledStrip: { min: 0.3, max: 8 },
 }
+/**
+ * Sliding glass door (a door with Item.variant 'sliding', GitHub issue #6): its width is Item.len, set in the card; a hinged
+ * door keeps its fixed 1 m.
+ */
+export const SLIDING_DOOR = { min: 1.2, max: 3.6, def: 1.8, label: t('Door width') }
+export const isSlidingDoor = (it: { kind: ItemKind; variant?: string }) => it.kind === 'door' && it.variant === 'sliding'
+
 /** Second size (Item.len2): the arm of an L counter (L shapes only), the height of a window */
 export const RESIZABLE2: Partial<Record<ItemKind, { min: number; max: number; label: string; def: number; onlyL?: boolean }>> = {
   kitchenCounter: { min: 1.2, max: 4, label: t('L arm length (from the corner)'), def: 1.8, onlyL: true },
@@ -906,6 +913,8 @@ export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'windowFull', kind: 'window', label: t('Full-height window'), sub: `${formatNumber(1.2)} × ${formatNumber(2.1)} m`, extra: { len2: 2.1, y: -0.82 } },
   // A window that does not open (fixed glazing): no sash and no swing arc; Opens / Fixed in its card switches it
   { id: 'windowFixed', kind: 'window', label: t('Fixed window'), sub: t('does not open'), extra: { fixed: true } },
+  // A sliding glass door (patio door): two glass panels, the width is set in its card
+  { id: 'doorSliding', kind: 'door', label: t('Sliding glass door'), sub: t('slides open'), extra: { variant: 'sliding', len: SLIDING_DOOR.def } },
   // The power strip can hang on the wall too
   { id: 'powerStripWall', kind: 'powerStrip', label: t('Wall power strip'), sub: t('wall mounted · 2-8 outlets'), extra: { mount: 'wall' } },
   // Rug shapes; all the same kind, the card changes shape and size

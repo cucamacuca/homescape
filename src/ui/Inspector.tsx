@@ -4,7 +4,7 @@ import { canToggle, toggle, turnOffAll } from '@/ha/actions'
 import { friendlyName, isActive, relativeTime, stateLabel } from '@/ha/derive'
 import { useHa } from '@/ha/store'
 import { bindingsOf, boundAnywhere, emitsLight, isBound, ledOf, ledSource } from '@/model/bindings'
-import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, ITEM_PRESETS, OPTIONS, RESIZABLE, RESIZABLE2, sizeOf, TOP_COLORS } from '@/model/catalog'
+import { BEAM, BODY_COLORS, CATALOG, CONSOLE_LEN, consoleModel, isSlidingDoor, ITEM_PRESETS, OPTIONS, RESIZABLE, RESIZABLE2, SLIDING_DOOR, sizeOf, TOP_COLORS } from '@/model/catalog'
 import { kindFor, modelName, variantFor } from '@/model/generate'
 import { doorSides, isOutdoor, isStreetSurface, rectsOf, roomArea, roomAt, wallLengthAt, wallSnap, type Side } from '@/model/geometry'
 import { groupFamily, groupMates, heatingSummary } from '@/model/groups'
@@ -446,7 +446,8 @@ function tvHeight(item: Item, variant: string) {
 /** Settings of items like desks and cabinets: length, drawers, top and body color. */
 function FurnitureOptions({ item }: { item: Item }) {
   const opt = OPTIONS[item.kind]
-  const range = RESIZABLE[item.kind]
+  // A sliding glass door has its own width; a hinged door has none to set
+  const range = item.kind === 'door' ? (isSlidingDoor(item) ? SLIDING_DOOR : undefined) : RESIZABLE[item.kind]
   const range2 = RESIZABLE2[item.kind]
   const { updateItem, checkpoint } = useLayout.getState()
   if (!opt && !range) return null
@@ -757,6 +758,49 @@ function OpeningEdit({ item }: { item: Item }) {
   const inTitle = door && back ? (front ? t('Opens into {room}', { room: front.name }) : t('Opens into this room')) : t('Opens into the room')
   // A window can be fixed (does not open): then no hinge, no direction and no swing arc
   const fixed = !door && Boolean(item.fixed)
+  // A door can be a sliding glass door: then a width (FurnitureOptions) and the side that opens, no swing direction
+  const sliding = isSlidingDoor(item)
+  const setDoorType = (slide: boolean) => {
+    const level = activeLevel(useLayout.getState())
+    if (!level || slide === sliding) return
+    const patch: Partial<Item> = slide ? { variant: 'sliding', len: SLIDING_DOOR.def } : { variant: undefined, len: undefined }
+    const next = { ...item, ...patch }
+    const chk = checkItem(level, { kind: next.kind, x: next.x, z: next.z, rot: next.rot, swing: next.swing, len: next.len, variant: next.variant }, item.id)
+    if (!chk.ok) return useHa.setState({ notice: t("This setting doesn't fit: {reason}", { reason: chk.reason ?? '' }) })
+    updateItem(item.id, patch)
+  }
+  const doorRow = door && (
+    <div className="grid grid-cols-[64px_1fr] items-center gap-2">
+      <span className="text-[11px] text-ink-3">{t('Type')}</span>
+      <div className="flex min-w-0 gap-1.5">
+        <button type="button" id="door-hinged" className={seg(!sliding)} onClick={() => setDoorType(false)}>
+          {t('Hinged')}
+        </button>
+        <button type="button" id="door-sliding" className={seg(sliding)} onClick={() => setDoorType(true)}>
+          {t('Sliding glass')}
+        </button>
+      </div>
+    </div>
+  )
+  if (sliding)
+    return (
+      <div className="grid gap-2">
+        <span className="text-[12px] font-semibold text-ink-2">{t('Door')}</span>
+        {doorRow}
+        <div className="grid grid-cols-[64px_1fr] items-center gap-2">
+          <span className="text-[11px] text-ink-3">{t('Side')}</span>
+          <div className="flex min-w-0 gap-1.5">
+            <button type="button" id="door-side-left" className={seg(hinge === 'left')} onClick={() => updateItem(item.id, { hinge: 'left' })}>
+              {t('Left')}
+            </button>
+            <button type="button" id="door-side-right" className={seg(hinge === 'right')} onClick={() => updateItem(item.id, { hinge: 'right' })}>
+              {t('Right')}
+            </button>
+          </div>
+        </div>
+        <p className="text-[11px] text-ink-3">{t('The side that slides open, as seen from inside the room. A door sensor bound to it slides the glass open.')}</p>
+      </div>
+    )
   const kindRow = !door && (
     <div className="grid grid-cols-[64px_1fr] items-center gap-2">
       <span className="text-[11px] text-ink-3">{t('Type')}</span>
@@ -782,6 +826,7 @@ function OpeningEdit({ item }: { item: Item }) {
     <div className="grid gap-2">
       <span className="text-[12px] font-semibold text-ink-2">{door ? t('Opening direction') : t('Window')}</span>
       {kindRow}
+      {doorRow}
       <div className="grid grid-cols-[64px_1fr] items-center gap-2">
         <span className="text-[11px] text-ink-3">{t('Hinge')}</span>
         <div className="flex min-w-0 gap-1.5">

@@ -1,5 +1,6 @@
 // Fixed windows regression test: the window card's Opens / Fixed switch, no hinge and direction controls and no flip
-// bubble on a fixed window, the "Fixed window" card in the item bar, back to an opening window. `npm run dev` must be
+// bubble on a fixed window, the "Fixed window" card in the item bar, back to an opening window. Also the sliding glass
+// door: width, the side that opens, no swing area. `npm run dev` must be
 // running first. Run: npm run check:windows   Screenshots: shots/windows-*.png
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
@@ -115,6 +116,46 @@ await settle()
 const bar = await p.textContent('body')
 await p.screenshot({ path: 'shots/windows-bar.png' })
 ok(/Fixed window/.test(bar) && /does not open/.test(bar), 'The item bar offers a "Fixed window"')
+ok(/Sliding glass door/.test(bar), 'The item bar offers a "Sliding glass door"')
+
+// --- Sliding glass door (GitHub issue #6): a door in the front wall becomes sliding, wider, without a swing area ---
+await p.evaluate(() => {
+  const L = window.__homescape.getState().layout
+  L.addItems([{ id: 'd-slide', kind: 'door', x: 2.5, z: 3.79, rot: Math.PI }])
+  window.__homescape.select({ type: 'item', id: 'd-slide' })
+})
+await p.waitForSelector('#door-sliding')
+// A chair 60 cm in front of the door: in the swing of a hinged door, free in front of a sliding one
+const chairFits = () =>
+  p.evaluate(async () => {
+    const rules = await import('/src/model/rules.ts')
+    const lv = window.__homescape.getState().layout.layout.levels[0]
+    return rules.checkItem(lv, { kind: 'chair', x: 2.5, z: 3.2, rot: 0 }).ok
+  })
+const hingedChair = await chairFits()
+await p.click('#door-sliding')
+await settle()
+const slid = await item('d-slide')
+const shape = await p.evaluate(async () => {
+  const geo = await import('/src/model/geometry.ts')
+  const it = window.__homescape.getState().layout.layout.levels[0].items.find((i) => i.id === 'd-slide')
+  return { half: geo.apertureOf(it)?.half, card: document.querySelector('#side-panel')?.textContent ?? '' }
+})
+ok(slid.variant === 'sliding' && slid.len === 1.8 && Math.abs(shape.half - 0.9) < 1e-6, `Sliding glass makes a 1.8 m door with an opening as wide (half ${shape.half})`)
+ok(/Door width/.test(shape.card) && /Side/.test(shape.card) && !/\bHinge\b/.test(shape.card), 'The sliding door card has the width and the side that opens, no hinge or swing direction')
+ok(!hingedChair && (await chairFits()), 'A sliding door has no swing area: a chair can stand closer than in front of a hinged door')
+await p.click('[title="Flip the opening direction"]')
+await settle()
+const flipped = await item('d-slide')
+ok(flipped.hinge === 'right' && (flipped.swing ?? 'in') === 'in', 'The flip button switches the side that opens')
+await p.locator('#len-d-slide').fill('2.4')
+await settle()
+ok((await item('d-slide')).len === 2.4, 'The width slider sets the door width')
+await p.screenshot({ path: 'shots/windows-sliding.png' })
+await p.click('#door-hinged')
+await settle()
+const back = await item('d-slide')
+ok(!back.variant && back.len == null, 'Hinged makes it a 1 m hinged door again')
 
 ok(errors.length === 0, `No page errors (${errors.slice(0, 3).join(' / ')})`)
 await b.close()

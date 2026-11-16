@@ -1,4 +1,4 @@
-import { CATALOG, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
+import { CATALOG, isSlidingDoor, SLIDING_DOOR, sizeOf, WINDOW_BOTTOM, windowSize } from './catalog'
 import type { Item, Level, Rect, Room, RoomType } from './types'
 
 /*
@@ -368,11 +368,12 @@ export function apertureOf(it: Item) {
   const base = APERTURE[it.kind]
   if (!base) return null
   // A window can be raised or lowered (Item.y offset) and resized (width len, height len2): the hole in the wall follows
-  // its size and position. A door is always on the floor with a fixed size.
+  // its size and position. A door is always on the floor.
   const win = it.kind === 'window'
   const dy = win ? (it.y ?? 0) : 0
   const { w, h } = windowSize(it)
-  const spec = win ? { half: w / 2 - 0.02, y0: WINDOW_BOTTOM + dy, y1: WINDOW_BOTTOM + h + dy } : base
+  // A sliding glass door is as wide as its card says (Item.len); a hinged door is always 1 m
+  const spec = win ? { half: w / 2 - 0.02, y0: WINDOW_BOTTOM + dy, y1: WINDOW_BOTTOM + h + dy } : isSlidingDoor(it) ? { ...base, half: (it.len ?? SLIDING_DOOR.def) / 2 } : base
   const fx = Math.sin(it.rot)
   const fz = Math.cos(it.rot)
   if (Math.abs(Math.abs(fz) - 1) < 0.01) return { horizontal: true, line: it.z - Math.sign(fz) * APERTURE_INSET, along: it.x, ...spec }
@@ -417,12 +418,16 @@ export function exteriorSide(it: Item, rooms: Room[]): -1 | 0 | 1 {
   return inFront === inBack ? 0 : inFront ? 1 : -1
 }
 
-/** The plan's (first) exterior door and the inside's side: walk mode starts here, arriving people enter here, people away wait in front of it. */
+/**
+ * The plan's (first) exterior door and the inside's side: walk mode starts here, arriving people enter here, people away
+ * wait in front of it. A hinged door comes first: a sliding glass door is usually the patio door, not the front door.
+ */
 export function frontDoor(items: Item[], rooms: Room[]) {
-  for (const it of items) {
-    const side = it.kind === 'door' ? exteriorSide(it, rooms) : 0
-    if (side) return { door: it, side }
-  }
+  for (const sliding of [false, true])
+    for (const it of items) {
+      const side = it.kind === 'door' && isSlidingDoor(it) === sliding ? exteriorSide(it, rooms) : 0
+      if (side) return { door: it, side }
+    }
   return null
 }
 
