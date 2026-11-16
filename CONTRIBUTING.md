@@ -87,6 +87,7 @@ pull request). Then run the browser suites for what you changed, with the dev se
 | --- | --- |
 | The plan format, sync or storage | `check:data`, `check:sync`, `check:home` |
 | Editing, placing, the camera | `check:controls`, `check:home` |
+| Doors and windows | `check:windows`, `check:home` |
 | The Dashboard | `check:dashboard`, `check:world` |
 | Floors, roofs, stairs, the walk | `check:building`, `check:world` |
 | People, pets, interiors | `check:interior`, `check:pets` |

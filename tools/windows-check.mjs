@@ -70,14 +70,29 @@ await settle()
 await p.screenshot({ path: 'shots/windows-fixed.png' })
 
 // --- A window sensor does not open a fixed window, and keeps opening the other one ---
+// In View (no swing arcs) the opening sash swings into the room and the window gets deeper; the fixed one stays as it is
+const depth = (id) => p.evaluate((id) => window.__homescape.itemObject(id).then((o) => o.size[2]), id)
+const sensor = (state) => p.evaluate((state) => window.__homescape.setEntity({ entity_id: 'binary_sensor.test_window', state, attributes: { friendly_name: 'Test window', device_class: 'window' } }), state)
+await sensor('off')
 await p.evaluate(() => {
   const h = window.__homescape
   const L = h.getState().layout
-  L.updateItem('w-open', { entityId: 'binary_sensor.office_window' })
-  L.updateItem('w-fixed', { entityId: 'binary_sensor.office_window' })
+  L.updateItem('w-open', { entityId: 'binary_sensor.test_window' })
+  L.updateItem('w-fixed', { entityId: 'binary_sensor.test_window' })
+  h.setMode('view')
 })
 await settle()
+const shut = { open: await depth('w-open'), fixed: await depth('w-fixed') }
+await sensor('on')
+await p.waitForTimeout(1500)
+const opened = { open: await depth('w-open'), fixed: await depth('w-fixed') }
+ok(opened.open > shut.open + 0.05 && Math.abs(opened.fixed - shut.fixed) < 0.005, `An open window sensor opens the window that opens and leaves the fixed one shut (depth ${shut.open.toFixed(2)} -> ${opened.open.toFixed(2)} m, fixed ${shut.fixed.toFixed(2)} -> ${opened.fixed.toFixed(2)} m)`)
+const tile = await p.evaluate(() => document.querySelector('#kpi-tiles')?.textContent ?? '')
+ok(/1 open/.test(tile), 'The Doors / windows tile counts only the window that opens')
 await p.screenshot({ path: 'shots/windows-sensor.png' })
+await sensor('off')
+await p.evaluate(() => window.__homescape.setMode('edit'))
+await settle()
 
 // --- Undo, back to Opens ---
 await p.keyboard.press('ControlOrMeta+z')

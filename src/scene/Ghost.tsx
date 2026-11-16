@@ -67,9 +67,9 @@ function ItemGhost({ kind, extra }: { kind: ItemKind; extra?: Partial<Item> }) {
   const meta = CATALOG[kind]
   // TV: previewed on its stand (on top) when a TV unit/table is under the pointer, else wall mounted.
   const [variant, setVariant] = useState<string | undefined>(undefined)
-  // The preset card's settings (height of a full-height window) show in the ghost too
+  // The preset card's settings (height of a full-height window, a fixed window's single pane) show in the ghost too
   const ghostV = useMemo(
-    () => (variant || extra ? { ...GHOST_VISUAL, opts: { len: extra?.len, len2: extra?.len2, variant: variant ?? extra?.variant, mount: extra?.mount }, at: { x: 0, z: 0, rot: 0, y: extra?.y } } : GHOST_VISUAL),
+    () => (variant || extra ? { ...GHOST_VISUAL, opts: { len: extra?.len, len2: extra?.len2, variant: variant ?? extra?.variant, mount: extra?.mount }, at: { x: 0, z: 0, rot: 0, y: extra?.y }, fixed: Boolean(extra?.fixed) } : GHOST_VISUAL),
     [variant, extra],
   )
   useGhostMaterials(inner, `${kind}-${variant ?? ''}`)
