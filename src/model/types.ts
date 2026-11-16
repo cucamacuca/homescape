@@ -294,6 +294,10 @@ export type ItemKind =
   | 'hangingPlant'
   | 'chevalMirror'
   | 'whiteboard'
+  | 'petFountain'
+  | 'petDoor'
+  | 'petCage'
+  | 'chickenCoop'
 
 export interface Item {
   id: string

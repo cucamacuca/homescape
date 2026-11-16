@@ -7,7 +7,7 @@ import { formatNumber } from '@/i18n'
 import { WALL_H } from '@/model/geometry'
 import { assistRing, clockHands, clockText, distanceM, parkingBar, phoneState } from '@/model/household'
 import { markShadows } from '../frame'
-import { Airflow, Glow, Mist, MusicNotes, Spin, useAmbient, useLitMaterial } from './effects'
+import { Airflow, Glow, Mist, MusicNotes, Ripple, Spin, useAmbient, useLitMaterial } from './effects'
 import { C } from './palette'
 import { Ball, Box, Cyl, mat } from './primitives'
 import { Flames } from './smart'
@@ -1384,6 +1384,112 @@ export function ChevalMirror({ v }: P) {
         <Box size={[W + 0.04, H + 0.04, 0.03]} material={frame} radius={0.012} />
         <mesh geometry={plane(W - 0.02, H - 0.02)} material={glass} position={[0, 0, 0.0155]} />
       </group>
+    </group>
+  )
+}
+
+/* ---------- pets ---------- */
+
+/** Pet water fountain (on the floor): a bowl with a dome spout; water ripples while the pump is on. */
+export function PetFountain({ v }: P) {
+  return (
+    <group>
+      <Cyl r={0.12} rTop={0.11} h={0.08} position={[0, 0.04, 0]} color={bodyOf(v, '#e9ebf0')} segments={28} />
+      <mesh position={[0, 0.081, 0]} rotation-x={-Math.PI / 2} geometry={disc(0.1, 28)} material={clear('#7fc0ff', 0.55, 0.05)} />
+      <Ball r={0.04} position={[0, 0.1, 0]} scale={[1, 0.7, 1]} color={bodyOf(v, '#e9ebf0')} />
+      {/* small rings on the water while the pump runs (Ripple is room sized: scaled down) */}
+      <group position={[0, 0.085, 0]} scale={0.07}>
+        <Ripple active={v.on} color="#bfe3ff" at={[0, 0, 0]} />
+      </group>
+    </group>
+  )
+}
+
+/**
+ * Pet door (low on a wall or door): a frame with a flap that swings while a bound sensor sees a pet pass; bound to a lock,
+ * a light shows red while locked and green while open.
+ */
+export function PetDoor({ v }: P) {
+  const lock = relatedOf(v, 'lock')
+  const passing = (v.domain === 'binary_sensor' && v.on) || v.related.some((e) => domainOf(e.entity_id) === 'binary_sensor' && isActive(e))
+  const flap = useRef<THREE.Group>(null)
+  useEase(passing ? 0.9 : 0, (a) => {
+    if (flap.current) flap.current.rotation.x = a
+  })
+  const light = lock ? (lock.state === 'locked' ? C.alarm : C.ok) : '#5a5e6b'
+  return (
+    <group position={[0, 0.27, -0.015]}>
+      <Box size={[0.3, 0.3, 0.03]} color={C.white} radius={0.01} />
+      <group ref={flap} position={[0, 0.12, 0.016]}>
+        <Box size={[0.22, 0.22, 0.008]} position={[0, -0.11, 0]} material={clear('#9aa8c8', 0.55, 0.2)} shadow={false} />
+      </group>
+      <Ball r={0.007} position={[0.12, 0.13, 0.017]} material={glowing(light, Boolean(lock), 1.6)} shadow={false} />
+    </group>
+  )
+}
+
+/**
+ * Pet cage: a bird cage, a small animal cage with an exercise wheel or a glass terrarium (Item.variant). Bound to a light
+ * or switch, the terrarium's heat lamp glows while on; the wheel turns while on.
+ */
+export function PetCage({ v }: P) {
+  const kind = v.opts.variant ?? 'bird'
+  const wire = mat('#c9ccd4', { metalness: 0.4, roughness: 0.4 })
+  if (kind === 'terrarium')
+    return (
+      <group>
+        <Box size={[0.6, 0.04, 0.4]} position={[0, 0.02, 0]} color="#1d1f24" />
+        <Box size={[0.58, 0.08, 0.38]} position={[0, 0.08, 0]} color="#c9a26a" />
+        <Box size={[0.6, 0.4, 0.4]} position={[0, 0.24, 0]} material={clear('#d9efe6', 0.25, 0.05)} shadow={false} />
+        <Box size={[0.6, 0.02, 0.4]} position={[0, 0.45, 0]} color="#1d1f24" />
+        <Ball r={0.06} position={[-0.12, 0.16, 0.05]} color={C.leafDark} />
+        <Cyl r={0.04} h={0.05} position={[0.15, 0.48, 0]} material={glowing('#ff8a3d', v.on, 2)} segments={16} />
+        {v.on && <Glow position={[0.15, 0.4, 0]} color="#ff8a3d" opacity={v.night ? 0.6 : 0.3} size={0.5} />}
+      </group>
+    )
+  if (kind === 'small')
+    return (
+      <group>
+        <Box size={[0.6, 0.1, 0.4]} position={[0, 0.05, 0]} color="#8fd8bd" />
+        <Box size={[0.6, 0.3, 0.4]} position={[0, 0.25, 0]} material={clear('#d9dde6', 0.18, 0.3)} shadow={false} />
+        <group position={[0.15, 0.2, 0]}>
+          <Spin speed={v.on ? 4 : 0} axis="z">
+            <mesh geometry={torus(0.08, 0.008, 20)} material={wire} />
+            <Box size={[0.16, 0.006, 0.006]} material={wire} shadow={false} />
+          </Spin>
+        </group>
+      </group>
+    )
+  return (
+    <group>
+      <Cyl r={0.18} h={0.04} position={[0, 0.02, 0]} color="#f2f2ee" segments={24} />
+      {Array.from({ length: 12 }, (_, i) => (
+        <Cyl key={i} r={0.003} h={0.4} position={[Math.sin((i / 12) * TAU) * 0.17, 0.24, Math.cos((i / 12) * TAU) * 0.17]} material={wire} segments={4} shadow={false} />
+      ))}
+      <Ball r={0.17} position={[0, 0.44, 0]} scale={[1, 0.45, 1]} material={clear('#c9ccd4', 0.35, 0.3)} detail={1} />
+      <Box size={[0.24, 0.006, 0.006]} position={[0, 0.25, 0]} color="#a87a45" shadow={false} />
+      <Ball r={0.035} position={[0.02, 0.29, 0]} scale={[0.8, 1, 1.3]} color="#f5c04a" />
+    </group>
+  )
+}
+
+/** Chicken coop (in the garden): a raised wooden house with a ramp; its door slides up as far as a bound cover is open. */
+export function ChickenCoop({ v }: P) {
+  const wood = mat(v.opts.body ?? '#b0663a', { roughness: 0.8 })
+  const pos = v.domain === 'cover' ? (num(v.attrs.current_position) ?? (v.state === 'open' ? 100 : 0)) : v.on ? 100 : 0
+  const door = useRef<THREE.Group>(null)
+  useEase((pos / 100) * 0.22, (y) => {
+    if (door.current) door.current.position.y = y
+  })
+  return (
+    <group>
+      {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Box key={`${sx}${sz}`} size={[0.06, 0.4, 0.06]} position={[sx * 0.55, 0.2, sz * 0.35]} material={wood} />))}
+      <Box size={[1.2, 0.6, 0.8]} position={[0, 0.7, 0]} material={wood} />
+      <Box size={[1.3, 0.05, 0.95]} position={[0.0, 1.06, 0]} rotation={[0, 0, 0.12]} color="#5a3a28" />
+      <group ref={door}>
+        <Box size={[0.24, 0.26, 0.02]} position={[0.3, 0.55, 0.41]} color="#7a4a2a" />
+      </group>
+      <Box size={[0.22, 0.03, 0.7]} position={[0.3, 0.22, 0.65]} rotation={[0.55, 0, 0]} material={wood} />
     </group>
   )
 }

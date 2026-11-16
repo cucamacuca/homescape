@@ -341,6 +341,14 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   chevalMirror: { label: t('Standing mirror'), group: 'decor', domains: [], size: [0.65, 0.5], labelY: 1.85 },
   // Whiteboard: a line per open to-do item, a red pin while a calendar event is on
   whiteboard: { label: t('Memo board'), group: 'decor', domains: ['todo', 'calendar'], size: [0.9, 0.04], labelY: 1.9, wall: true },
+  // Pet water fountain; the water ripples while the pump is on
+  petFountain: { label: t('Pet water fountain'), group: 'pet', domains: ['switch', 'sensor'], size: [0.25, 0.25], labelY: 0.3 },
+  // Pet door low in a wall; the flap swings while a pet passes
+  petDoor: { label: t('Pet door'), group: 'pet', domains: ['lock', 'binary_sensor'], size: [0.3, 0.04], labelY: 0.7, wall: true },
+  // Bird cage, small animal cage or terrarium
+  petCage: { label: t('Pet cage'), group: 'pet', domains: ['light', 'switch', 'sensor'], size: [0.6, 0.4], labelY: 0.8 },
+  // Chicken coop; the door slides up with a bound cover
+  chickenCoop: { label: t('Chicken coop'), group: 'pet', domains: ['cover', 'binary_sensor', 'switch'], size: [1.3, 1.0], labelY: 1.4 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -896,6 +904,7 @@ export const OPTIONS: Partial<
   vase: { variantLabel: t('Type'), variants: [['tulips', t('Tulips')], ['branches', t('Branches')], ['dried', t('Dried flowers')]], variantDef: 'tulips', body: t('Color'), bodyList: BODY_COLORS, bodyDef: '#ffffff' },
   photoFrame: { variantLabel: t('Type'), variants: [['print', t('Printed')], ['digital', t('Digital')]], variantDef: 'print' },
   chevalMirror: { body: t('Frame color'), bodyList: TOP_COLORS, bodyDef: '#8a5a3b' },
+  petCage: { variantLabel: t('Type'), variants: [['bird', t('Bird cage')], ['small', t('Small animal cage')], ['terrarium', t('Terrarium')]], variantDef: 'bird' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

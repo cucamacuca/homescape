@@ -499,6 +499,11 @@ function groundFloor(): Level {
   put('pouf', -3.4, 3.2, 0, { variant: 'pouf', body: '#8fd8bd' })
   put('coatRack', -0.85, 9.45, 0)
 
+  /* --- pets: a fountain by the bowls, a cat flap in the laundry room, a chicken coop in the backyard --- */
+  put('petFountain', 5.75, 3.5, -PI / 2, bind('switch.us_pet_fountain'))
+  wall(laundry, 'back', 6.6, 'petDoor', bind('lock.us_pet_door'))
+  put('chickenCoop', -1.8, -12.6, 0, bind('cover.us_chicken_coop'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -700,6 +705,9 @@ function upperFloor(): Level {
   /* --- decor: a wake-up light on Ethan's nightstand, a photo on the master dresser --- */
   put('alarmClock', 5.84, 5.27, 0, { ...bind('light.us_ethan_wakeup'), y: 0.48 })
   put('photoFrame', -5.95, 4.3, 0, { y: 0.81 })
+
+  /* --- pets: a bird cage in the hall --- */
+  put('petCage', hall.x + hall.w - WALL_IN - 0.21, 7, -PI / 2, { variant: 'bird' })
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -940,6 +948,9 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    sw('us_pet_fountain', t('Pet Fountain'), true),
+    ent('lock.us_pet_door', 'locked', t('Cat Flap'), {}),
+    cover('us_chicken_coop', t('Chicken Coop Door'), 100, 'door'),
     ent('todo.us_shopping', '3', t('Shopping List'), {}),
     ent('calendar.us_family', 'off', t('Family Calendar'), {}),
     light('us_christmas_tree', t('Christmas Tree'), true, rgb(200, [255, 214, 106])),

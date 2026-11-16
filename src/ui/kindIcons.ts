@@ -155,6 +155,7 @@ import {
   Image,
   MirrorRectangular,
   TreePine,
+  Egg,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -391,4 +392,8 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   hangingPlant: Sprout,
   chevalMirror: MirrorRectangular,
   whiteboard: ClipboardList,
+  petFountain: Droplets,
+  petDoor: DoorOpen,
+  petCage: Bird,
+  chickenCoop: Egg,
 }
