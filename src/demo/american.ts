@@ -476,6 +476,9 @@ function upperFloor(): Level {
   const bath = room('bath', t('Hall bath'), 'tile', -1.5, 0, 3, 3)
   const mia = room('mia', t("Mia's room"), 'carpet', 1.5, 0, 4.5, 5)
   const ethan = room('ethan', t("Ethan's room"), 'carpet', 1.5, 5, 4.5, 5)
+  // Over the garage (a strip of its roof stays open at the side) and the laundry room
+  const bonus = room('bonus', t('Bonus room'), 'wood', 6, 3.5, 5, 6.5)
+  const gym = room('gym', t('Home gym'), 'wood', 6, 0, 3.5, 3.5)
 
   /* --- hall: top of the stairs (opening x -1.44..-0.44, z 5.6..8.8), reading nook --- */
   wall(master, 'right', 5.4, 'door')
@@ -577,7 +580,6 @@ function upperFloor(): Level {
   put('ceilingStrip', 3.75, 7.5, 0, { ...bind('light.us_ethan_rgb'), len: 4.2, len2: 4.7 })
   put('rug', 3.6, 7.55, 0, { variant: 'round', len: 1.6, len2: 1.6, body: '#34416c' })
   wall(ethan, 'front', 3.3, 'window', { variant: 'blinds', len: 1.2 })
-  wall(ethan, 'right', 9.1, 'window', { variant: 'curtain', len: 1, body: '#34416c' })
   wall(ethan, 'back', 1.95, 'painting', { body: '#e2564b' })
   wall(ethan, 'front', 5.5, 'motionSensor', bind('binary_sensor.us_ethan_motion'))
 
@@ -599,8 +601,21 @@ function upperFloor(): Level {
   put('rug', 3.2, 2.3, 0, { variant: 'sheep', len: 0.9, len2: 1.2 })
   put('ceilingLight', 3.75, 2.5, 0, { ...bind('light.us_mia_ceiling'), variant: 'round' })
   wall(mia, 'back', 4.1, 'window', { variant: 'curtain', len: 1.2, body: '#f2b8c6' })
-  wall(mia, 'right', 3.9, 'window', { variant: 'roller', len: 1, body: '#ffffff' })
   wall(mia, 'back', 3, 'wallSwitch', bind('light.us_mia_ceiling'))
+
+  /* --- bonus room over the garage: a lounge with a sideboard, a desk corner; through Ethan's room --- */
+  wall(bonus, 'left', 9.1, 'door')
+  wall(bonus, 'back', 10.1, 'window', { variant: 'roller', len: 1, body: '#ffffff' })
+  wall(bonus, 'right', 6.9, 'window', { variant: 'curtain', len: 1.2, body: '#dcb98c' })
+  wall(bonus, 'front', 9, 'window', { variant: 'curtain', len: 1.4, body: '#dcb98c' })
+  wall(bonus, 'left', 7, 'tvUnit', { len: 1.4, top: '#8a5a3b', body: '#8a5a3b' })
+  wall(bonus, 'right', 4.6, 'desk', { len: 1.2, top: '#dcb98c', body: '#2a2c33' })
+  put('ceilingLight', 8.5, 6.75, 0, { ...bind('light.us_bonus'), variant: 'round' })
+
+  /* --- home gym over the laundry room: through the bonus room --- */
+  wall(gym, 'front', 7, 'door')
+  wall(gym, 'back', 7.75, 'window', { variant: 'blinds', len: 1.2 })
+  put('ceilingLight', 7.75, 1.75, 0, { ...bind('light.us_gym'), variant: 'square' })
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -658,6 +673,8 @@ export function americanEntities(): HassEntity[] {
     light('us_half_bath', t('Powder Room Light'), false),
     light('us_pantry', t('Pantry Light'), false),
     light('us_laundry', t('Laundry Room Light'), true, warm(255, 4000), 30),
+    light('us_bonus', t('Bonus Room Light'), false),
+    light('us_gym', t('Gym Light'), true, warm(230, 5000), 15),
     light('us_garage', t('Garage Lights'), true, warm(255, 5000), 25),
     light('us_porch', t('Porch Lights'), true, warm(180, 2700)),
     light('us_garden_path', t('Garden Path Lights'), true, warm(150, 2700)),
