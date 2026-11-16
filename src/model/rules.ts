@@ -18,7 +18,7 @@ export type Layer = 'floor' | 'wall' | 'ceiling' | 'rug' | 'top'
  * Wall-mounted items: their height is adjustable (Item.y = offset up/down from the default; for an LED strip the strip's
  * height above the floor). Items standing on the floor against a wall (cabinet, counter, fridge) are not in this list.
  */
-export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall']
+export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign']
 
 /**
  * Items that can optionally hang on a wall (Item.mount 'wall', e.g. a power strip). While hung they behave like wall
@@ -70,6 +70,10 @@ const WALL_SPAN: Record<string, [number, number]> = {
   awning: [2.2, 2.49],
   evCharger: [0.9, 1.5],
   toolWall: [1.1, 1.9],
+  nightLight: [0.25, 0.35],
+  floodlight: [2.33, 2.6],
+  lightPanels: [1.38, 1.86],
+  neonSign: [1.47, 1.93],
 }
 function spanOf(kind: ItemKind, variant?: string, len2?: number): [number, number] {
   // Window: bottom edge 0.9 (sill 3 cm below), curtain rail 10 cm on top; height Item.len2

@@ -462,6 +462,9 @@ function groundFloor(): Level {
   put('bush', 17, 13.5, 0, { variant: 'round', len: 1.4 })
   put('tree', -14.25, 32.5, 0, { variant: 'olive' })
 
+  /* --- new lights: a floodlight on the house wall over the deck --- */
+  wall(deck, 'front', -3.2, 'floodlight', bind('light.us_deck_floodlight', 'camera.us_backyard'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -616,6 +619,11 @@ function upperFloor(): Level {
   wall(gym, 'front', 7, 'door')
   wall(gym, 'back', 7.75, 'window', { variant: 'blinds', len: 1.2 })
   put('ceilingLight', 7.75, 1.75, 0, { ...bind('light.us_gym'), variant: 'square' })
+
+  /* --- new lights: a night light in the hall, light panels in Ethan's room, a neon sign in the bonus room --- */
+  wall(hall, 'left', 4.2, 'nightLight', bind('light.us_hall_night_light', 'binary_sensor.us_upstairs_motion'))
+  wall(ethan, 'back', 3.2, 'lightPanels', bind('light.us_ethan_panels'))
+  wall(bonus, 'right', 8.6, 'neonSign', { ...bind('light.us_bonus_neon'), variant: 'heart', body: '#e2564b' })
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -856,5 +864,10 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    // new household items
+    light('us_hall_night_light', t('Hall Night Light'), true, warm(60, 2200)),
+    light('us_ethan_panels', t('Ethan Light Panels'), true, rgb(180, [143, 124, 255])),
+    light('us_bonus_neon', t('Bonus Room Neon Sign'), true, rgb(220, [255, 79, 163])),
+    light('us_deck_floodlight', t('Deck Floodlight'), false),
   ]
 }

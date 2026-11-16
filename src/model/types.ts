@@ -245,6 +245,11 @@ export type ItemKind =
   | 'catTree'
   | 'dogHouse'
   | 'petToy'
+  // household items (kit/household.tsx)
+  | 'nightLight'
+  | 'floodlight'
+  | 'lightPanels'
+  | 'neonSign'
 
 export interface Item {
   id: string

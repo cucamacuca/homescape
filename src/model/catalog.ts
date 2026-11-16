@@ -244,6 +244,15 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   catTree: { label: t('Cat tree'), group: 'pet', domains: [], size: [0.55, 0.55], labelY: 1.45 },
   dogHouse: { label: t('Dog house'), group: 'pet', domains: [], size: [0.9, 1.0], labelY: 1.15 },
   petToy: { label: t('Toy'), group: 'pet', domains: [], size: [0.12, 0.12], labelY: 0.2 },
+  // household items (kit/household.tsx)
+  // Plug-in night light at outlet height; brighter while a bound motion sensor sees someone
+  nightLight: { label: t('Night light'), group: 'light', domains: ['light', 'switch', 'binary_sensor'], size: [0.08, 0.05], labelY: 0.6, wall: true },
+  // Twin floodlight outdoors on the house wall; a camera bound as an extra sits between the heads
+  floodlight: { label: t('Floodlight'), group: 'light', domains: ['light', 'switch', 'binary_sensor', 'camera'], size: [0.32, 0.2], labelY: 2.75, wall: true },
+  // Hexagonal light panels on the wall, in the light color
+  lightPanels: { label: t('Light panels'), group: 'light', domains: ['light'], size: [0.9, 0.04], labelY: 2.1, wall: true },
+  // Neon tube shape on an acrylic board (Item.variant), in Item.body or the bound light color
+  neonSign: { label: t('Neon sign'), group: 'light', domains: ['light', 'switch'], size: [0.6, 0.04], labelY: 2.1, wall: true },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -768,6 +777,8 @@ export const OPTIONS: Partial<
   catTree: { body: t('Carpet color'), bodyList: PET_COLORS, bodyDef: '#efe4cf' },
   dogHouse: { body: t('Wood color'), bodyList: TOP_COLORS, bodyDef: '#dcb98c' },
   petToy: { variantLabel: t('Toy'), variants: [['ball', t('Ball')], ['bone', t('Bone')], ['mouse', t('Plush mouse')]], variantDef: 'ball' },
+  // household items (kit/household.tsx)
+  neonSign: { variantLabel: t('Shape'), variants: [['heart', t('Heart')], ['wave', t('Wave')], ['bolt', t('Lightning bolt')]], variantDef: 'heart', body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#e2564b' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

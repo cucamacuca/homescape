@@ -5,6 +5,7 @@ import * as A from './appliances'
 import * as Dc from './decor'
 import * as D from './devices'
 import * as F from './furniture'
+import * as H from './household'
 import * as O from './outdoor'
 import * as Pt from './pets'
 import * as S from './smart'
@@ -197,6 +198,10 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   catTree: Pt.CatTree,
   dogHouse: Pt.DogHouse,
   petToy: Pt.PetToy,
+  nightLight: H.NightLight,
+  floodlight: H.Floodlight,
+  lightPanels: H.LightPanels,
+  neonSign: H.NeonSign,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

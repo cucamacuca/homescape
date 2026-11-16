@@ -131,6 +131,9 @@ import {
   Trash,
   Trees,
   UtilityPole,
+  Heart,
+  Hexagon,
+  Moon,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -319,4 +322,8 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   catTree: Castle,
   dogHouse: House,
   petToy: Bone,
+  nightLight: Moon,
+  floodlight: Siren,
+  lightPanels: Hexagon,
+  neonSign: Heart,
 }

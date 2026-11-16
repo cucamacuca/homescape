@@ -266,6 +266,10 @@ const SPEC: Partial<Record<ItemKind, { at: [number, number, number]; range: numb
   gardenLight: { at: [0, 0.95, 0], range: 6, power: 2.6, type: 0 },
   // Street lamp (kit/street.tsx): high up, wide; position per model in STREET_LAMP
   streetLamp: { at: [0, 3.84, 1.02], range: 11, power: 9, type: 0 },
+  nightLight: { at: [0, 0.27, 0.05], range: 1.8, power: 0.7, type: 0 },
+  floodlight: { at: [0, 2.4, 0.3], range: 8, power: 6, type: 0 },
+  lightPanels: { at: [0, 1.62, 0.1], range: 3, power: 1.6, type: 0 },
+  neonSign: { at: [0, 1.7, 0.08], range: 2.4, power: 1.1, type: 0 },
 }
 
 /**
