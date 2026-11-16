@@ -396,4 +396,11 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   petDoor: DoorOpen,
   petCage: Bird,
   chickenCoop: Egg,
+  hoseReel: Droplet,
+  rainBarrel: Cylinder,
+  greenhouse: Warehouse,
+  hammock: Tent,
+  patioHeater: Heater,
+  firePit: Flame,
+  birdFeeder: Bird,
 }

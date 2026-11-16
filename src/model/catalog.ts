@@ -349,6 +349,20 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   petCage: { label: t('Pet cage'), group: 'pet', domains: ['light', 'switch', 'sensor'], size: [0.6, 0.4], labelY: 0.8 },
   // Chicken coop; the door slides up with a bound cover
   chickenCoop: { label: t('Chicken coop'), group: 'pet', domains: ['cover', 'binary_sensor', 'switch'], size: [1.3, 1.0], labelY: 1.4 },
+  // Hose reel and tap on the outside house wall; drips while the valve is open
+  hoseReel: { label: t('Hose reel'), group: 'outdoor', domains: ['valve', 'switch'], size: [0.45, 0.25], labelY: 0.9, wall: true },
+  // Rain barrel; the gauge follows a bound level sensor
+  rainBarrel: { label: t('Rain barrel'), group: 'outdoor', domains: ['sensor'], size: [0.6, 0.6], labelY: 1.1 },
+  // Greenhouse; the roof vent opens with a bound cover, a grow light with a switch
+  greenhouse: { label: t('Greenhouse'), group: 'outdoor', domains: ['sensor', 'cover', 'switch'], size: [2.5, 2.0], labelY: 2.5 },
+  // Hammock on a wooden stand
+  hammock: { label: t('Hammock'), group: 'outdoor', domains: [], size: [3.0, 1.0], labelY: 1.3 },
+  // Patio heater; the head glows while on
+  patioHeater: { label: t('Patio heater'), group: 'outdoor', domains: ['switch', 'climate'], size: [0.6, 0.6], labelY: 2.5 },
+  // Fire pit; flames and warm light while on
+  firePit: { label: t('Fire pit'), group: 'outdoor', domains: ['switch', 'light'], size: [1.0, 1.0], labelY: 0.6 },
+  // Bird feeder on a post; birds peck while a bound sensor sees a visit
+  birdFeeder: { label: t('Bird feeder'), group: 'outdoor', domains: ['binary_sensor', 'camera'], size: [0.4, 0.36], labelY: 1.9 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -905,6 +919,7 @@ export const OPTIONS: Partial<
   photoFrame: { variantLabel: t('Type'), variants: [['print', t('Printed')], ['digital', t('Digital')]], variantDef: 'print' },
   chevalMirror: { body: t('Frame color'), bodyList: TOP_COLORS, bodyDef: '#8a5a3b' },
   petCage: { variantLabel: t('Type'), variants: [['bird', t('Bird cage')], ['small', t('Small animal cage')], ['terrarium', t('Terrarium')]], variantDef: 'bird' },
+  hammock: { body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#e2564b' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

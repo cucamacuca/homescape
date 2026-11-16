@@ -298,6 +298,13 @@ export type ItemKind =
   | 'petDoor'
   | 'petCage'
   | 'chickenCoop'
+  | 'hoseReel'
+  | 'rainBarrel'
+  | 'greenhouse'
+  | 'hammock'
+  | 'patioHeater'
+  | 'firePit'
+  | 'birdFeeder'
 
 export interface Item {
   id: string

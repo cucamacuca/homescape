@@ -504,6 +504,15 @@ function groundFloor(): Level {
   wall(laundry, 'back', 6.6, 'petDoor', bind('lock.us_pet_door'))
   put('chickenCoop', -1.8, -12.6, 0, bind('cover.us_chicken_coop'))
 
+  /* --- garden: a hose reel and a rain barrel by the garage, a greenhouse, a hammock, a patio heater, a fire pit, a bird feeder --- */
+  wall(side, 'left', 5.6, 'hoseReel', bind('valve.us_garden_tap'))
+  put('rainBarrel', 13.3, 4.4, 0, bind('sensor.us_rain_barrel'))
+  put('greenhouse', 12.25, 1.75, 0, bind('cover.us_greenhouse_vent', 'switch.us_grow_light'))
+  put('hammock', 6.5, -2, 0, { body: '#e2564b' })
+  put('patioHeater', -2, -1.2, 0, bind('switch.us_patio_heater'))
+  put('firePit', 9.5, -11.3, 0, bind('switch.us_fire_pit'))
+  put('birdFeeder', -9.3, -10.5, 0, bind('binary_sensor.us_bird_feeder'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -948,6 +957,13 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    ent('valve.us_garden_tap', 'closed', t('Garden Tap'), {}),
+    sensor('us_rain_barrel', t('Rain Barrel Level'), 62, null, '%'),
+    cover('us_greenhouse_vent', t('Greenhouse Vent'), 40, 'window'),
+    sw('us_grow_light', t('Greenhouse Grow Light'), true),
+    sw('us_patio_heater', t('Patio Heater'), false),
+    sw('us_fire_pit', t('Fire Pit'), false),
+    bin('us_bird_feeder', t('Bird Feeder Visit'), true, 'occupancy'),
     sw('us_pet_fountain', t('Pet Fountain'), true),
     ent('lock.us_pet_door', 'locked', t('Cat Flap'), {}),
     cover('us_chicken_coop', t('Chicken Coop Door'), 100, 'door'),

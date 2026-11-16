@@ -1493,3 +1493,204 @@ export function ChickenCoop({ v }: P) {
     </group>
   )
 }
+
+/* ---------- garden ---------- */
+
+/** Hose reel with a tap (low on the outside house wall): green hose on a reel; water drips from the nozzle while the bound valve is open. */
+export function HoseReel({ v }: P) {
+  const open = v.on
+  return (
+    <group>
+      <Box size={[0.08, 0.08, 0.06]} position={[0.16, 0.65, -0.09]} color={C.steel} />
+      <Cyl r={0.012} h={0.08} position={[0.16, 0.6, -0.05]} rotation={[Math.PI / 2, 0, 0]} color="#b08452" segments={10} />
+      <Box size={[0.04, 0.5, 0.04]} position={[-0.05, 0.42, -0.1]} color="#2a2c33" />
+      <group position={[-0.05, 0.45, 0]} rotation-z={Math.PI / 2}>
+        <Cyl r={0.2} h={0.14} color="#2f9e54" segments={28} />
+        <Cyl r={0.21} h={0.02} position={[0, 0.07, 0]} color="#2a2c33" segments={28} />
+        <Cyl r={0.21} h={0.02} position={[0, -0.07, 0]} color="#2a2c33" segments={28} />
+      </group>
+      <Cyl r={0.012} h={0.3} position={[0.1, 0.15, 0.06]} rotation={[0.3, 0, 0.4]} color="#2f9e54" segments={8} />
+      <group position={[0.18, 0.02, 0.12]} scale={0.15}>
+        <Ripple active={open} color="#bfe3ff" at={[0, 0, 0]} />
+      </group>
+    </group>
+  )
+}
+
+/** Rain barrel (in the garden): a barrel whose side gauge follows a bound level sensor (percent). */
+export function RainBarrel({ v }: P) {
+  const pct = v.domain === 'sensor' ? Math.max(0, Math.min(100, num(v.state) ?? 0)) : 0
+  const h = 0.9
+  return (
+    <group>
+      <Cyl r={0.3} rTop={0.27} h={h} position={[0, h / 2, 0]} color={bodyOf(v, '#3e6b4a')} segments={28} />
+      <Cyl r={0.27} h={0.02} position={[0, h + 0.01, 0]} color="#2a2c33" segments={28} />
+      <Box size={[0.05, h - 0.1, 0.01]} position={[0, h / 2, 0.29]} material={clear('#ffffff', 0.4, 0.2)} shadow={false} />
+      {v.bound && <Box size={[0.035, ((h - 0.12) * pct) / 100 + 0.001, 0.012]} position={[0, 0.06 + ((h - 0.12) * pct) / 200, 0.292]} material={glowing('#4f9dff', true, 0.8)} shadow={false} />}
+      <Cyl r={0.015} h={0.06} position={[0.18, 0.12, 0.24]} rotation={[Math.PI / 2, 0, 0]} color={C.steel} segments={8} />
+    </group>
+  )
+}
+
+/**
+ * Greenhouse (in the garden, 2.5 x 2 m): a glass house on an aluminium frame with a pitched roof and plants inside. The
+ * roof vent opens as far as a bound cover is open; a bound switch is the grow light, a purple glow while on.
+ */
+export function Greenhouse({ v }: P) {
+  const frame = mat('#c9ccd4', { metalness: 0.5, roughness: 0.4 })
+  const glass = clear('#e9f6ff', 0.22, 0.05)
+  const roofGlass = clear('#e9f6ff', 0.32, 0.05)
+  const cover = relatedOf(v, 'cover')
+  const vent = cover ? (num(cover.attributes.current_position) ?? (cover.state === 'open' ? 100 : 0)) / 100 : 0
+  const grow = (v.domain === 'switch' && v.on) || v.related.some((e) => domainOf(e.entity_id) === 'switch' && isActive(e))
+  const W = 2.5
+  const D = 2.0
+  const H = 1.9
+  const RISE = 0.45
+  const pitch = Math.atan2(RISE, D / 2)
+  const slope = Math.hypot(RISE, D / 2)
+  const flap = useRef<THREE.Group>(null)
+  useEase(pitch - vent * 0.6, (a) => {
+    if (flap.current) flap.current.rotation.x = a
+  })
+  return (
+    <group>
+      <Box size={[W, 0.06, D]} position={[0, 0.03, 0]} color="#8a8f9c" />
+      <Box size={[W, H, 0.01]} position={[0, H / 2, -D / 2]} material={glass} shadow={false} />
+      <Box size={[W, H, 0.01]} position={[0, H / 2, D / 2]} material={glass} shadow={false} />
+      <Box size={[0.01, H, D]} position={[-W / 2, H / 2, 0]} material={glass} shadow={false} />
+      <Box size={[0.01, H, D]} position={[W / 2, H / 2, 0]} material={glass} shadow={false} />
+      {/* frame: corner and middle posts, eave rails, ridge and the gable rafters */}
+      {[-1, 0, 1].flatMap((sx) => [-1, 1].map((sz) => <Box key={`${sx}${sz}`} size={[0.04, H, 0.04]} position={[(sx * W) / 2, H / 2, (sz * D) / 2]} material={frame} />))}
+      {[-1, 1].map((sz) => (
+        <Box key={sz} size={[W, 0.04, 0.04]} position={[0, H, (sz * D) / 2]} material={frame} />
+      ))}
+      <Box size={[W, 0.05, 0.05]} position={[0, H + RISE, 0]} material={frame} />
+      {[-1, 1].flatMap((sx) =>
+        [-1, 1].map((sz) => <Box key={`r${sx}${sz}`} size={[0.04, 0.04, slope]} position={[(sx * W) / 2, H + RISE / 2, (sz * D) / 4]} rotation={[sz * pitch, 0, 0]} material={frame} />),
+      )}
+      {[-1, 1].map((sz) => (
+        <Box key={sz} size={[W, 0.01, slope]} position={[0, H + RISE / 2, (sz * D) / 4]} rotation={[sz * pitch, 0, 0]} material={roofGlass} shadow={false} />
+      ))}
+      {/* roof vent on the front slope, hinged at the ridge */}
+      <group ref={flap} position={[0, H + RISE + 0.03, 0]} rotation-x={pitch}>
+        <Box size={[0.8, 0.025, 0.55]} position={[0, 0, 0.3]} material={frame} />
+      </group>
+      {[-0.8, -0.3, 0.2, 0.7].map((x) => (
+        <group key={x}>
+          <Box size={[0.36, 0.25, 0.3]} position={[x, 0.18, -0.55]} color="#a87a45" />
+          <Ball r={0.16} position={[x, 0.42, -0.55]} color={C.leafDark} detail={1} />
+        </group>
+      ))}
+      <Box size={[1.9, 0.7, 0.4]} position={[0, 0.35, 0.6]} color="#a87a45" />
+      {[-0.6, 0, 0.6].map((x) => (
+        <Ball key={x} r={0.13} position={[x, 0.78, 0.6]} color={C.leaf} detail={1} />
+      ))}
+      {grow && <Glow position={[0, 1.2, 0]} color="#c77dff" opacity={v.night ? 0.7 : 0.35} size={2.6} />}
+    </group>
+  )
+}
+
+/** Hammock cloth: a sagging sheet, its long sides curling up a little (cached geometry). */
+const hammockCloth = () =>
+  geo('hammock', () => {
+    const g = new THREE.PlaneGeometry(2.2, 0.8, 18, 4)
+    g.rotateX(-Math.PI / 2)
+    const p = g.attributes.position
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i) / 1.1
+      const z = p.getZ(i) / 0.4
+      p.setY(i, (1 - x * x) * (-0.36 + 0.07 * z * z))
+    }
+    g.computeVertexNormals()
+    return g
+  })
+
+/** Hammock on a wooden stand (in the garden): the cloth sags between two spreader bars hung from the posts (Item.body). */
+export function Hammock({ v }: P) {
+  const wood = mat('#a87a45', { roughness: 0.7 })
+  const color = v.opts.body ?? '#e2564b'
+  const cloth = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.9, side: THREE.DoubleSide }), [color])
+  useEffect(() => () => cloth.dispose(), [cloth])
+  const rope = Math.atan2(0.26, 0.2)
+  return (
+    <group>
+      <Box size={[2.95, 0.08, 0.1]} position={[0, 0.04, 0]} material={wood} />
+      {[-1, 1].map((s) => (
+        <group key={s}>
+          <Box size={[0.1, 0.06, 0.8]} position={[s * 1.42, 0.03, 0]} material={wood} />
+          <Box size={[0.08, 1.2, 0.08]} position={[s * 1.4, 0.66, 0]} rotation={[0, 0, s * 0.06]} material={wood} />
+          <Box size={[0.04, 0.04, 0.82]} position={[s * 1.1, 1.0, 0]} material={wood} />
+          <Cyl r={0.008} h={Math.hypot(0.26, 0.2)} position={[s * 1.23, 1.1, 0]} rotation={[0, 0, -s * rope]} color="#e8dcc2" segments={6} />
+        </group>
+      ))}
+      <mesh position={[0, 1.0, 0]} geometry={hammockCloth()} material={cloth} castShadow receiveShadow />
+    </group>
+  )
+}
+
+/** Patio heater (in the garden): a tall pole with a mushroom head that glows orange with a warm halo while on. */
+export function PatioHeater({ v }: P) {
+  const on = v.on && (v.domain !== 'climate' || v.state !== 'off')
+  const steel = mat('#c9ccd4', { metalness: 0.55, roughness: 0.3 })
+  return (
+    <group>
+      <Cyl r={0.25} h={0.06} position={[0, 0.03, 0]} material={steel} segments={24} />
+      <Cyl r={0.2} h={0.5} position={[0, 0.3, 0]} color="#2a2c33" segments={24} />
+      <Cyl r={0.03} h={1.5} position={[0, 1.3, 0]} material={steel} segments={12} />
+      <Cyl r={0.06} h={0.3} position={[0, 2.0, 0]} material={glowing('#ff7a3d', on, 2.2)} segments={16} />
+      <Cyl r={0.4} rTop={0.06} h={0.18} position={[0, 2.25, 0]} material={steel} segments={28} />
+      {on && <Glow position={[0, 1.95, 0]} color="#ff8a3d" opacity={v.night ? 0.9 : 0.4} size={1.6} />}
+    </group>
+  )
+}
+
+/** Fire pit (in the garden): a ring of stones with logs; while on flames flicker and it lights the garden at night. */
+export function FirePit({ v }: P) {
+  return (
+    <group>
+      {Array.from({ length: 12 }, (_, i) => (
+        <Ball key={i} r={0.12} position={[Math.sin((i / 12) * TAU) * 0.42, 0.09, Math.cos((i / 12) * TAU) * 0.42]} scale={[1, 0.75, 1]} color={i % 2 ? '#8a8f9c' : '#a6a9b4'} detail={0} flat />
+      ))}
+      <mesh position={[0, 0.02, 0]} rotation-x={-Math.PI / 2} geometry={disc(0.34)} material={mat('#2a2421')} />
+      {[0.3, 1.6, 2.7].map((a) => (
+        <Cyl key={a} r={0.04} h={0.5} position={[0, 0.07, 0]} rotation={[Math.PI / 2, a, 0]} color="#6b4a34" segments={8} />
+      ))}
+      {v.on && <Flames y={0.08} night={v.night} />}
+    </group>
+  )
+}
+
+const BIRDS: [number, number, string][] = [
+  [-0.12, 0.05, '#e2564b'],
+  [0.13, -0.04, '#4f9dff'],
+]
+
+/** Bird feeder on a post (in the garden): a little house with seed; birds sit and peck while a bound sensor sees a visit. */
+export function BirdFeeder({ v }: P) {
+  const visit = (v.domain === 'binary_sensor' && v.on) || v.related.some((e) => domainOf(e.entity_id) === 'binary_sensor' && isActive(e))
+  const birds = useRef<THREE.Group>(null)
+  useAmbient(visit)
+  useFrame(({ clock }) => {
+    const g = birds.current
+    if (!g || !visit) return
+    g.children.forEach((c, i) => (c.rotation.x = Math.max(0, Math.sin(clock.elapsedTime * 7 + i * 2)) * 0.6))
+  })
+  const wood = mat('#a87a45', { roughness: 0.8 })
+  return (
+    <group>
+      <Cyl r={0.03} h={1.4} position={[0, 0.7, 0]} material={wood} segments={10} />
+      <Box size={[0.36, 0.03, 0.3]} position={[0, 1.42, 0]} material={wood} />
+      <Box size={[0.2, 0.16, 0.16]} position={[0, 1.52, 0]} material={clear('#f2f2ee', 0.5, 0.3)} shadow={false} />
+      <Box size={[0.4, 0.03, 0.34]} position={[0, 1.64, 0]} rotation={[0, 0, 0.2]} color="#5a3a28" />
+      <group ref={birds} visible={visit}>
+        {BIRDS.map(([x, z, c], i) => (
+          <group key={i} position={[x, 1.46, z]}>
+            <Ball r={0.035} position={[0, 0.03, 0]} scale={[1, 0.9, 1.3]} color={c} />
+            <Ball r={0.02} position={[0, 0.06, 0.04]} color={c} />
+          </group>
+        ))}
+      </group>
+    </group>
+  )
+}

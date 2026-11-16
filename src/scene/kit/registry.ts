@@ -250,6 +250,13 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   petDoor: H.PetDoor,
   petCage: H.PetCage,
   chickenCoop: H.ChickenCoop,
+  hoseReel: H.HoseReel,
+  rainBarrel: H.RainBarrel,
+  greenhouse: H.Greenhouse,
+  hammock: H.Hammock,
+  patioHeater: H.PatioHeater,
+  firePit: H.FirePit,
+  birdFeeder: H.BirdFeeder,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

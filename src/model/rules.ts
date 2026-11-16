@@ -18,7 +18,7 @@ export type Layer = 'floor' | 'wall' | 'ceiling' | 'rug' | 'top'
  * Wall-mounted items: their height is adjustable (Item.y = offset up/down from the default; for an LED strip the strip's
  * height above the floor). Items standing on the floor against a wall (cabinet, counter, fridge) are not in this list.
  */
-export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign', 'exhaustFan', 'fireExtinguisher', 'chime', 'parkingSensor', 'solarInverter', 'wallClock', 'wallShelf', 'whiteboard', 'petDoor']
+export const WALL_MOUNTED: ItemKind[] = ['wallLight', 'ledStrip', 'mirrorLight', 'acUnit', 'camera', 'motionSensor', 'tempSensor', 'alarmPanel', 'wallSwitch', 'plug', 'window', 'painting', 'pegboard', 'mirror', 'mirrorCabinet', 'wallFan', 'thermostat', 'waterHeater', 'boiler', 'towelWarmer', 'projectorScreen', 'wallPanel', 'doorbell', 'siren', 'powerMeter', 'waterValve', 'awning', 'evCharger', 'toolWall', 'nightLight', 'floodlight', 'lightPanels', 'neonSign', 'exhaustFan', 'fireExtinguisher', 'chime', 'parkingSensor', 'solarInverter', 'wallClock', 'wallShelf', 'whiteboard', 'petDoor', 'hoseReel']
 
 /**
  * Items that can optionally hang on a wall (Item.mount 'wall', e.g. a power strip). While hung they behave like wall
@@ -83,6 +83,7 @@ const WALL_SPAN: Record<string, [number, number]> = {
   wallShelf: [1.37, 1.52],
   whiteboard: [1.1, 1.7],
   petDoor: [0.12, 0.42],
+  hoseReel: [0.2, 0.75],
 }
 function spanOf(kind: ItemKind, variant?: string, len2?: number): [number, number] {
   // Window: bottom edge 0.9 (sill 3 cm below), curtain rail 10 cm on top; height Item.len2
