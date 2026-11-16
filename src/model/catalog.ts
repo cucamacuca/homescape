@@ -363,6 +363,10 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   firePit: { label: t('Fire pit'), group: 'outdoor', domains: ['switch', 'light'], size: [1.0, 1.0], labelY: 0.6 },
   // Bird feeder on a post; birds peck while a bound sensor sees a visit
   birdFeeder: { label: t('Bird feeder'), group: 'outdoor', domains: ['binary_sensor', 'camera'], size: [0.4, 0.36], labelY: 1.9 },
+  // Portable generator; it shakes and puffs exhaust while running
+  generator: { label: t('Generator'), group: 'garage', domains: ['switch', 'sensor', 'binary_sensor'], size: [0.7, 0.5], labelY: 0.9 },
+  // Ladder leaning against a wall, or a step ladder
+  ladder: { label: t('Ladder'), group: 'garage', domains: [], size: [0.5, 0.3], labelY: 2.4, wall: true },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -920,6 +924,7 @@ export const OPTIONS: Partial<
   chevalMirror: { body: t('Frame color'), bodyList: TOP_COLORS, bodyDef: '#8a5a3b' },
   petCage: { variantLabel: t('Type'), variants: [['bird', t('Bird cage')], ['small', t('Small animal cage')], ['terrarium', t('Terrarium')]], variantDef: 'bird' },
   hammock: { body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#e2564b' },
+  ladder: { variantLabel: t('Type'), variants: [['leaning', t('Leaning')], ['step', t('Step ladder')]], variantDef: 'leaning' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

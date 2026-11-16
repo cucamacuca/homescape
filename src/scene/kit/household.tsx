@@ -1694,3 +1694,76 @@ export function BirdFeeder({ v }: P) {
     </group>
   )
 }
+
+/* ---------- garage ---------- */
+
+/** Portable generator (garage or garden): a frame with the engine and a tank; while it runs it shakes a little and puffs exhaust. */
+export function Generator({ v }: P) {
+  const body = useRef<THREE.Group>(null)
+  const running = v.on
+  useAmbient(running)
+  useFrame(({ clock }) => {
+    if (body.current) body.current.position.x = running ? Math.sin(clock.elapsedTime * 55) * 0.003 : 0
+  })
+  return (
+    <group>
+      <group ref={body}>
+        <Box size={[0.62, 0.42, 0.42]} position={[0, 0.27, 0]} color={bodyOf(v, '#e2a33a')} radius={0.03} />
+        <Box size={[0.5, 0.12, 0.36]} position={[0, 0.54, 0]} color="#2a2c33" radius={0.03} />
+        <Box size={[0.2, 0.12, 0.01]} position={[0.15, 0.3, 0.215]} color="#2a2c33" shadow={false} />
+      </group>
+      {/* tube frame on both ends: two posts and two rails each, a carrying bar on top */}
+      {[-1, 1].map((s) => (
+        <group key={s} position={[s * 0.34, 0, 0]}>
+          {[-0.22, 0.22].map((z) => (
+            <Box key={z} size={[0.03, 0.62, 0.03]} position={[0, 0.31, z]} color="#1d1f24" />
+          ))}
+          <Box size={[0.03, 0.03, 0.47]} position={[0, 0.03, 0]} color="#1d1f24" />
+          <Box size={[0.03, 0.03, 0.47]} position={[0, 0.61, 0]} color="#1d1f24" />
+        </group>
+      ))}
+      <Box size={[0.71, 0.03, 0.03]} position={[0, 0.63, 0]} color="#1d1f24" />
+      {[-1, 1].map((s) => (
+        <Cyl key={s} r={0.06} h={0.05} position={[s * 0.3, 0.06, 0.2]} rotation={[0, 0, Math.PI / 2]} color="#1d1f24" segments={14} />
+      ))}
+      <group position={[-0.32, 0.3, -0.12]}>
+        <Mist active={running} y={0.05} size={0.35} color="#bfc3cf" />
+      </group>
+    </group>
+  )
+}
+
+/** Ladder: leaning against a wall (Item.variant 'leaning', the default) or a free-standing step ladder ('step'). */
+export function Ladder({ v }: P) {
+  const metal = mat(v.opts.body ?? '#c9ccd4', { metalness: 0.4, roughness: 0.4 })
+  if (v.opts.variant === 'step') {
+    // A-frame hinged at the top: the step side leans to the front, the back legs to the back (within the 30 cm footprint)
+    const TOP = 1.22
+    const LEG = 1.25
+    return (
+      <group>
+        {[-1, 1].map((s) => (
+          <group key={s} position={[0, TOP, 0]} rotation-x={-s * 0.115}>
+            {[-0.2, 0.2].map((x) => (
+              <Box key={x} size={[0.04, LEG, 0.04]} position={[x, -LEG / 2, 0]} material={metal} />
+            ))}
+            {s > 0 && [0.3, 0.6, 0.9].map((d) => <Box key={d} size={[0.4, 0.03, 0.09]} position={[0, -LEG + d, 0.01]} material={metal} />)}
+            {s < 0 && <Box size={[0.4, 0.03, 0.03]} position={[0, -LEG + 0.35, 0]} material={metal} />}
+          </group>
+        ))}
+        <Box size={[0.44, 0.04, 0.16]} position={[0, TOP + 0.02, 0]} material={metal} />
+      </group>
+    )
+  }
+  const tilt = 0.18
+  return (
+    <group position={[0, 0, 0.05]} rotation-x={-tilt}>
+      {[-0.2, 0.2].map((x) => (
+        <Box key={x} size={[0.045, 2.2, 0.06]} position={[x, 1.1, 0]} material={metal} />
+      ))}
+      {Array.from({ length: 7 }, (_, i) => (
+        <Box key={i} size={[0.4, 0.03, 0.04]} position={[0, 0.25 + i * 0.3, 0]} material={metal} />
+      ))}
+    </group>
+  )
+}

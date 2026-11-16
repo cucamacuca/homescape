@@ -305,6 +305,8 @@ export type ItemKind =
   | 'patioHeater'
   | 'firePit'
   | 'birdFeeder'
+  | 'generator'
+  | 'ladder'
 
 export interface Item {
   id: string

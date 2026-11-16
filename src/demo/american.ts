@@ -513,6 +513,10 @@ function groundFloor(): Level {
   put('firePit', 9.5, -11.3, 0, bind('switch.us_fire_pit'))
   put('birdFeeder', -9.3, -10.5, 0, bind('binary_sensor.us_bird_feeder'))
 
+  /* --- garage: a ladder against the house wall in the side yard, a generator next to it --- */
+  wall(side, 'left', 8, 'ladder')
+  put('generator', 13.5, 8.8, 0)
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 

@@ -257,6 +257,8 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   patioHeater: H.PatioHeater,
   firePit: H.FirePit,
   birdFeeder: H.BirdFeeder,
+  generator: H.Generator,
+  ladder: H.Ladder,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

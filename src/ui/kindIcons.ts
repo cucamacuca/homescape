@@ -156,6 +156,7 @@ import {
   MirrorRectangular,
   TreePine,
   Egg,
+  Columns2,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -403,4 +404,6 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   patioHeater: Heater,
   firePit: Flame,
   birdFeeder: Bird,
+  generator: PlugZap,
+  ladder: Columns2,
 }
