@@ -160,6 +160,19 @@ function usePulse(active: boolean, speed = 6, amount = 0.12) {
   return ref
 }
 
+/** Whether a timestamp state (an event entity) is less than ms old; re-renders when it gets old. */
+function useRecent(stamp: string, ms: number) {
+  const at = Date.parse(stamp)
+  const [, tick] = useState(0)
+  const fresh = Number.isFinite(at) && Date.now() - at < ms
+  useEffect(() => {
+    if (!fresh) return
+    const id = setTimeout(() => tick((n) => n + 1), ms - (Date.now() - at) + 50)
+    return () => clearTimeout(id)
+  }, [fresh, at, ms])
+  return fresh
+}
+
 /* ---------- lights ---------- */
 
 /**
@@ -502,6 +515,71 @@ export function VoiceAssistant({ v }: P) {
         {ring === 'spin' && <Ball r={0.006} position={[0.036, 0.002, 0]} color="#ffffff" shadow={false} />}
       </group>
       {lit && <Glow position={[0, 0.04, 0]} color={color} opacity={v.night ? 0.6 : 0.3} size={0.25} />}
+    </group>
+  )
+}
+
+/* ---------- security ---------- */
+
+/**
+ * Safe (on the floor): a steel box with a dial on the door. Bound to a lock, a light on the door is red while locked and
+ * green while unlocked; the door swings open while a bound door sensor is open (or the lock reports open).
+ */
+export function Safe({ v }: P) {
+  const lock = relatedOf(v, 'lock')
+  const sensed = (v.domain === 'binary_sensor' && v.on) || v.related.some((e) => domainOf(e.entity_id) === 'binary_sensor' && isActive(e))
+  const open = sensed || lock?.state === 'open'
+  const unlocked = lock ? lock.state === 'unlocked' || lock.state === 'open' : false
+  const door = useRef<THREE.Group>(null)
+  useEase(open ? -1.2 : 0, (a) => {
+    if (door.current) door.current.rotation.y = a
+  })
+  const light = lock ? (unlocked ? C.ok : C.alarm) : '#5a5e6b'
+  return (
+    <group>
+      <Box size={[0.44, 0.5, 0.4]} position={[0, 0.25, -0.02]} color={bodyOf(v, '#3a3d47')} radius={0.01} />
+      <group ref={door} position={[-0.2, 0, 0.18]}>
+        <Box size={[0.4, 0.46, 0.03]} position={[0.2, 0.25, 0.015]} color="#4a4e5a" radius={0.008} />
+        <Cyl r={0.045} h={0.02} position={[0.24, 0.27, 0.04]} rotation={[Math.PI / 2, 0, 0]} color={C.steel} segments={20} />
+        <Box size={[0.012, 0.08, 0.02]} position={[0.36, 0.25, 0.04]} color={C.steel} shadow={false} />
+        <Ball r={0.008} position={[0.33, 0.42, 0.034]} material={glowing(light, Boolean(lock), 1.4)} shadow={false} />
+      </group>
+    </group>
+  )
+}
+
+/** Fire extinguisher on its wall bracket (low on the wall, 0.3 to 0.83 m): red cylinder, valve, handle and hose. */
+export function FireExtinguisher() {
+  return (
+    <group>
+      <Box size={[0.08, 0.08, 0.02]} position={[0, 0.6, -0.07]} color={C.inkSoft} />
+      <Cyl r={0.06} h={0.45} position={[0, 0.52, 0]} color="#d8322c" segments={20} />
+      <Cyl r={0.022} h={0.06} position={[0, 0.775, 0]} color="#2a2c33" segments={12} />
+      <Box size={[0.1, 0.012, 0.025]} position={[0.03, 0.81, 0]} color="#2a2c33" />
+      <Cyl r={0.008} h={0.24} position={[0.075, 0.64, 0.02]} rotation={[0, 0, 0.12]} color="#1d1f24" segments={8} />
+      <Box size={[0.06, 0.1, 0.002]} position={[0, 0.5, 0.061]} color={C.white} shadow={false} />
+    </group>
+  )
+}
+
+/**
+ * Doorbell chime (on the wall, 1.85 m): a round white unit with a light ring. The ring flashes while a bound siren or
+ * switch is on, and for a few seconds after a bound doorbell event fires.
+ */
+export function Chime({ v }: P) {
+  const recent = useRecent(v.domain === 'event' ? v.state : '', 12_000)
+  const ringing = (v.domain !== 'event' && v.on) || recent
+  const ring = useLitMaterial('#d5d8e2', ringing, '#4fc3ff', 1, 2.6)
+  const ref = usePulse(ringing, 9, 0.12)
+  const Y = 1.85
+  return (
+    <group position={[0, Y, -0.008]}>
+      <Cyl r={0.065} h={0.03} rotation={[Math.PI / 2, 0, 0]} color={C.white} segments={32} />
+      <mesh ref={ref} position={[0, 0, 0.016]} geometry={torus(0.05, 0.004, 32)} material={ring} />
+      {[-0.015, 0, 0.015].map((x) => (
+        <Ball key={x} r={0.004} position={[x, 0, 0.016]} color={C.steel} shadow={false} />
+      ))}
+      {ringing && <Glow position={[0, 0, 0.06]} color="#4fc3ff" opacity={v.night ? 0.7 : 0.4} size={0.45} />}
     </group>
   )
 }

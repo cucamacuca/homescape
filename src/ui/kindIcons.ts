@@ -138,6 +138,7 @@ import {
   Disc3,
   Mic,
   TabletSmartphone,
+  Vault,
   type LucideIcon,
 } from 'lucide-react'
 import type { ItemKind } from '@/model/types'
@@ -338,4 +339,7 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   streamingBox: Cast,
   smartDisplay: TabletSmartphone,
   voiceAssistant: Mic,
+  safe: Vault,
+  fireExtinguisher: FireExtinguisher,
+  chime: BellRing,
 }

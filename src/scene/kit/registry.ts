@@ -210,6 +210,9 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   streamingBox: H.StreamingBox,
   smartDisplay: H.SmartDisplay,
   voiceAssistant: H.VoiceAssistant,
+  safe: H.Safe,
+  fireExtinguisher: H.FireExtinguisher,
+  chime: H.Chime,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

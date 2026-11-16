@@ -470,6 +470,10 @@ function groundFloor(): Level {
   put('smartDisplay', 3.3, 0.35, 0, { ...bind('media_player.us_kitchen_display'), y: ON_COUNTER })
   put('voiceAssistant', 1.55, 0.33, 0, { ...bind('assist_satellite.us_kitchen_voice'), y: ON_COUNTER })
 
+  /* --- security: a fire extinguisher in the kitchen, a doorbell chime in the foyer --- */
+  wall(kitchen, 'left', 3.4, 'fireExtinguisher')
+  wall(foyer, 'front', -1.2, 'chime', bind('event.us_doorbell_press'))
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -638,6 +642,9 @@ function upperFloor(): Level {
   /* --- media: a turntable on the bonus room sideboard, a floor-standing speaker in the gym --- */
   put('turntable', bonus.x + WALL_IN + 0.22, 6.75, PI / 2, { ...bind('media_player.us_bonus_turntable'), y: 0.5 })
   put('floorSpeaker', 9.2, 3.1, -PI / 2, bind('media_player.us_gym_speaker'))
+
+  /* --- security: a safe in the walk-in closet --- */
+  put('safe', -2.5, 0.6, 0, bind('lock.us_closet_safe'))
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -878,6 +885,8 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    ent('lock.us_closet_safe', 'locked', t('Closet Safe'), {}),
+    ent('event.us_doorbell_press', ago(600), t('Doorbell Press'), { event_type: 'ring', event_types: ['ring'] }),
     media('us_bonus_turntable', t('Bonus Room Turntable'), 'playing', { volume_level: 0.4, media_title: t('Vinyl') }),
     media('us_gym_speaker', t('Gym Speaker'), 'idle', { volume_level: 0.6 }),
     media('us_family_streamer', t('Family Room Streamer'), 'playing', { media_title: t('Nature documentary') }),

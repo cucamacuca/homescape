@@ -258,6 +258,9 @@ export type ItemKind =
   | 'streamingBox'
   | 'smartDisplay'
   | 'voiceAssistant'
+  | 'safe'
+  | 'fireExtinguisher'
+  | 'chime'
 
 export interface Item {
   id: string

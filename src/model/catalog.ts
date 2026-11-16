@@ -269,6 +269,12 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   smartDisplay: { label: t('Smart display'), group: 'media', domains: ['media_player', 'camera'], size: [0.2, 0.12], labelY: 0.35 },
   // Voice assistant puck; its LED ring follows the assist_satellite state
   voiceAssistant: { label: t('Voice assistant'), group: 'media', domains: ['assist_satellite', 'media_player'], size: [0.09, 0.09], labelY: 0.25 },
+  // Safe: the door light shows the bound lock, the door opens with a bound door sensor
+  safe: { label: t('Safe'), group: 'security', domains: ['lock', 'binary_sensor'], size: [0.44, 0.42], labelY: 0.75 },
+  // Fire extinguisher on a wall bracket
+  fireExtinguisher: { label: t('Fire extinguisher'), group: 'security', domains: [], size: [0.18, 0.16], labelY: 1.0, wall: true },
+  // Doorbell chime; its ring flashes after a bound doorbell event or while a siren or switch is on
+  chime: { label: t('Doorbell chime'), group: 'security', domains: ['event', 'siren', 'switch'], size: [0.14, 0.04], labelY: 2.1, wall: true },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
