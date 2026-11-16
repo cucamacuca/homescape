@@ -367,6 +367,10 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   generator: { label: t('Generator'), group: 'garage', domains: ['switch', 'sensor', 'binary_sensor'], size: [0.7, 0.5], labelY: 0.9 },
   // Ladder leaning against a wall, or a step ladder
   ladder: { label: t('Ladder'), group: 'garage', domains: [], size: [0.5, 0.3], labelY: 2.4, wall: true },
+  // Skylight in the ceiling; it tilts open with a bound cover
+  skylight: { label: t('Skylight'), group: 'structure', domains: ['cover', 'binary_sensor'], size: [0.8, 1.2], labelY: 2.75 },
+  // Column from the floor to the ceiling, round or square
+  column: { label: t('Column'), group: 'structure', domains: [], size: [0.35, 0.35], labelY: 2.75 },
 }
 
 /** Power strip: outlets 7 cm apart; a 2 cm cap on the left, a 6 cm main switch on the right. */
@@ -925,6 +929,7 @@ export const OPTIONS: Partial<
   petCage: { variantLabel: t('Type'), variants: [['bird', t('Bird cage')], ['small', t('Small animal cage')], ['terrarium', t('Terrarium')]], variantDef: 'bird' },
   hammock: { body: t('Color'), bodyList: ACCENT_COLORS, bodyDef: '#e2564b' },
   ladder: { variantLabel: t('Type'), variants: [['leaning', t('Leaning')], ['step', t('Step ladder')]], variantDef: 'leaning' },
+  column: { variantLabel: t('Shape'), variants: [['round', t('Round')], ['square', t('Square')]], variantDef: 'round', body: t('Color'), bodyList: BODY_COLORS, bodyDef: '#ffffff' },
   // Front of the house and street
   streetLamp: {
     variantLabel: t('Model'),

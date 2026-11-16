@@ -517,6 +517,9 @@ function groundFloor(): Level {
   wall(side, 'left', 8, 'ladder')
   put('generator', 13.5, 8.8, 0)
 
+  /* --- structure: a column at the corner of the porch --- */
+  put('column', -3.7, 11.9, 0)
+
   return { id: `${AMERICAN_LEVEL}-0`, name: t('Ground floor'), elevation: 0, rooms, items }
 }
 
@@ -721,6 +724,9 @@ function upperFloor(): Level {
 
   /* --- pets: a bird cage in the hall --- */
   put('petCage', hall.x + hall.w - WALL_IN - 0.21, 7, -PI / 2, { variant: 'bird' })
+
+  /* --- structure: a skylight over the hall --- */
+  put('skylight', 0.6, 5.45, 0, bind('cover.us_hall_skylight'))
 
   return { id: `${AMERICAN_LEVEL}-1`, name: t('Floor 1'), elevation: 1, rooms, items }
 }
@@ -961,6 +967,7 @@ export function americanEntities(): HassEntity[] {
     ent('siren.us_garage_siren', 'off', t('Garage Siren'), {}),
     ent('siren.us_upstairs_siren', 'off', t('Upstairs Siren'), {}),
     ent('event.us_bedside_button', ago(300), t('Bedside Button'), { event_type: 'single', event_types: ['single', 'double', 'long'] }),
+    cover('us_hall_skylight', t('Hall Skylight'), 0, 'window'),
     ent('valve.us_garden_tap', 'closed', t('Garden Tap'), {}),
     sensor('us_rain_barrel', t('Rain Barrel Level'), 62, null, '%'),
     cover('us_greenhouse_vent', t('Greenhouse Vent'), 40, 'window'),

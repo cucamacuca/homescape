@@ -259,6 +259,8 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   birdFeeder: H.BirdFeeder,
   generator: H.Generator,
   ladder: H.Ladder,
+  skylight: H.Skylight,
+  column: H.Column,
 }
 
 /** Default height for kinds positioned from a given mount height instead of their own base. */

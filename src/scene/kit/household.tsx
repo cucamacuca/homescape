@@ -1767,3 +1767,54 @@ export function Ladder({ v }: P) {
     </group>
   )
 }
+
+/* ---------- structure ---------- */
+
+/**
+ * Skylight (in the ceiling): a framed glass pane that tilts up and out as far as a bound cover is open (or while a bound
+ * window sensor is open). Daylight falls through it as a soft glow.
+ */
+export function Skylight({ v }: P) {
+  const pos = v.domain === 'cover' ? (num(v.attrs.current_position) ?? (v.state === 'open' ? 100 : 0)) : v.on ? 100 : 0
+  const sash = useRef<THREE.Group>(null)
+  useEase((pos / 100) * 0.5, (a) => {
+    if (sash.current) sash.current.rotation.x = -a
+  })
+  const Y = WALL_H - 0.02
+  return (
+    <group>
+      {/* frame in the ceiling (a ring of four bars) and the glass sash hinged at its back edge */}
+      {[-1, 1].map((sx) => (
+        <Box key={`x${sx}`} size={[0.06, 0.06, 1.2]} position={[sx * 0.37, Y, 0]} color={C.white} />
+      ))}
+      {[-1, 1].map((sz) => (
+        <Box key={`z${sz}`} size={[0.8, 0.06, 0.06]} position={[0, Y, sz * 0.57]} color={C.white} />
+      ))}
+      <group ref={sash} position={[0, Y - 0.01, -0.54]}>
+        <Box size={[0.68, 0.02, 1.08]} position={[0, 0, 0.54]} material={clear('#cfe6ff', 0.45, 0.05)} shadow={false} />
+        <Box size={[0.68, 0.03, 0.03]} position={[0, 0, 1.07]} color={C.white} shadow={false} />
+      </group>
+      {!v.night && <Glow position={[0, Y - 0.3, 0]} color="#fff7e0" opacity={0.25} size={1.2} />}
+    </group>
+  )
+}
+
+/** Column or pillar from the floor to the ceiling: round or square (Item.variant), in Item.body. */
+export function Column({ v }: P) {
+  const color = v.opts.body ?? '#ffffff'
+  if (v.opts.variant === 'square')
+    return (
+      <group>
+        <Box size={[0.35, 0.08, 0.35]} position={[0, 0.04, 0]} color={color} />
+        <Box size={[0.28, WALL_H - 0.16, 0.28]} position={[0, WALL_H / 2, 0]} color={color} />
+        <Box size={[0.35, 0.08, 0.35]} position={[0, WALL_H - 0.04, 0]} color={color} />
+      </group>
+    )
+  return (
+    <group>
+      <Cyl r={0.17} h={0.08} position={[0, 0.04, 0]} color={color} segments={24} />
+      <Cyl r={0.13} h={WALL_H - 0.16} position={[0, WALL_H / 2, 0]} color={color} segments={24} />
+      <Cyl r={0.17} h={0.08} position={[0, WALL_H - 0.04, 0]} color={color} segments={24} />
+    </group>
+  )
+}

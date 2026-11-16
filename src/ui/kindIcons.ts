@@ -406,4 +406,6 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   birdFeeder: Bird,
   generator: PlugZap,
   ladder: Columns2,
+  skylight: PanelTop,
+  column: Columns3,
 }
