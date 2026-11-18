@@ -96,6 +96,10 @@ export const CATALOG: Record<ItemKind, KindMeta> = {
   diningTable: { label: t('Dining table'), group: 'furniture', domains: [], size: [1.4, 0.85], labelY: 1 },
   tvUnit: { label: t('TV unit'), group: 'furniture', domains: [], size: [1.8, 0.42], labelY: 0.8, wall: true },
   kitchenCounter: { label: t('Kitchen counter'), group: 'appliance', domains: ['light', 'switch'], size: [2, 0.62], labelY: 1.2, wall: true },
+  // Freestanding island: base cabinets on the front (+z) side, a worktop overhang for bar stools at the back. Length Item.len,
+  // depth Item.len2; built-in sink (Item.sink) and dishwasher (Item.dishwasher) are optional. A bound plug or sensor drives
+  // the dishwasher's light (on while it runs).
+  kitchenIsland: { label: t('Kitchen island'), group: 'appliance', domains: ['switch', 'sensor', 'binary_sensor'], size: [1.8, 0.95], labelY: 1.2 },
   fridge: { label: t('Fridge'), group: 'appliance', domains: [], size: [0.75, 0.7], labelY: 2.1, wall: true },
   stove: { label: t('Stove'), group: 'appliance', domains: [], size: [0.75, 0.62], labelY: 1.2, wall: true },
   sink: { label: t('Sink'), group: 'appliance', domains: [], size: [1, 0.62], labelY: 1.2, wall: true },
@@ -533,6 +537,11 @@ export const OPTIONS: Partial<
     ledEntityLabel: t('Entity driving the LED'),
     top: t('Counter color'),
     body: t('Cabinet color'),
+  },
+  kitchenIsland: {
+    top: t('Counter color'),
+    body: t('Cabinet color'),
+    note: t('The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.'),
   },
   tv: {
     variantLabel: t('Placement'),
@@ -1033,6 +1042,7 @@ export const OPTIONS: Partial<
 export const RESIZABLE: Partial<Record<ItemKind, { min: number; max: number; label?: string; def?: number }>> = {
   desk: { min: 0.8, max: 2.6 },
   kitchenCounter: { min: 0.6, max: 4, label: t('Counter length') },
+  kitchenIsland: { min: 1.2, max: 3.6, label: t('Island length') },
   tvUnit: { min: 0.8, max: 3.2, label: t('Unit length') },
   window: { min: 0.5, max: 3, label: t('Window width') },
   rug: { min: 0.5, max: 5, label: t('Rug width') },
@@ -1090,6 +1100,8 @@ export const RESIZABLE2: Partial<Record<ItemKind, { min: number; max: number; la
   rug: { min: 0.5, max: 5, label: t('Rug length'), def: 1.8 },
   doormat: { min: 0.3, max: 1.5, label: t('Doormat length'), def: 0.45 },
   pool: { min: 1, max: 8, label: t('Pool width'), def: 2.5 },
+  // Island depth: 0.6 m is cabinets only, anything more is the seating overhang at the back
+  kitchenIsland: { min: 0.6, max: 1.4, label: t('Island depth'), def: 0.95 },
 }
 
 /**
@@ -1101,7 +1113,7 @@ export interface ItemPreset {
   kind: ItemKind
   label: string
   sub: string
-  extra: Partial<Pick<Item, 'len' | 'len2' | 'y' | 'variant' | 'mount' | 'fixed' | 'double'>>
+  extra: Partial<Pick<Item, 'len' | 'len2' | 'y' | 'variant' | 'mount' | 'fixed' | 'double' | 'sink' | 'dishwasher'>>
 }
 export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'windowFull', kind: 'window', label: t('Full-height window'), sub: `${formatNumber(1.2)} × ${formatNumber(2.1)} m`, extra: { len2: 2.1, y: -0.82 } },
@@ -1115,6 +1127,8 @@ export const ITEM_PRESETS: ItemPreset[] = [
   { id: 'wallOpening', kind: 'door', label: t('Wall opening'), sub: t('no door'), extra: { variant: 'opening', len: WALL_OPENING.def } },
   // The power strip can hang on the wall too
   { id: 'powerStripWall', kind: 'powerStrip', label: t('Wall power strip'), sub: t('wall mounted · 2-8 outlets'), extra: { mount: 'wall' } },
+  // A longer island with the sink in the middle and the dishwasher beside it; the card changes both
+  { id: 'islandSink', kind: 'kitchenIsland', label: t('Island with sink'), sub: t('sink · dishwasher'), extra: { len: 2.4, sink: 'center', dishwasher: 'left' } },
   // Rug shapes; all the same kind, the card changes shape and size
   { id: 'rugRound', kind: 'rug', label: t('Round rug'), sub: t('Ø {d} m · can be oval', { d: 1.6 }), extra: { variant: 'round', len: 1.6, len2: 1.6 } },
   { id: 'rugCowhide', kind: 'rug', label: t('Cowhide'), sub: `${formatNumber(1.6)} × ${formatNumber(2)} m`, extra: { variant: 'cowhide', len: 1.6, len2: 2 } },
@@ -1135,7 +1149,7 @@ export const windowSize = (it: { len?: number; len2?: number }) => ({ w: it.len 
 export function sizeOf(kind: ItemKind, len?: number, len2?: number): [number, number] {
   const [w, d] = CATALOG[kind].size
   // The second size only for kinds that use it as depth (ceiling strip, rug); the L arm of a counter is computed separately.
-  if (kind === 'ceilingStrip' || kind === 'rug' || kind === 'doormat' || kind === 'pool') return [len ?? w, len2 ?? d]
+  if (kind === 'ceilingStrip' || kind === 'rug' || kind === 'doormat' || kind === 'pool' || kind === 'kitchenIsland') return [len ?? w, len2 ?? d]
   // A ceiling fan is round: the blade span in both directions
   if (kind === 'ceilingFan') return [len ?? w, len ?? d]
   // A Christmas tree's len is its height; the round footprint grows with it
