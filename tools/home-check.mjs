@@ -2360,6 +2360,13 @@ ok(components(L) === 1, `Inner doors are added when an old plan (without inner d
   ok((await slide(ids.inside, 1.4)) === 1.4, 'An indoor Christmas tree can be made smaller')
   ok((await slide(ids.outside, 4.8)) === 4.8, 'An outdoor Christmas tree can grow to 4.8 m')
   ok((await tree(ids.outside))?.variant === 'ground', 'The outdoor preset plants the tree in the ground')
+  // The automatic plan makes a tree from a plug or light named like one; Christmas string lights stay string lights
+  const xmas = await p.evaluate(async () => {
+    const { kindFor } = await import('/src/model/generate.ts')
+    const e = (entity_id, friendly_name) => ({ entity_id, state: 'on', attributes: { friendly_name } })
+    return [kindFor(e('switch.christmas_tree', 'Christmas tree')), kindFor(e('light.christmas_tree_lights', 'Christmas tree lights')), kindFor(e('light.xmas_string_lights', 'Xmas string lights'))]
+  })
+  ok(xmas.join() === 'christmasTree,christmasTree,stringLights', `The automatic plan finds a Christmas tree by name, and Christmas string lights stay string lights (${xmas.join(', ')})`)
   await p.evaluate((ids) => {
     const L = window.__homescape.getState().layout
     L.select(null)

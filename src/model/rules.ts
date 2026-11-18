@@ -329,10 +329,10 @@ function fitsRoom(room: Room, box: Box2, t: number) {
   return true
 }
 
-/** Can the item go at this spot? ignoreId: the moved item itself. */
 /** Tallest Christmas tree that fits under an indoor ceiling (m) */
 export const TREE_INDOOR_MAX = WALL_H - 0.1
 
+/** Can the item go at this spot? ignoreId: the moved item itself. */
 export function checkItem(level: Level, cand: Cand, ignoreId?: string, onWall = true): Check {
   const room = roomAt(level.rooms, cand.x, cand.z)
   if (!room) return { ok: false, reason: t('Drop it inside a room') }
