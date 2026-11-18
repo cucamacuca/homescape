@@ -6,9 +6,9 @@ import { t } from '@/i18n'
 import { HEADBOARD } from '@/model/bindings'
 import { CATALOG, RUG_DEFAULT } from '@/model/catalog'
 import { DRAWER_SLIDE } from '@/model/containers'
-import { SINK_W } from '@/model/counter'
+import { islandParts, SINK_W, SLOT_W } from '@/model/counter'
 import { markShadows } from '../frame'
-import { StripGlow, useEased, useLitMaterial, Wash } from './effects'
+import { Glow, StripGlow, useEased, useLitMaterial, Wash } from './effects'
 import { BOOK_COLORS, C } from './palette'
 import { Ball, Box, Cyl, mat, rng } from './primitives'
 import { rugTexture } from './textures'
@@ -787,6 +787,62 @@ export function KitchenCounter({ v }: { v: Visual }) {
           <CounterRun len={leg - D} {...run} uppers={false} led={led === 'under' ? 'none' : led} />
         </group>
       )}
+    </group>
+  )
+}
+
+/**
+ * Kitchen island: base cabinets along the front (+z, 0.6 m deep), worktop over the whole depth (v.opts.len2) so the part
+ * behind the cabinets is a seating overhang for bar stools, closed back panel and worktop-colored end panels. Optional
+ * built-in sink (v.opts.sink) and integrated dishwasher (v.opts.dishwasher) placed by model/counter.ts > islandParts; the
+ * dishwasher's light shows while the bound plug or sensor is on.
+ */
+export function KitchenIsland({ v }: { v: Visual }) {
+  const L = v.opts.len ?? CATALOG.kitchenIsland.size[0]
+  const D = Math.max(0.6, v.opts.len2 ?? CATALOG.kitchenIsland.size[1])
+  const top = v.opts.top ?? C.offWhite
+  const body = v.opts.body ?? C.white
+  const door = v.opts.body ? v.opts.body : C.brandPale
+  const { sink, dish } = islandParts(L, v.opts.sink, v.opts.dishwasher)
+  const CD = 0.6
+  const zc = D / 2 - CD / 2
+  const front = zc + CD / 2 + 0.009
+  const over = D - CD
+  const led = useLitMaterial('#9aa0b8', v.on, C.cool, 1, 2.2)
+  // Door fronts fill the run, skipping the dishwasher slot; doors about 0.5 m wide
+  const spans: [number, number][] = dish == null ? [[-L / 2, L / 2]] : [[-L / 2, dish - SLOT_W / 2], [dish + SLOT_W / 2, L / 2]]
+  const doors = spans.flatMap(([a, b]) => {
+    const w = b - a
+    if (w < 0.1) return []
+    const n = Math.max(1, Math.round(w / 0.5))
+    return Array.from({ length: n }, (_, i) => ({ x: a + (w / n) * (i + 0.5), w: w / n }))
+  })
+  return (
+    <group>
+      <Box size={[L - 0.04, 0.08, CD - 0.08]} position={[0, 0.04, zc - 0.04]} color={shade(body, 0.8)} />
+      <Carcass w={L} h={0.78} d={CD} y={0.08} z={zc} color={body} shelves={[0.37]} top={sink == null} />
+      {doors.map((d, i) => (
+        <SwingDoor key={d.x} w={d.w - 0.012} h={0.74} at={[d.x, 0.47, front]} hinge={i % 2 ? 'r' : 'l'} open={0} color={door} handle={0.14} />
+      ))}
+      {dish != null && (
+        <group position={[dish, 0, front]}>
+          <Box size={[SLOT_W - 0.012, 0.66, 0.016]} position={[0, 0.43, 0]} color={door} shadow={false} />
+          <Box size={[SLOT_W - 0.012, 0.08, 0.016]} position={[0, 0.82, 0]} color={C.steel} shadow={false} />
+          <Box size={[0.36, 0.02, 0.03]} position={[0, 0.72, 0.016]} color={C.steel} />
+          <Box size={[0.18, 0.012, 0.008]} position={[0.14, 0.82, 0.01]} material={led} shadow={false} />
+          {v.on && <Glow position={[0, 0.05, 0.15]} color={C.cool} opacity={v.night ? 0.5 : 0.2} size={0.7} />}
+        </group>
+      )}
+      {/* Worktop: the cabinet part (with the sink) and the overhang behind it */}
+      <group position={[0, 0, zc]}>
+        <CounterTop len={L + 0.06} color={top} sinkAt={sink ?? undefined} d={CD + 0.02} />
+      </group>
+      {over > 0.005 && <Box size={[L + 0.06, 0.05, over - 0.01]} position={[0, 0.885, -D / 2 + (over - 0.01) / 2]} color={top} />}
+      {/* Back panel on the seating side and end panels in the worktop color */}
+      <Box size={[L - 0.02, 0.8, 0.02]} position={[0, 0.48, zc - CD / 2 - 0.01]} color={body} />
+      {[-1, 1].map((sx) => (
+        <Box key={sx} size={[0.03, 0.86, D]} position={[sx * (L / 2 + 0.015), 0.43, 0]} color={top} />
+      ))}
     </group>
   )
 }

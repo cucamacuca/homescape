@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "{room} हटा दिया गया। पूर्ववत करने के लिए ⌘Z दबाएँ।",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · अंडाकार भी हो सकता है",
- "⌥ or ⇧ + left drag": "⌥ या ⇧ + बायाँ ड्रैग"
+ "⌥ or ⇧ + left drag": "⌥ या ⇧ + बायाँ ड्रैग",
+ "Kitchen island": "किचन आइलैंड",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "कैबिनेट आगे की ओर हैं; पीछे काउंटरटॉप बाहर निकला है ताकि बार स्टूल नीचे आ सकें। डिशवॉशर कब चल रहा है यह दिखाने के लिए उसका प्लग या सेंसर जोड़ें।",
+ "Island length": "आइलैंड की लंबाई",
+ "Island depth": "आइलैंड की गहराई",
+ "Island with sink": "सिंक वाला आइलैंड",
+ "sink · dishwasher": "सिंक · डिशवॉशर",
+ "A sink with a dishwasher needs an island of at least {length} m.": "डिशवॉशर के साथ सिंक के लिए आइलैंड कम से कम {length} मी का होना चाहिए।",
+ "Built in right beside the sink.": "सिंक के ठीक बगल में लगा।",
+ "Built in at that end of the island.": "आइलैंड के उस सिरे पर लगा।"
 }
