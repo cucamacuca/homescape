@@ -205,6 +205,7 @@ export const KIND_ICON: Record<ItemKind, LucideIcon> = {
   chair: Armchair,
   diningTable: Utensils,
   kitchenCounter: Grid2x2,
+  kitchenIsland: RectangleHorizontal,
   tvUnit: TvMinimal,
   fridge: Refrigerator,
   stove: CookingPot,

@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "{room} gelöscht. Rückgängig mit ⌘Z.",
  "{value}%": "{value} %",
  "Ø {d} m · can be oval": "Ø {d} m · kann oval sein",
- "⌥ or ⇧ + left drag": "⌥ oder ⇧ + mit links ziehen"
+ "⌥ or ⇧ + left drag": "⌥ oder ⇧ + mit links ziehen",
+ "Kitchen island": "Kücheninsel",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "Die Schränke zeigen nach vorne; hinten steht die Arbeitsplatte über, damit Barhocker darunter passen. Binde den Stecker oder Sensor der Spülmaschine, um zu zeigen, wann sie läuft.",
+ "Island length": "Insellänge",
+ "Island depth": "Inseltiefe",
+ "Island with sink": "Insel mit Spüle",
+ "sink · dishwasher": "Spüle · Spülmaschine",
+ "A sink with a dishwasher needs an island of at least {length} m.": "Eine Spüle mit Spülmaschine braucht eine Insel von mindestens {length} m.",
+ "Built in right beside the sink.": "Direkt neben der Spüle eingebaut.",
+ "Built in at that end of the island.": "An diesem Ende der Insel eingebaut."
 }

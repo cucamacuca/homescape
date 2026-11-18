@@ -193,6 +193,7 @@ export type ItemKind =
   | 'gamingChair'
   | 'diningTable'
   | 'kitchenCounter'
+  | 'kitchenIsland'
   | 'tvUnit'
   | 'fridge'
   | 'stove'
@@ -375,10 +376,15 @@ export interface Item {
   /** Beam angle of a downlight (degrees, full cone; 20-150 on the card, 90 when not given). */
   beam?: number
   /**
-   * Built-in sink and faucet of the kitchen counter: its position, or none. When not given it sits in the middle unless a
-   * separate sink stands next to the counter (model/counter.ts).
+   * Built-in sink and faucet of the kitchen counter or island: its position, or none. Counter: when not given it sits in the
+   * middle unless a separate sink stands next to the counter. Island: none when not given (model/counter.ts).
    */
   sink?: 'none' | 'left' | 'center' | 'right'
+  /**
+   * Built-in dishwasher of the kitchen island: beside the sink on its left or right (at that end of the island without a
+   * sink), or none (when not given). Left and right as seen standing at the cabinet side (model/counter.ts > islandParts).
+   */
+  dishwasher?: 'none' | 'left' | 'right'
   /**
    * Group id (grouped lights bind to the same entity). Bindings of items in the same group change together (layoutStore
    * bind / unbind / makeMain).

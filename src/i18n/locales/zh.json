@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "已删除 {room}。按 ⌘Z 可撤销。",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · 也可做成椭圆",
- "⌥ or ⇧ + left drag": "⌥ 或 ⇧ + 左键拖动"
+ "⌥ or ⇧ + left drag": "⌥ 或 ⇧ + 左键拖动",
+ "Kitchen island": "厨房岛台",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "橱柜朝向正面；背面台面外伸，可放入吧台凳。绑定洗碗机的插座或传感器，即可显示它何时在运行。",
+ "Island length": "岛台长度",
+ "Island depth": "岛台深度",
+ "Island with sink": "带水槽的岛台",
+ "sink · dishwasher": "水槽 · 洗碗机",
+ "A sink with a dishwasher needs an island of at least {length} m.": "带洗碗机的水槽需要至少 {length} 米长的岛台。",
+ "Built in right beside the sink.": "紧挨水槽嵌入。",
+ "Built in at that end of the island.": "嵌入岛台的这一端。"
 }

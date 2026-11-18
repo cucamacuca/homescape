@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "Usunięto pokój {room}. Cofnij: ⌘Z.",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · może być owalny",
- "⌥ or ⇧ + left drag": "⌥ lub ⇧ + przeciągnięcie lewym przyciskiem"
+ "⌥ or ⇧ + left drag": "⌥ lub ⇧ + przeciągnięcie lewym przyciskiem",
+ "Kitchen island": "Wyspa kuchenna",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "Szafki są z przodu; z tyłu blat wystaje, żeby zmieściły się pod nim hokery. Powiąż gniazdko lub czujnik zmywarki, aby widzieć, kiedy pracuje.",
+ "Island length": "Długość wyspy",
+ "Island depth": "Głębokość wyspy",
+ "Island with sink": "Wyspa ze zlewem",
+ "sink · dishwasher": "zlew · zmywarka",
+ "A sink with a dishwasher needs an island of at least {length} m.": "Zlew ze zmywarką wymaga wyspy o długości co najmniej {length} m.",
+ "Built in right beside the sink.": "Zabudowana tuż obok zlewu.",
+ "Built in at that end of the island.": "Zabudowana na tym końcu wyspy."
 }

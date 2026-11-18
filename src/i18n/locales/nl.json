@@ -1788,5 +1788,14 @@
  "{room} deleted. ⌘Z undoes it.": "{room} verwijderd. Ongedaan maken met ⌘Z.",
  "{value}%": "{value}%",
  "Ø {d} m · can be oval": "Ø {d} m · kan ovaal zijn",
- "⌥ or ⇧ + left drag": "⌥ of ⇧ + met links slepen"
+ "⌥ or ⇧ + left drag": "⌥ of ⇧ + met links slepen",
+ "Kitchen island": "Kookeiland",
+ "The cabinets face the front; the worktop overhangs at the back so bar stools fit under it. Bind the dishwasher plug or sensor to show when it runs.": "De kastjes zitten aan de voorkant; achter steekt het werkblad uit zodat er barkrukken onder passen. Koppel de stekker of sensor van de vaatwasser om te zien wanneer hij draait.",
+ "Island length": "Lengte van het eiland",
+ "Island depth": "Diepte van het eiland",
+ "Island with sink": "Eiland met spoelbak",
+ "sink · dishwasher": "spoelbak · vaatwasser",
+ "A sink with a dishwasher needs an island of at least {length} m.": "Een spoelbak met vaatwasser vraagt een eiland van minstens {length} m.",
+ "Built in right beside the sink.": "Ingebouwd direct naast de spoelbak.",
+ "Built in at that end of the island.": "Ingebouwd aan dat uiteinde van het eiland."
 }

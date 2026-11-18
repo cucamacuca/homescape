@@ -1,5 +1,6 @@
 import { deviceClass, domainOf, isActive } from '@/ha/derive'
 import type { HassEntity } from '@/ha/types'
+import type { Item } from '@/model/types'
 
 /** Values derived from entity state that decide how an item looks in the scene. */
 export interface Visual {
@@ -64,6 +65,9 @@ export interface ItemOpts {
   beam?: number
   /** Built-in sink of a kitchen counter: its center on the counter's local x (omitted when there is none; model/counter.ts) */
   sinkAt?: number
+  /** Kitchen island: built-in sink and dishwasher (Item.sink, Item.dishwasher; placed by model/counter.ts > islandParts) */
+  sink?: Item['sink']
+  dishwasher?: Item['dishwasher']
 }
 
 /**

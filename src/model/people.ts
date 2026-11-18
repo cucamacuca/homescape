@@ -253,18 +253,20 @@ function toiletSpots(level: Level, room: Room): Spot[] {
  * with a built-in sink has two: in front of the sink (dishes, 'sink') and a free part of the counter away from the sink
  * (chopping, 'kitchenCounter').
  */
-const WORK = ['kitchenCounter', 'sink', 'stove', 'washbasin', 'fridge', 'washer', 'mirrorCabinet', 'dresser']
+const WORK = ['kitchenCounter', 'kitchenIsland', 'sink', 'stove', 'washbasin', 'fridge', 'washer', 'mirrorCabinet', 'dresser']
 function workSpots(level: Level, room: Room): Spot[] {
-  const spot = (it: Item, x: number, use: ItemKind): Spot => ({ ...local(it, x, sizeOf(it.kind, it.len)[1] / 2 + 0.38), y: 0, rot: it.rot + Math.PI, pose: 'stand', roomId: room.id, use })
+  // An island is worked at from its cabinet side, like a counter (chopping, 'kitchenCounter')
+  const spot = (it: Item, x: number, use: ItemKind): Spot => ({ ...local(it, x, sizeOf(it.kind, it.len, it.len2)[1] / 2 + 0.38), y: 0, rot: it.rot + Math.PI, pose: 'stand', roomId: room.id, use })
   return itemsIn(level, room)
     .filter((i) => WORK.includes(i.kind))
     .flatMap((it) => {
       const sink = counterSink(level.items, it)
-      if (sink == null) return [spot(it, 0, it.kind)]
+      const work = it.kind === 'kitchenIsland' ? 'kitchenCounter' : it.kind
+      if (sink == null) return [spot(it, 0, work)]
       const L = sizeOf(it.kind, it.len)[0]
       // Chopping spot: 0.65 m beside the sink (on the counter's longer side); none if closer than 0.25 m to the end, sink only
       const free = sink > 0 ? (sink - 0.65 >= -L / 2 + 0.25 ? sink - 0.65 : null) : sink + 0.65 <= L / 2 - 0.25 ? sink + 0.65 : null
-      return free == null ? [spot(it, sink, 'sink')] : [spot(it, sink, 'sink'), spot(it, free, it.kind)]
+      return free == null ? [spot(it, sink, 'sink')] : [spot(it, sink, 'sink'), spot(it, free, work)]
     })
 }
 

@@ -58,6 +58,7 @@ export const KIT: Record<ItemKind, ComponentType<{ v: Visual }>> = {
   gamingChair: F.GamingChair,
   diningTable: F.DiningTable,
   kitchenCounter: F.KitchenCounter,
+  kitchenIsland: F.KitchenIsland,
   tvUnit: F.TvUnit,
   fridge: F.Fridge,
   stove: F.Stove,
